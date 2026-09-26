@@ -412,6 +412,116 @@ final class SessionListMutationTests: XCTestCase {
     }
 
     @MainActor
+    func testCreateSessionAfterProfileSwitchPinsProfileWithoutCookieOrWorkspaceLookup() async throws {
+        var createdProfiles: [String] = []
+        let viewModel = try makeViewModel { request in
+            switch request.url?.path {
+            case "/api/profiles":
+                return apiTestJSONResponse(#"{"active":"default","profiles":[{"name":"default"},{"name":"work"}]}"#, for: request)
+            case "/api/profile/switch":
+                let body = try XCTUnwrap(apiTestJSONBody(from: request))
+                XCTAssertEqual(body["name"] as? String, "work")
+                // No Set-Cookie: creation must carry the confirmed selection itself.
+                return apiTestJSONResponse(#"{"active":"work"}"#, for: request)
+            case "/api/session/new":
+                let body = try XCTUnwrap(apiTestJSONBody(from: request))
+                let profile = try XCTUnwrap(body["profile"] as? String)
+                createdProfiles.append(profile)
+                XCTAssertNil(body["workspace"])
+                XCTAssertNil(body["model"])
+                XCTAssertNil(body["model_provider"])
+                return apiTestJSONResponse("""
+                {"session":{"session_id":"new-\(profile)","profile":"\(profile)","workspace":"/\(profile)","model":"\(profile)-model"}}
+                """, for: request)
+            default:
+                XCTFail("Profile-pinned creation must not fetch a cookie-scoped workspace: \(request.url?.path ?? "nil")")
+                throw URLError(.badURL)
+            }
+        }
+
+        await viewModel.loadActiveProfile()
+        let work = try XCTUnwrap(viewModel.profileOptions.first { $0.name == "work" })
+        let didSwitch = await viewModel.switchActiveProfile(work)
+        XCTAssertTrue(didSwitch)
+
+        let created = await viewModel.createSession()
+        XCTAssertEqual(created?.profile, "work")
+        XCTAssertEqual(created?.workspace, "/work")
+        XCTAssertEqual(created?.model, "work-model")
+
+        let override = await viewModel.createSession(profile: " default ")
+        XCTAssertEqual(override?.profile, "default")
+        XCTAssertEqual(override?.workspace, "/default")
+        XCTAssertEqual(override?.model, "default-model")
+        XCTAssertEqual(viewModel.activeProfileName, "work")
+
+        let blankOverride = await viewModel.createSession(profile: "  ")
+        XCTAssertEqual(blankOverride?.profile, "work")
+        XCTAssertEqual(createdProfiles, ["work", "default", "work"])
+        XCTAssertNil(viewModel.lastError)
+    }
+
+    @MainActor
+    func testSettingsProfileSelectionWinsOverPendingRefreshAndImmediatelyCreatesInThatProfile() async throws {
+        for refreshFails in [false, true] {
+            let refreshStarted = expectation(description: "Old profile refresh started")
+            let releaseRefresh = DispatchSemaphore(value: 0)
+            defer { releaseRefresh.signal() }
+            var profileReads = 0
+            let viewModel = try makeViewModel { request in
+                switch request.url?.path {
+                case "/api/profiles":
+                    profileReads += 1
+                    if profileReads == 2 {
+                        refreshStarted.fulfill()
+                        releaseRefresh.wait()
+                        if refreshFails { throw URLError(.cannotConnectToHost) }
+                    }
+                    return apiTestJSONResponse("""
+                    {"active":"default","profiles":[
+                      {"name":"default","model":"old-model","provider":"openai"},
+                      {"name":"work","model":"cached-model","provider":"anthropic"}
+                    ]}
+                    """, for: request)
+                case "/api/session/new":
+                    let body = try XCTUnwrap(apiTestJSONBody(from: request))
+                    XCTAssertEqual(body["profile"] as? String, "work")
+                    XCTAssertNil(body["workspace"])
+                    return apiTestJSONResponse(#"{"session":{"session_id":"settings-chat","profile":"work"}}"#, for: request)
+                default:
+                    XCTFail("A confirmed Settings selection needs no extra switch or workspace lookup.")
+                    throw URLError(.badURL)
+                }
+            }
+            await viewModel.loadActiveProfile()
+            XCTAssertEqual(viewModel.activeProfileName, "default")
+
+            let refresh = Task { await viewModel.loadActiveProfile() }
+            await fulfillment(of: [refreshStarted], timeout: 2)
+            viewModel.adoptDefaultProfileSelection(DefaultProfileSelection(
+                name: "work", displayName: "Work", defaultModel: "confirmed-model"
+            ))
+
+            // New Chat does not wait for the old refresh to finish.
+            let created = await viewModel.createSession()
+            XCTAssertEqual(created?.profile, "work")
+            releaseRefresh.signal()
+            await refresh.value
+
+            XCTAssertEqual(viewModel.activeProfileName, "work")
+            XCTAssertEqual(viewModel.activeProfileDisplayName, "Work")
+            XCTAssertEqual(viewModel.activeProfileModel, "confirmed-model")
+            XCTAssertEqual(viewModel.activeProfileProvider, "anthropic")
+            XCTAssertNil(viewModel.activeProfileErrorMessage)
+            XCTAssertFalse(viewModel.isLoadingActiveProfile)
+
+            // A subsequent read remains free to adopt a newer server selection.
+            await viewModel.loadActiveProfile()
+            XCTAssertEqual(viewModel.activeProfileName, "default")
+        }
+    }
+
+    @MainActor
     func testCreateSessionKeepsWorktreeBackedUntitledSessionWithoutCounts() async throws {
         let context = try makeContext()
         let serverURL = try XCTUnwrap(URL(string: "https://example.test"))
