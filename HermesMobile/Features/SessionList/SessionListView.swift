@@ -3,6 +3,31 @@ import SwiftData
 import UIKit
 import StoreKit
 
+/// Refreshes the session list when the app returns from the background, so
+/// sessions started or finished elsewhere show without a pull. A return that
+/// lands while a load is running, or before the initial load has finished, is
+/// remembered and refreshed once the list is idle: that load may have started
+/// before backgrounding and would otherwise leave stale rows. Repeated returns
+/// coalesce to one refresh.
+struct SessionListForegroundRefresh: Equatable {
+    private(set) var isPending = false
+
+    /// Called on a real background-to-active return. Returns true when the
+    /// list should refresh now; otherwise the return waits for `consumeIfReady`.
+    mutating func appReturned(didCompleteInitialLoad: Bool, isLoading: Bool) -> Bool {
+        isPending = true
+        return consumeIfReady(didCompleteInitialLoad: didCompleteInitialLoad, isLoading: isLoading)
+    }
+
+    /// Called when loading stops or the initial load completes. Returns true
+    /// once for a remembered return, as soon as the list is free to refresh.
+    mutating func consumeIfReady(didCompleteInitialLoad: Bool, isLoading: Bool) -> Bool {
+        guard isPending, didCompleteInitialLoad, !isLoading else { return false }
+        isPending = false
+        return true
+    }
+}
+
 @MainActor
 struct SessionListView: View {
     private static let searchChromeIconVisualSize: CGFloat = 36
@@ -27,6 +52,7 @@ struct SessionListView: View {
     @AppStorage(TipJar.completedResponseCountKey) private var completedResponses = 0
     @AppStorage(TipJar.dismissedReleaseKey) private var tipDismissedRelease: String?
     @State private var wasBackgrounded = false
+    @State private var foregroundRefresh = SessionListForegroundRefresh()
     @State private var ratingRequestID: UUID?
     @State private var ratingMoment: RatingPromptMoment = .coldLaunch
     @Environment(\.modelContext) private var modelContext
@@ -134,6 +160,12 @@ struct SessionListView: View {
                 }
                 if phase == .active, wasBackgrounded {
                     wasBackgrounded = false
+                    if foregroundRefresh.appReturned(
+                        didCompleteInitialLoad: didCompleteInitialLoad,
+                        isLoading: viewModel.isLoading
+                    ) {
+                        refreshAfterReturningIfNeeded()
+                    }
                     ratingMoment = .foreground
                     ratingRequestID = UUID()
                 } else if phase != .active {
@@ -324,6 +356,12 @@ struct SessionListView: View {
                 ratingRequestID = nil
                 sessionOpenTask?.cancel()
                 viewModel.invalidateSessionOpening()
+            }
+            .onChange(of: viewModel.isLoading) {
+                refreshAfterForegroundReturnIfReady()
+            }
+            .onChange(of: didCompleteInitialLoad) {
+                refreshAfterForegroundReturnIfReady()
             }
             .onChange(of: pendingSharedImport) {
                 openPendingSharedImportIfNeeded()
@@ -1188,6 +1226,15 @@ struct SessionListView: View {
         returnRefreshID = UUID()
     }
 
+    /// Runs a foreground return that had to wait for a load to settle.
+    private func refreshAfterForegroundReturnIfReady() {
+        guard foregroundRefresh.consumeIfReady(
+            didCompleteInitialLoad: didCompleteInitialLoad,
+            isLoading: viewModel.isLoading
+        ) else { return }
+        refreshAfterReturningIfNeeded()
+    }
+
     private func monitorActiveSessionRows() async {
         while !Task.isCancelled {
             let taskID = activeSessionMonitorTaskID
@@ -1564,10 +1611,11 @@ enum SessionListInitialLoad {
     }
 }
 
-/// Runs the return refresh that `SessionListDestinationReturn` requests. It
-/// reloads the rows, then runs one poll tick when the poll was paused while a
-/// destination covered the compact list, so badges such as Approval do not
-/// stay as they were before the push until the restarted poll's first tick.
+/// Runs the return refresh that `SessionListDestinationReturn` and
+/// `SessionListForegroundRefresh` request. It reloads the rows, then runs one
+/// poll tick when the poll was paused while a destination covered the compact
+/// list, so badges such as Approval do not stay as they were before the push
+/// until the restarted poll's first tick.
 enum SessionListReturnRefresh {
     @MainActor
     static func run(
