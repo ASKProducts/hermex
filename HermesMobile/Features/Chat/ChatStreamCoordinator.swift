@@ -615,6 +615,9 @@ final class ChatStreamCoordinator {
         }
     }
 
+    /// Finishes the run from the server's transcript when the server says it
+    /// ended and its reply is saved; otherwise leaves the live SSE to finish it.
+    /// Used by the foreground refresh and by a steer that found the run ended.
     func refreshTranscriptIfCompleted(
         streamID expectedStreamID: String,
         modelContext: ModelContext? = nil
