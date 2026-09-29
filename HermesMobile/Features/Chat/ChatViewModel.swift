@@ -366,6 +366,13 @@ final class ChatViewModel {
     private(set) var hasOlderMessages = false
     private(set) var contextWindowSnapshot: ContextWindowSnapshot?
     private(set) var responseCompletionHapticTrigger = 0
+    /// Bumps once for every run that ends completed or failed, after `runEndOutcome`
+    /// records which. `ChatView` turns each bump into at most one local alert and
+    /// keeps its background task open until then (#862). A stopped run never bumps.
+    private(set) var runEndTrigger = 0
+    private(set) var runEndOutcome: ResponseCompletionOutcome = .completed
+    /// The coordinator's ending the last bump counted, so no ending counts twice.
+    @ObservationIgnored private var runEndRecordedAt: Date?
     /// Bumps at most once per throttle interval while live (non-replay) assistant
     /// text arrives; the view turns each bump into one streaming pulse haptic.
     private(set) var streamingHapticPulseTrigger = 0
@@ -5883,6 +5890,7 @@ extension ChatViewModel: ChatStreamCoordinatorDelegate {
     func streamCoordinatorDidCompleteCurrentResponse(needsTranscriptRefresh: Bool) {
         responseCompletionNeedsTranscriptRefresh = needsTranscriptRefresh
         responseCompletionHapticTrigger += 1
+        recordRunEnd(.completed)
     }
 
     func streamCoordinatorDidFinishStream() {
@@ -5890,6 +5898,12 @@ extension ChatViewModel: ChatStreamCoordinatorDelegate {
         dismissSteeringConfirmation()
         responseCompletionNeedsTranscriptRefresh = false
         if let ending = streamCoordinator.latestRunEnding {
+            // A `done` completion already counted when it completed, and a late
+            // teardown can find an ending still on record, so each ending counts once.
+            // This catches failures and a `stream_end` that arrives without `done`.
+            if ending.endedAt != runEndRecordedAt, let outcome = ResponseCompletionOutcome(ending: ending.ending) {
+                recordRunEnd(outcome)
+            }
             latestRunOutcome = TranscriptTurnRunOutcome(
                 turnKey: TranscriptTurnClassifier.latestTurnKey(in: messages, messageOffset: messagesOffset),
                 startedAt: ending.startedAt,
@@ -5901,6 +5915,12 @@ extension ChatViewModel: ChatStreamCoordinatorDelegate {
 
     func streamCoordinatorDidReceiveErrorMessage(_ message: String) {
         sendErrorMessage = message
+    }
+
+    private func recordRunEnd(_ outcome: ResponseCompletionOutcome) {
+        runEndRecordedAt = streamCoordinator.latestRunEnding?.endedAt
+        runEndOutcome = outcome
+        runEndTrigger += 1
     }
 
     func streamCoordinatorDidReceiveRecoveryError(_ error: Error) {

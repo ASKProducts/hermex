@@ -715,9 +715,11 @@ struct ChatView: View {
         }
     }
 
-    /// The chat scaffold. Split from `body` so the confirmation-alert chain
-    /// below stays inside the compiler's type-checking budget.
-    private var chatContent: some View {
+    /// The chat scaffold: layout, title, and push presence. `body` is built in
+    /// layers (`chatScaffold`, `chatLifecycle`, `chatContent`, then the alerts in
+    /// `body`) so each chained expression stays inside the compiler's
+    /// type-checking budget; CI's pinned Xcode has less headroom than the newest.
+    private var chatScaffold: some View {
         GeometryReader { viewport in
             let clarificationMaximumHeight = max(
                 0,
@@ -757,10 +759,15 @@ struct ChatView: View {
         .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier("chat-detail:\(viewModel.displayTitle)")
         .pushPresence(viewModel.pushPresence)
-        .task(id: didCompleteInitialAppearance) {
-            await handleInitialAppearanceTask()
-        }
-        .onChange(of: scenePhase) {
+    }
+
+    /// Appearance, scene, network, stream, and draft handlers over `chatScaffold`.
+    private var chatLifecycle: some View {
+        chatScaffold
+            .task(id: didCompleteInitialAppearance) {
+                await handleInitialAppearanceTask()
+            }
+            .onChange(of: scenePhase) {
                 handleScenePhaseChange(scenePhase)
             }
             .onChange(of: NetworkPathMonitor.shared.changeCount) {
@@ -828,7 +835,16 @@ struct ChatView: View {
                 guard viewModel.responseCompletionHapticTrigger > 0 else { return }
                 handleResponseCompletionSideEffects()
             }
+            .onChange(of: viewModel.runEndTrigger) {
+                guard viewModel.runEndTrigger > 0 else { return }
+                handleRunEnd()
+            }
             .onChange(of: viewModel.streamingHapticPulseTrigger, handleStreamingHapticPulse)
+    }
+
+    /// Toolbar, navigation, and presentations over `chatLifecycle`.
+    private var chatContent: some View {
+        chatLifecycle
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     ChatToolbarTitleLabel(
@@ -2693,7 +2709,7 @@ struct ChatView: View {
             activeStreamStatusRefreshTask = nil
 
             if responseCompletionNotificationTracker.shouldEndBackgroundTaskOnStreamInactive(
-                completionTrigger: viewModel.responseCompletionHapticTrigger
+                runEndTrigger: viewModel.runEndTrigger
             ) {
                 endResponseCompletionBackgroundTask()
             }
@@ -2740,29 +2756,41 @@ struct ChatView: View {
             viewModel.cacheCompletedResponse(modelContext: modelContext)
         }
 
-        guard let completionContext = responseCompletionNotificationTracker.completionContext(
-            completionTrigger: viewModel.responseCompletionHapticTrigger,
+        ChatHaptics.assistantResponseCompleted(isEnabled: isHapticsEnabled)
+    }
+
+    /// Alerts once for a run that completed or failed while the scene was not active,
+    /// then releases the background task that kept the stream alive for it. A newer
+    /// run end in this chat supersedes one still waiting on its transcript load: the
+    /// newer alert stands, and the newer task releases the background task.
+    private func handleRunEnd() {
+        guard let runEndContext = responseCompletionNotificationTracker.completionContext(
+            runEndTrigger: viewModel.runEndTrigger,
             sceneIsActive: scenePhase == .active
         ) else {
             return
         }
-
-        ChatHaptics.assistantResponseCompleted(isEnabled: isHapticsEnabled)
+        let outcome = viewModel.runEndOutcome
+        let runEndTrigger = viewModel.runEndTrigger
 
         Task { @MainActor in
-            defer { endResponseCompletionBackgroundTask() }
-
-            if viewModel.responseCompletionNeedsTranscriptRefresh {
+            if outcome == .completed, viewModel.responseCompletionNeedsTranscriptRefresh {
                 await loadMessages()
             }
 
-            await ResponseCompletionNotificationService.scheduleResponseCompletedIfAllowed(
+            let isLatestRunEnd = { viewModel.runEndTrigger == runEndTrigger }
+            await ResponseCompletionNotificationService.scheduleRunEndedIfAllowed(
+                outcome,
                 sessionID: session.sessionId,
+                title: viewModel.displayTitle,
+                server: server,
                 preferenceEnabled: isResponseCompletionNotificationsEnabled,
-                completedNormally: true,
-                sceneIsActive: completionContext.sceneIsActive,
-                server: server
+                sceneIsActive: runEndContext.sceneIsActive,
+                isCurrent: isLatestRunEnd
             )
+            if isLatestRunEnd() {
+                endResponseCompletionBackgroundTask()
+            }
         }
     }
 
