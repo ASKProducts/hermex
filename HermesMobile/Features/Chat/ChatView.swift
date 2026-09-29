@@ -814,6 +814,7 @@ struct ChatView: View {
             }
             .onDisappear {
                 isOnScreen = false
+                parkQueuedMessages()
                 flushDraftsBestEffort()
                 appearanceTask?.cancel()
                 appearanceTask = nil
@@ -1638,6 +1639,9 @@ struct ChatView: View {
 
     private var composerLocalNotices: [String] {
         var notices = viewModel.pinnedLocalNotices
+        if let queuedMessagesReceipt = viewModel.queuedMessagesReceipt {
+            notices.append(queuedMessagesReceipt)
+        }
         if let steeringConfirmationNotice = viewModel.steeringConfirmationNotice {
             notices.append(steeringConfirmationNotice)
         }
@@ -2394,6 +2398,23 @@ struct ChatView: View {
         guard !passage.isEmpty else { return }
         persistedQuotesBinding.wrappedValue = draftQuotes + [ComposerQuote(text: passage)]
         requestComposerFocusIfPossible()
+    }
+
+    /// Moves messages queued behind the run into this chat's draft when the
+    /// chat is left or covered (#857): a suspended stream can't send them, so
+    /// the user reviews and sends them on return. The composer takes the merged
+    /// text and files too, so a covered chat shows them when it comes back and
+    /// its next keystroke can't overwrite the stored merge.
+    private func parkQueuedMessages() {
+        let queued = viewModel.takeQueuedMessages()
+        guard !queued.isEmpty,
+              // Nil when the session was just deleted: there is no draft to show.
+              let parked = draftStore.parkQueuedMessages(queued, for: draftKey)
+        else { return }
+        // Not the user's edit, but a send still in flight must not clear it.
+        draftRevision &+= 1
+        draftMessage = parked.text
+        viewModel.appendPendingAttachments(queued.flatMap(\.attachments))
     }
 
     private func flushDraftsBestEffort() {

@@ -135,6 +135,29 @@ enum ChatDraftSendReconciliation {
     }
 }
 
+/// Folds messages that were queued behind a run into their chat's draft when
+/// the user leaves mid-run, so they come back for review instead of sending
+/// on their own (#857).
+enum ChatDraftQueueParking {
+    /// Queued texts first, in queue order, then the draft's own text, joined
+    /// by blank lines: the order they were typed in. The draft's quotes stay
+    /// quotes; a queued text already carries its quotes as Markdown. Queued
+    /// attachments go after the draft's own, without duplicate ids.
+    static func merged(
+        _ draft: ChatDraft,
+        queuedTexts: [String],
+        queuedAttachments: [ChatDraftAttachment]
+    ) -> ChatDraft {
+        var merged = draft
+        merged.text = (queuedTexts + [draft.text])
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n\n")
+        var attachmentIDs = Set(draft.attachments.map(\.id))
+        merged.attachments += queuedAttachments.filter { attachmentIDs.insert($0.id).inserted }
+        return merged
+    }
+}
+
 struct ChatDraftKey: Hashable, Sendable {
     enum Context: Hashable, Sendable {
         case session(String)
@@ -545,6 +568,10 @@ final class ChatDraftStore {
     private let attachmentSweepMaxAge: TimeInterval
     private var drafts: [ChatDraftKey: ChatDraft] = [:]
     private var keysChangedBeforeLoad: Set<ChatDraftKey> = []
+    /// Sessions deleted in this launch. On iPad a chat stays on screen while
+    /// its session is deleted from the sidebar, so it parks its queue after
+    /// the discard; that must not bring back a draft nobody can open.
+    private var deletedSessionKeys: Set<ChatDraftKey> = []
     private var loadTask: Task<[ChatDraftKey: ChatDraft], Never>?
     private var persistTask: Task<Void, Never>?
     private var isLoaded = false
@@ -611,6 +638,27 @@ final class ChatDraftStore {
         updateDraft(for: key) { $0.attachments = attachments }
     }
 
+    /// Parks the messages queued behind a run in the chat's draft, in one
+    /// write (merge rule: `ChatDraftQueueParking`). ChatView calls it when the
+    /// chat is left mid-run (#857). Only files with a durable copy are
+    /// recorded, as in `ChatView.syncDraftAttachments`: nothing else can be
+    /// restored on reopen. Synchronous, so it lands even while the chat's view
+    /// is going away. Returns the merged draft, or nil when the chat's session
+    /// was deleted.
+    func parkQueuedMessages(_ queued: [QueuedSlashMessage], for key: ChatDraftKey) -> ChatDraft? {
+        guard !deletedSessionKeys.contains(key) else { return nil }
+        markChangedBeforeLoad(key)
+        let merged = ChatDraftQueueParking.merged(
+            drafts[key] ?? ChatDraft(),
+            queuedTexts: queued.map(\.text),
+            queuedAttachments: queued.flatMap(\.attachments)
+                .map(ChatDraftAttachment.init(pending:))
+                .filter { $0.file != nil }
+        )
+        updateDraft(for: key) { $0 = merged }
+        return merged
+    }
+
     /// Replaces the draft's settings snapshot without disturbing its text or
     /// attachments.
     func setSettings(_ settings: ChatDraftSettings, for key: ChatDraftKey) {
@@ -622,8 +670,10 @@ final class ChatDraftStore {
     }
 
     /// Removes one composer draft and deletes attachment copies that no other
-    /// draft still references. Used after the server accepts session deletion.
+    /// draft still references. Used after the server accepts session deletion;
+    /// a later queue park for the key is skipped.
     func discardDraft(for key: ChatDraftKey) async {
+        deletedSessionKeys.insert(key)
         await loadIfNeeded()
         await discardDrafts(matching: { $0 == key })
     }
