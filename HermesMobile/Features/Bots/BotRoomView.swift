@@ -66,6 +66,9 @@ import SwiftUI
                     Color.clear.frame(height: 1).id("room-bottom")
                 }
                 .padding(16)
+                // Centred in the reading column; the scroll view stays full width.
+                .frame(maxWidth: ChatReadingWidth.maximumWidth(horizontalPadding: 16))
+                .frame(maxWidth: .infinity)
                 .background {
                     ChatScrollObserver(isStreaming: false, onFollowEvent: handleFollowEvent, onMetrics: updateScrollMetrics)
                         .accessibilityHidden(true)
@@ -109,6 +112,7 @@ import SwiftUI
                 }
                 if reader.showsComposer { BotRoomComposerView(reader: reader, roster: roster, avatars: avatars) }
             }
+            .frame(maxWidth: ChatReadingWidth.maximumWidth(horizontalPadding: 16))
         }
         .task(id: pill?.errorText) {
             guard let text = pill?.errorText else { return }
@@ -281,6 +285,8 @@ private struct BotRoomEventView: View {
                         Text(event.sender(in: room)).font(.caption).foregroundStyle(.secondary)
                         ResponseTextSelection(identity: messageText, collectsGlyphs: responseIsVisible) {
                             MarkdownRenderer(content: messageText)
+                                // The bubble's fill is translucent, so no solid fade matches it.
+                                .environment(\.markdownTableEdgeFadeColor, nil)
                         }
                         .onGeometryChange(for: Bool.self) { geometry in
                             guard let viewport = geometry.bounds(of: .scrollView(axis: .vertical)) else { return true }
