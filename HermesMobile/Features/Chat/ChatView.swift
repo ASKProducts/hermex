@@ -368,6 +368,11 @@ struct ChatView: View {
     @State private var didApplyInitialComposerFocusPolicy = false
     @State private var shouldRestoreComposerFocusAfterPreview = false
     @State private var responseCompletionNotificationTracker = ResponseCompletionNotificationTracker()
+    /// The one-time notification offer (#863), set once a send claims it.
+    @State private var pendingNotificationOffer: NotificationOffer.Offer?
+    /// Between appear and disappear; a send that returns after the chat closed must not
+    /// use up the offer it can no longer show.
+    @State private var isOnScreen = false
     @State private var responseCompletionBackgroundTask: UIBackgroundTaskIdentifier = .invalid
     @State private var activeStreamStatusRefreshTask: Task<Void, Never>?
     @State private var appearanceTask: Task<Void, Never>?
@@ -803,6 +808,7 @@ struct ChatView: View {
                 viewModel.setShowsLiveActivityResponseExcerpts(showsLiveActivityResponseExcerpts)
             }
             .onDisappear {
+                isOnScreen = false
                 flushDraftsBestEffort()
                 appearanceTask?.cancel()
                 appearanceTask = nil
@@ -813,6 +819,7 @@ struct ChatView: View {
                 viewModel.cleanupPollingTasks()
             }
             .onAppear {
+                isOnScreen = true
                 appearanceTask?.cancel()
                 appearanceTask = Task {
                     await viewModel.reconnectStreamIfNeeded(modelContext: modelContext)
@@ -1003,6 +1010,7 @@ struct ChatView: View {
                     onConfirm: confirmClearConversation
                 )
             )
+            .notificationOfferAlert($pendingNotificationOffer)
             .alert(
                 "Message Action Failed",
                 isPresented: Binding(
@@ -2001,6 +2009,7 @@ struct ChatView: View {
         if didSend {
             onConversationStarted()
             ChatHaptics.messageSent(isEnabled: isHapticsEnabled)
+            offerNotificationsIfNeeded()
         }
 
         if let lastError = viewModel.lastError {
@@ -2055,9 +2064,23 @@ struct ChatView: View {
             // open. Deterministic here rather than waiting on the observation
             // sync that the emptied composer strip will also trigger.
             syncDraftAttachments()
+            offerNotificationsIfNeeded()
         }
 
         return didStart
+    }
+
+    /// Asks once per install, right after a normal send or voice note started a run, whether
+    /// the user wants to hear when it ends (#863). Steers, queued messages and slash commands
+    /// never get here, and a failed send never started a run, so none of them use it up.
+    /// Runs beside the send, so its permission check never delays the send's haptic or
+    /// composer focus; `isCurrent` keeps a chat that closed meanwhile from claiming it.
+    private func offerNotificationsIfNeeded() {
+        guard isOnScreen else { return }
+        Task {
+            guard let offer = await NotificationOffer.claim(server: server, isCurrent: { isOnScreen }) else { return }
+            pendingNotificationOffer = offer
+        }
     }
 
     private func handleSlashExecutionResult(

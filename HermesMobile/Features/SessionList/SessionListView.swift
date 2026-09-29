@@ -80,6 +80,8 @@ struct SessionListView: View {
     @State private var sidebarScrollPosition: String?
     @State private var didCompleteInitialLoad = false
     @State private var returnRefreshID: UUID?
+    /// Set while compact width pops back to the list on the way to Settings → Notifications.
+    @State private var opensNotificationSettingsOnReturn = false
     @FocusState private var searchFieldIsFocused: Bool
     @AppStorage(SessionSidebarDisclosureSettings.profilesAreExpandedKey)
     private var profilesAreExpanded = SessionSidebarDisclosureSettings.defaultProfilesAreExpanded
@@ -475,6 +477,22 @@ struct SessionListView: View {
             // Cold launch delivers the link before this view appears; a warm one after.
             .task { showBotsForPendingDestination() }
             .onChange(of: pendingBotDestination) { showBotsForPendingDestination() }
+            // Every chat below inherits this for its one-time notification offer (#863).
+            .openNotificationSettings { showNotificationSettings() }
+    }
+
+    /// Opens Settings → Notifications for a chat's one-time offer (#863). On compact
+    /// width a fork or a chat under Settings → Archived Sessions can sit above the
+    /// destination, and retargeting the destination leaves it on top. So compact pops
+    /// to the list first, and the list opens Settings once it is back on screen.
+    /// Regular width pops the detail column on every root selection already.
+    private func showNotificationSettings() {
+        guard horizontalSizeClass != .regular, navigationState.destination != nil else {
+            selectDestination(.settings(.notifications))
+            return
+        }
+        opensNotificationSettingsOnReturn = true
+        navigationState.clearDestination()
     }
 
     /// A bot deep link opens this server's Bots inbox, which owns resolving it. Only
@@ -503,6 +521,12 @@ struct SessionListView: View {
                 sessionListSurface
                     .navigationDestination(item: navigationDestinationBinding) { destination in
                         navigationDestination(destination)
+                    }
+                    .onAppear {
+                        // The pop `showNotificationSettings` started has landed.
+                        guard opensNotificationSettingsOnReturn else { return }
+                        opensNotificationSettingsOnReturn = false
+                        selectDestination(.settings(.notifications))
                     }
             }
         }
@@ -1746,7 +1770,8 @@ struct PendingNewChatRoute: Identifiable, Hashable {
 
 enum SessionListUtilityDestination: Hashable, Identifiable {
     /// Optional section to scroll to when Settings opens — "Manage Servers"
-    /// passes `.servers`, a plain avatar tap passes `nil` (#283).
+    /// passes `.servers`, a plain avatar tap passes `nil` (#283), and the chat's
+    /// notification offer passes `.notifications` (#863).
     case settings(SettingsScrollAnchor?)
     /// The direct-Hermes Bots inbox, shown while Bot Mode (beta) is on.
     case bots
