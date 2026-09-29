@@ -109,6 +109,10 @@ final class SessionListViewModel {
     private(set) var remoteContentSearchExcerpts: [String: String] = [:]
     private var activeRemoteSearchQuery: String?
     private var sessionOpenGeneration = 0
+    /// The external session the live `sessionForOpening` is still importing, so
+    /// Next and Previous Chat step past it before navigation lands. Nil once
+    /// that open finishes or a newer open or navigation invalidates it.
+    private(set) var openingSessionID: String?
     private var activeProfileGeneration = 0
 
     private let client: APIClient
@@ -223,14 +227,17 @@ final class SessionListViewModel {
         automatedVisibility: AutomatedSessionVisibility
     ) -> [SessionSummary] {
         let query = Self.normalizedSearchQuery(rawSearchText)
+        // Every word must appear somewhere in the row, in any order and field.
+        let searchTerms = query.split(whereSeparator: \.isWhitespace)
         let baseSessions = candidates.filter { automatedVisibility.shows($0) }
         let projectFilteredSessions = baseSessions.filter { session in
             guard let selectedProjectID else { return true }
             return session.projectId == selectedProjectID
         }
         let localMatches = projectFilteredSessions.filter { session in
-            guard !query.isEmpty else { return true }
-            return Self.searchableText(for: session).contains(query)
+            guard !searchTerms.isEmpty else { return true }
+            let searchableText = Self.searchableText(for: session)
+            return searchTerms.allSatisfy { searchableText.contains($0) }
         }
         let sortedLocalMatches = Self.sortedSessions(localMatches)
 
@@ -802,6 +809,7 @@ final class SessionListViewModel {
     ) async -> SessionSummary? {
         sessionOpenGeneration &+= 1
         let generation = sessionOpenGeneration
+        openingSessionID = nil
         actionErrorMessage = nil
         lastError = nil
 
@@ -812,6 +820,11 @@ final class SessionListViewModel {
         guard let sessionID = Self.nonEmpty(session.sessionId) else {
             actionErrorMessage = String(localized: "The server did not provide a session ID.")
             return nil
+        }
+
+        openingSessionID = session.sessionId
+        defer {
+            if generation == sessionOpenGeneration { openingSessionID = nil }
         }
 
         do {
@@ -909,6 +922,7 @@ final class SessionListViewModel {
 
     func invalidateSessionOpening() {
         sessionOpenGeneration &+= 1
+        openingSessionID = nil
     }
 
     func setPinned(
@@ -1441,6 +1455,8 @@ final class SessionListViewModel {
         session.lastMessageAt ?? session.updatedAt ?? session.createdAt ?? 0
     }
 
+    /// Lowercased fields joined by spaces. Search terms hold no spaces, so a
+    /// term found here always sits inside a single field.
     private static func searchableText(for session: SessionSummary) -> String {
         [
             session.title,

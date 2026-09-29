@@ -1279,8 +1279,33 @@ struct SessionListView: View {
         HermexSceneActions(
             canCreateNewChat: !viewModel.isViewingCachedData && !navigationState.isCreatingNewChat,
             createNewChat: openNewChatFromKeyboard,
-            searchSessions: openSearchFromKeyboard
+            searchSessions: openSearchFromKeyboard,
+            openChat: openChatFromKeyboard(atPosition:),
+            openAdjacentChat: openAdjacentChatFromKeyboard(offset:)
         )
+    }
+
+    /// Chat shortcuts walk the ordinary chat rows as they appear, after search
+    /// and the project filter, skipping Scheduled so ⌘1 does not depend on that
+    /// disclosure. Grouped only on a key press, never in `body`.
+    private var keyboardShortcutChats: [SessionSummary] {
+        scheduledSessionGroups.ordinary
+    }
+
+    private func openChatFromKeyboard(atPosition position: Int) {
+        guard let chat = ChatShortcutNavigation.chat(atPosition: position, in: keyboardShortcutChats) else { return }
+        startOpeningSession(chat)
+    }
+
+    /// Steps from the chat still opening, if any, so a second press during a
+    /// slow external import moves on instead of reopening the same chat.
+    private func openAdjacentChatFromKeyboard(offset: Int) {
+        guard let chat = ChatShortcutNavigation.adjacentChat(
+            offset: offset,
+            from: viewModel.openingSessionID ?? navigationState.selectedSessionID,
+            in: keyboardShortcutChats
+        ) else { return }
+        startOpeningSession(chat)
     }
 
     private func openNewChatFromKeyboard() {
