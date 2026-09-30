@@ -7,6 +7,71 @@ Security sections per release.
 
 ## [Unreleased]
 
+## [1.8.0] - Unreleased
+
+### Added
+- Long-press Send during a session run to choose Queue, Steer, or Stop and send
+  for that message without changing the default.
+- File-edit tool rows show added and removed line counts and expandable diffs.
+  Diff and patch code blocks also highlight additions and deletions.
+- Web links open in an in-app Safari sheet, and forked chats link back to their
+  parent session.
+- The working pill shows elapsed time, and long user messages can be folded.
+- Undo a session archive from its confirmation toast. Search sessions with
+  multiple words in any order, and switch chats with iPad keyboard shortcuts.
+- Bot Mode: Tapback reactions that sync with Hermes Desktop, editable
+  quick-reply chips, message timestamps, and Desktop sections in the inbox.
+  Move bots between sections from the phone.
+- Bot Mode: answer requests to connect an app, and view host status on the
+  Hermes connection screen. Working bots and bots waiting for an answer sort
+  first in the inbox; chat titles also show waiting and failed states.
+- A notification prompt after the first run starts, and a Send Test
+  Notification button in Settings for push-paired servers.
+
+### Changed
+- Chat opening, typing, streaming, and scrolling do less repeated work. Code
+  highlighting runs off the main thread, transcript image caches have memory
+  limits, and large workspace Markdown and diff previews render lazily.
+- Bot replies use the streaming renderer, finished Bot turns fold behind a
+  Worked for row, and Bot Chat uses the session chat's haptics. Working bot
+  faces settle into a still pose after a short animation.
+- Chat has a comfortable reading width on larger screens, clearer table edges,
+  smoother Send and Stop transitions, autocomplete selection feedback, and a
+  shorter landscape composer.
+- Session times update while the list is idle. The list restores the last chat
+  sooner, the iPad sidebar keeps its state when switching chats, and Kanban
+  keeps the loaded board when returning from a card or refreshing in the
+  background.
+- Shared-file imports, cache writes, model picking, networking, and Live
+  Activity updates use less memory or do less repeated work.
+- The support link now points to memberships.
+
+### Fixed
+- Session streams wait while offline and reconnect when the network returns,
+  showing Waiting for network instead of exhausting retries.
+- Queued messages survive leaving a chat mid-run. A refused steering request
+  no longer stops the active run.
+- New chats use the selected profile; chats started from the session list
+  under a project filter join that project. Sessions refresh on foregrounding.
+- The composer stays above the keyboard after returning from Files, and
+  dismissing a chat no longer unexpectedly restores keyboard focus. Camera
+  dismissal does less work on the main thread.
+- Local reply notifications name and open the right chat and include failed
+  runs. Approval and question push alerts still arrive during a Live Activity,
+  with Time Sensitive approval alerts supported through Focus. Denied
+  notification permission is reported accurately.
+- Bot approvals and questions work with Hermes 0.21.4, and app-connection
+  responses use the shape expected by 0.21.4 and 0.21.5 hosts. Credential
+  prompts support Password AutoFill and clear the previous request's secret.
+- Bot host identity survives address changes, and tapping the Bot transcript
+  dismisses the keyboard.
+- Plain HTTP connections work with local hostnames and Tailscale addresses.
+  On-device dictation tries the user's other languages when the current locale
+  has no model.
+- Session rows no longer pulse a redundant streaming dot, and transcript link
+  rows avoid unnecessary redraws.
+- App and share-extension privacy manifests declare required-reason APIs.
+
 ## [1.7.0] - 2026-09-24
 
 ### Added
