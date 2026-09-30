@@ -565,6 +565,37 @@ import XCTest
         XCTAssertNil(reader.uncertainSend)
     }
 
+    /// A refused password stops the room with Update sign-in, and any other stop keeps
+    /// Reconnect. A reopen after backgrounding shows the saved history again but builds
+    /// no client, so the refused password is never sent again (#884).
+    func testARejectedPasswordStopsTheRoomNeedingSignIn() async {
+        let wire = RoomWire(); wire.latest = 3; wire.connectFailure = BotFailure.transport
+        var clients = 0
+        let reader = BotRoomReader(key: key(), connection: connection, room: BotGroupRoom(RoomFixture.room(latest: 0))!,
+                                   cache: BotHistoryCache(), makeWire: { _ in clients += 1; return wire })
+        await reader.open()
+        XCTAssertEqual(reader.link, .stopped)
+        XCTAssertFalse(reader.needsSignIn, "a lost route keeps Reconnect")
+
+        wire.connectFailure = nil; await reader.open()
+        XCTAssertEqual(reader.link, .live)
+        reader.close()
+
+        wire.connectFailure = BotFailure.rejected(401); await reader.open()
+        XCTAssertEqual(reader.link, .stopped)
+        XCTAssertTrue(reader.needsSignIn)
+        XCTAssertEqual(clients, 3)
+
+        reader.close()
+        XCTAssertTrue(reader.events.isEmpty)
+        await reader.open()
+        XCTAssertEqual(clients, 3, "the refused password is not sent again")
+        XCTAssertEqual(reader.link, .stopped)
+        XCTAssertTrue(reader.needsSignIn)
+        XCTAssertEqual(reader.events.map(\.seq), [1, 2, 3], "the saved history is back on screen")
+        XCTAssertEqual(reader.errorMessage, "Hermes didn't accept the username or password.")
+    }
+
     func testRoomMentionsUseHandlesAndIncludeBroadcastTargets() throws {
         var value = RoomFixture.room(latest: 0).fields!
         value["members"] = .array([.object(["member_id": .string("member"), "handle": .string("chief"), "display_name": .string("Chief of Staff")])])

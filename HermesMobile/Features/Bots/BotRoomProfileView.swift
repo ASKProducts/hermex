@@ -5,6 +5,8 @@ import SwiftUI
     @Bindable var reader: BotRoomReader
     let roster: [BotProfile]
     let avatars: [String: UIImage]
+    /// Leaves the room for the inbox's sign-in form, after the host refused the password.
+    var onUpdateSignIn: () -> Void = {}
     @State private var name = ""
     @State private var confirmingDisband = false
     @State private var visible = false
@@ -49,7 +51,12 @@ import SwiftUI
             if reader.finishingStop { Text("Finishing stop…").font(.callout) }
             if reader.link == .stopped {
                 if let error = reader.errorMessage { Text(error).font(.callout) }
-                Button("Reconnect") { revision = UUID() }
+                // Reconnecting would only send the refused password again (#884).
+                if reader.needsSignIn {
+                    Button("Update sign-in", action: onUpdateSignIn)
+                } else {
+                    Button("Reconnect") { revision = UUID() }
+                }
             }
         }
         .navigationBarTitleDisplayMode(.inline)
