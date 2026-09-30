@@ -590,9 +590,11 @@ struct MessageComposerView: View {
         .task(id: slashAutocompleteLoadKey) {
             await loadSlashAutocompleteSubArgsIfNeeded()
         }
-        .task {
+        .task(id: AppLock.shared.isLocked) {
             // Cold path: the composer appears already active (the usual case for the
             // "New Chat with Voice" intent once its session is created) — start here.
+            // Runs again when the app lock changes, since dictation waits for it (#885);
+            // one modifier keeps this chain inside CI Xcode's type-checking budget.
             autoStartVoiceInputIfNeeded()
         }
         .onChange(of: scenePhase) { _, newPhase in
@@ -1354,12 +1356,14 @@ struct MessageComposerView: View {
 
     /// Starts dictation once for a composer opened by the "New Chat with Voice" intent (#338),
     /// mirroring a mic tap. Gated so it fires a single time, only while the app is active and
-    /// the mic is free; the reused tap path handles the mic/speech permission prompt and surfaces
-    /// a clear error if access is denied, so a denied/undetermined mic degrades gracefully.
+    /// unlocked (the scene stays active under the app lock, so the microphone never starts
+    /// behind it) and the mic is free; the reused tap path handles the mic/speech permission
+    /// prompt and surfaces a clear error if access is denied, so a denied/undetermined mic
+    /// degrades gracefully.
     @MainActor
     private func autoStartVoiceInputIfNeeded() {
         guard autoStartsVoiceInput, !didAutoStartVoiceInput else { return }
-        guard scenePhase == .active else { return }
+        guard scenePhase == .active, !AppLock.shared.isLocked else { return }
         didAutoStartVoiceInput = true
         guard !voiceInput.isListening, !isVoiceInputDisabled else { return }
         toggleVoiceInput()
