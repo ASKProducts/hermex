@@ -13,22 +13,33 @@ struct ApprovalRequestOverlay: View {
             Color.black.opacity(0.38)
                 .ignoresSafeArea()
 
-            VStack(alignment: .leading, spacing: 14) {
-                header
-                details
-                actions
+            // Scrolls only when the card is taller than the screen (large text,
+            // landscape), so every button stays reachable.
+            ViewThatFits(in: .vertical) {
+                card
+                ScrollView {
+                    card.padding(.vertical, 18)
+                }
             }
-            .padding(16)
-            .frame(maxWidth: 520, alignment: .leading)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(.primary.opacity(0.10), lineWidth: 1)
-            )
-            .shadow(color: .black.opacity(0.22), radius: 18, x: 0, y: 12)
-            .padding(.horizontal, 18)
         }
         .accessibilityElement(children: .contain)
+    }
+
+    private var card: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            header
+            details
+            actions
+        }
+        .padding(16)
+        .frame(maxWidth: 520, alignment: .leading)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(.primary.opacity(0.10), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.22), radius: 18, x: 0, y: 12)
+        .padding(.horizontal, 18)
     }
 
     private var header: some View {
@@ -67,22 +78,11 @@ struct ApprovalRequestOverlay: View {
                 .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
             }
 
-            if !prompt.patternKeys.isEmpty {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Pattern keys")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        ForEach(prompt.patternKeys, id: \.self) { key in
-                            Text(key)
-                                .font(.caption2.monospaced())
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 5)
-                                .background(Color(uiColor: .tertiarySystemBackground), in: Capsule())
-                        }
-                    }
-                }
+            if let scope = prompt.scopeLine {
+                Text(scope)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             if prompt.pendingCount > 1 {
@@ -124,7 +124,7 @@ struct ApprovalRequestOverlay: View {
 
     @ViewBuilder
     private func approvalButton(
-        _ title: String,
+        _ title: LocalizedStringKey,
         systemImage: String,
         choice: ApprovalChoice,
         prominent: Bool,
