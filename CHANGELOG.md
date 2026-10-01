@@ -7,7 +7,7 @@ Security sections per release.
 
 ## [Unreleased]
 
-## [1.8.0] - Unreleased
+## [1.8.0] - 2026-10-01
 
 ### Added
 - Long-press Send during a session run to choose Queue, Steer, or Stop and send
