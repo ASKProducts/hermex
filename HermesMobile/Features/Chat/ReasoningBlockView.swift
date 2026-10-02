@@ -194,7 +194,6 @@ private struct LiveReasoningTextView: View {
     var body: some View {
         StreamingReasoningTextView(state: state)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .allowsHitTesting(false)
         .onChange(of: text) { _, newText in
             state.update(with: newText)
         }
@@ -209,7 +208,8 @@ private struct StreamingReasoningTextView: UIViewRepresentable {
     }
 
     func makeUIView(context: Context) -> UITextView {
-        let textView = TailPinnedTextView()
+        let textView = TailFollowingTextView()
+        textView.delegate = context.coordinator
         textView.isEditable = false
         textView.isSelectable = false
         textView.isScrollEnabled = false
@@ -239,8 +239,9 @@ private struct StreamingReasoningTextView: UIViewRepresentable {
     }
 
     /// Reports at most the row body cap. Past it the text view scrolls itself
-    /// and `TailPinnedTextView` keeps the newest chunk in view, so the SwiftUI
-    /// window around it never needs to scroll for live thinking.
+    /// and `TailFollowingTextView` keeps the newest line in view until the
+    /// reader scrolls it, so the SwiftUI window around it never needs to
+    /// scroll for live thinking.
     func sizeThatFits(
         _ proposal: ProposedViewSize,
         uiView: UITextView,
@@ -260,23 +261,63 @@ private struct StreamingReasoningTextView: UIViewRepresentable {
         return CGSize(width: width, height: layout.frameHeight)
     }
 
-    /// A text view that stays scrolled to its last line whenever it scrolls,
-    /// so streaming thinking shows the newest text. It is never interactive
-    /// while live, so there is no user offset to respect.
-    final class TailPinnedTextView: UITextView {
+    /// A text view that scrolls to its last line on every layout while it
+    /// follows the tail, so streaming thinking reads hands-free. The live
+    /// body stays on this view for the whole turn, so the reader can scroll
+    /// it: a drag or a VoiceOver scroll stops the following and new text then
+    /// leaves the offset alone, until a scroll ends on the last line again.
+    final class TailFollowingTextView: UITextView {
+        private(set) var followsTail = true
+
+        private var tailOffsetY: CGFloat {
+            max(0, contentSize.height + adjustedContentInset.bottom - bounds.height)
+        }
+
+        func readerBeganScrolling() {
+            followsTail = false
+        }
+
+        func readerEndedScrolling() {
+            followsTail = contentOffset.y >= tailOffsetY - 0.5
+        }
+
+        override func accessibilityScroll(_ direction: UIAccessibilityScrollDirection) -> Bool {
+            readerBeganScrolling()
+            return super.accessibilityScroll(direction)
+        }
+
         override func layoutSubviews() {
             super.layoutSubviews()
-            guard isScrollEnabled else { return }
+            guard isScrollEnabled, followsTail else { return }
 
-            let tailOffset = max(0, contentSize.height + adjustedContentInset.bottom - bounds.height)
+            let tailOffset = tailOffsetY
             if abs(contentOffset.y - tailOffset) > 0.5 {
                 contentOffset = CGPoint(x: contentOffset.x, y: tailOffset)
             }
         }
     }
 
+    /// Tells the text view when the reader starts and stops scrolling it,
+    /// and appends only the new suffix of streaming thinking to its storage.
     @MainActor
-    final class Coordinator: NSObject {
+    final class Coordinator: NSObject, UITextViewDelegate {
+        func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
+            (scrollView as? TailFollowingTextView)?.readerBeganScrolling()
+        }
+
+        func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
+            guard !decelerate else { return }
+            (scrollView as? TailFollowingTextView)?.readerEndedScrolling()
+        }
+
+        func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
+            (scrollView as? TailFollowingTextView)?.readerEndedScrolling()
+        }
+
+        func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) {
+            (scrollView as? TailFollowingTextView)?.readerEndedScrolling()
+        }
+
         private static let chunkIDAttribute = NSAttributedString.Key(
             "HermexStreamingReasoningChunkID"
         )
