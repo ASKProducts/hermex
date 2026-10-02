@@ -3643,6 +3643,233 @@ final class ChatViewModelSendTests: XCTestCase {
         )
     }
 
+    // An image send is stored as the model-facing copy: content parts whose
+    // text starts with `[Workspace::v1: <path>]`. The reload must recognize it
+    // as the optimistic row's server copy and show the typed text only once.
+    @MainActor
+    func testReloadReconcilesOptimisticImageSendWithWorkspaceTaggedServerRow() async throws {
+        let context = try makeContext()
+        let sendingViewModel = try makeViewModel { request in
+            switch request.url?.path {
+            case "/api/upload":
+                return apiTestJSONResponse("""
+                {
+                  "filename": "photo.jpg",
+                  "path": "/tmp/attachments/session-abc/photo.jpg",
+                  "size": 45678,
+                  "mime": "image/jpeg",
+                  "is_image": true
+                }
+                """, for: request)
+            case "/api/chat/start":
+                return apiTestJSONResponse("""
+                {
+                  "session_id": "session-abc",
+                  "stream_id": "stream-123"
+                }
+                """, for: request)
+            default:
+                XCTFail("Unexpected request path: \(request.url?.path ?? "nil")")
+                throw URLError(.badURL)
+            }
+        }
+
+        let staged = await sendingViewModel.uploadAttachment(data: Data("fake-jpeg".utf8), filename: "photo.jpg")
+        try XCTUnwrap(staged)
+        let didStart = await sendingViewModel.sendMessage("Describe this image", modelContext: context)
+        XCTAssertTrue(didStart)
+
+        let optimistic = try XCTUnwrap(sendingViewModel.messages.first)
+        let optimisticTimestamp = try XCTUnwrap(optimistic.timestamp)
+
+        let reopenedViewModel = try makeViewModel { request in
+            XCTAssertEqual(request.url?.path, "/api/session")
+            return apiTestJSONResponse("""
+            {
+              "session": {
+                "session_id": "session-abc",
+                "title": "Planning",
+                "messages": [
+                  {
+                    "role": "user",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "[Workspace::v1: /tmp/work [v2\\\\]]\\nDescribe this image\\n\\n[Attached files: /tmp/attachments/session-abc/photo.jpg]"
+                      },
+                      {
+                        "type": "image_url",
+                        "image_url": {"url": "data:image/jpeg;base64,AAAA"}
+                      }
+                    ],
+                    "attachments": ["photo.jpg"],
+                    "timestamp": \(optimisticTimestamp + 1),
+                    "id": 7
+                  },
+                  {
+                    "role": "assistant",
+                    "content": "A photo.",
+                    "timestamp": \(optimisticTimestamp + 2),
+                    "message_id": "assistant-1"
+                  }
+                ]
+              }
+            }
+            """, for: request)
+        }
+
+        await reopenedViewModel.loadMessages(modelContext: context)
+
+        XCTAssertEqual(reopenedViewModel.messages.compactMap(\.role), ["user", "assistant"])
+        let userRow = try XCTUnwrap(reopenedViewModel.messages.first)
+        XCTAssertFalse(userRow.messageId?.hasPrefix("local-") ?? false, "The server row replaces the optimistic row")
+        XCTAssertEqual(
+            MessageAttachment.contentWithoutAttachedFilesMarker(in: userRow.content ?? ""),
+            "Describe this image"
+        )
+        XCTAssertEqual(
+            try CacheStore.cachedMessages(
+                serverURL: URL(string: "https://example.test")!,
+                sessionID: "session-abc",
+                in: context
+            ).compactMap(\.role),
+            ["user", "assistant"]
+        )
+    }
+
+    // A build without the tag fix cached both the optimistic row and the
+    // tagged server row. The next reload must drop the stale optimistic row
+    // from the screen and the cache, and the cached row must not show the tag.
+    @MainActor
+    func testReloadDropsCachedDuplicateLeftByAnOlderBuild() async throws {
+        let context = try makeContext()
+        let server = try XCTUnwrap(URL(string: "https://example.test"))
+        let attachment = MessageAttachment(
+            name: "photo.jpg",
+            path: "/tmp/attachments/session-abc/photo.jpg",
+            mime: "image/jpeg",
+            size: 45678,
+            isImage: true
+        )
+        try CacheStore.cacheMessages(
+            [
+                ChatMessage(
+                    role: "user",
+                    content: "Describe this image",
+                    timestamp: 1_770_000_000,
+                    messageId: "local-OLDBUILD",
+                    attachments: [attachment]
+                ),
+                ChatMessage(
+                    role: "user",
+                    content: "[Workspace::v1: /tmp/work]\nDescribe this image\n\n[Attached files: /tmp/attachments/session-abc/photo.jpg]",
+                    timestamp: 1_770_000_001,
+                    messageId: nil,
+                    attachments: [MessageAttachment(name: "photo.jpg", path: nil)]
+                ),
+                ChatMessage(role: "assistant", content: "A photo.", timestamp: 1_770_000_002, messageId: "assistant-1")
+            ],
+            serverURL: server,
+            sessionID: "session-abc",
+            in: context
+        )
+
+        let cachedUserTexts = try CacheStore.cachedMessages(serverURL: server, sessionID: "session-abc", in: context)
+            .filter { $0.role == "user" }
+            .compactMap(\.content)
+        XCTAssertFalse(
+            cachedUserTexts.contains { $0.contains("[Workspace::v1:") },
+            "Rows read back from an older cache must not carry the tag"
+        )
+
+        let reopenedViewModel = try makeViewModel { request in
+            XCTAssertEqual(request.url?.path, "/api/session")
+            return apiTestJSONResponse("""
+            {
+              "session": {
+                "session_id": "session-abc",
+                "title": "Planning",
+                "messages": [
+                  {
+                    "role": "user",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "[Workspace::v1: /tmp/work]\\nDescribe this image\\n\\n[Attached files: /tmp/attachments/session-abc/photo.jpg]"
+                      }
+                    ],
+                    "attachments": ["photo.jpg"],
+                    "timestamp": 1770000001
+                  },
+                  {
+                    "role": "assistant",
+                    "content": "A photo.",
+                    "timestamp": 1770000002,
+                    "message_id": "assistant-1"
+                  }
+                ]
+              }
+            }
+            """, for: request)
+        }
+
+        await reopenedViewModel.loadMessages(modelContext: context)
+
+        XCTAssertEqual(reopenedViewModel.messages.compactMap(\.role), ["user", "assistant"])
+        XCTAssertNil(reopenedViewModel.messages.first { $0.messageId?.hasPrefix("local-") == true })
+        let recached = try CacheStore.cachedMessages(serverURL: server, sessionID: "session-abc", in: context)
+        XCTAssertEqual(recached.compactMap(\.role), ["user", "assistant"])
+        XCTAssertNil(recached.first { $0.messageId?.hasPrefix("local-") == true })
+    }
+
+    @MainActor
+    func testReloadReconcilesOptimisticTextOnlySendWithPlainServerRow() async throws {
+        let context = try makeContext()
+        let sendingViewModel = try makeViewModel { request in
+            XCTAssertEqual(request.url?.path, "/api/chat/start")
+            return apiTestJSONResponse("""
+            {
+              "session_id": "session-abc",
+              "stream_id": "stream-123"
+            }
+            """, for: request)
+        }
+
+        let didStart = await sendingViewModel.sendMessage("Keep working", modelContext: context)
+        XCTAssertTrue(didStart)
+        let optimisticTimestamp = try XCTUnwrap(sendingViewModel.messages.first?.timestamp)
+
+        let reopenedViewModel = try makeViewModel { request in
+            XCTAssertEqual(request.url?.path, "/api/session")
+            return apiTestJSONResponse("""
+            {
+              "session": {
+                "session_id": "session-abc",
+                "title": "Planning",
+                "messages": [
+                  {
+                    "role": "user",
+                    "content": "Keep working",
+                    "timestamp": \(optimisticTimestamp + 1)
+                  },
+                  {
+                    "role": "assistant",
+                    "content": "Done.",
+                    "timestamp": \(optimisticTimestamp + 2),
+                    "message_id": "assistant-1"
+                  }
+                ]
+              }
+            }
+            """, for: request)
+        }
+
+        await reopenedViewModel.loadMessages(modelContext: context)
+
+        XCTAssertEqual(reopenedViewModel.messages.compactMap(\.content), ["Keep working", "Done."])
+        XCTAssertNil(reopenedViewModel.messages.first { $0.messageId?.hasPrefix("local-") == true })
+    }
+
     @MainActor
     func testLoadMessagesUsesCachedTranscriptForTunnelUnavailableFailure() async throws {
         let context = try makeContext()

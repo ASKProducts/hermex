@@ -90,7 +90,9 @@ struct ChatMessage: Decodable, Equatable, Identifiable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         role = container.decodeLossyStringIfPresent(forKey: .role)
         let decodedContent = Self.decodeContentTolerantly(from: container)
-        content = decodedContent.text
+        content = role == "user"
+            ? Self.strippedWorkspaceTag(from: decodedContent.text)
+            : decodedContent.text
         timestamp = container.decodeLossyDoubleIfPresent(forKey: .underscoredTimestamp)
             ?? container.decodeLossyDoubleIfPresent(forKey: .timestamp)
         messageId = container.decodeLossyStringIfPresent(forKey: .messageId)
@@ -110,6 +112,25 @@ struct ChatMessage: Decodable, Equatable, Identifiable {
         turnTps = container.decodeLossyDoubleIfPresent(forKey: .turnTps)
         turnDuration = container.decodeLossyDoubleIfPresent(forKey: .turnDuration)
         rowID = nil
+    }
+
+    // MARK: - Workspace tag
+
+    /// hermes-webui's own rule for the tag it puts in front of the
+    /// model-facing copy of a user turn (`static/ui.js`
+    /// `_stripWorkspaceDisplayPrefix`): anchored at the start, path characters
+    /// may be backslash-escaped.
+    private static let workspaceTag = /^\s*\[Workspace::v1:\s*(?:\\.|[^\]\\])+\]\s*/
+
+    /// The user's text without the `[Workspace::v1: <path>]` tag the server
+    /// stores in front of image sends. Text that only mentions the tag later
+    /// on is returned unchanged.
+    static func strippedWorkspaceTag(from content: String?) -> String? {
+        guard let content, let match = content.prefixMatch(of: workspaceTag) else {
+            return content
+        }
+        return String(content[match.range.upperBound...])
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     // MARK: - Steering hints
