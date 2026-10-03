@@ -360,7 +360,12 @@ private extension ChatMessage {
         }
         self.init(
             role: cachedMessage.role,
-            content: cachedMessage.content,
+            // Builds before the workspace tag was stripped at decode cached the
+            // tagged text; strip it on read so those rows display and match
+            // like a fresh server row.
+            content: cachedMessage.role == "user"
+                ? ChatMessage.strippedWorkspaceTag(from: cachedMessage.content)
+                : cachedMessage.content,
             timestamp: cachedMessage.timestamp,
             messageId: cachedMessage.messageId,
             name: cachedMessage.name,
