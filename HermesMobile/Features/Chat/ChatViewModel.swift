@@ -1579,7 +1579,8 @@ final class ChatViewModel {
             setCompletedToolCallGroups(ToolCallGroup.groups(
                 persistedToolCalls: session?.toolCalls ?? [],
                 messages: messages,
-                messageOffset: messagesOffset
+                messageOffset: messagesOffset,
+                isCurrentTurnActive: loadedActiveStreamID != nil
             ))
             completedReasoningGroups = []
             liveToolCalls = []
@@ -1865,7 +1866,8 @@ final class ChatViewModel {
             setCompletedToolCallGroups(ToolCallGroup.groups(
                 persistedToolCalls: session.toolCalls ?? [],
                 messages: messages,
-                messageOffset: messagesOffset
+                messageOffset: messagesOffset,
+                isCurrentTurnActive: activeStreamID != nil
             ))
             completedReasoningGroups = []
 
@@ -5162,7 +5164,7 @@ final class ChatViewModel {
             toolCallAnchorMessageID = messageID
         }
 
-        if let duplicateLoadedIndex = duplicateLoadedReplayToolStartIndex(for: payload) {
+        if let duplicateLoadedIndex = loadedToolStartIndex(for: payload) {
             activeStreamReplayPendingLoadedToolMatchIndex = duplicateLoadedIndex
             return false
         }
@@ -5191,7 +5193,7 @@ final class ChatViewModel {
             toolCallAnchorMessageID = messageID
         }
 
-        if duplicateLoadedReplayToolCompletion(for: payload) {
+        if applyLoadedToolCompletion(for: payload) {
             return false
         }
 
@@ -5268,8 +5270,8 @@ final class ChatViewModel {
         return index
     }
 
-    private func duplicateLoadedReplayToolStartIndex(for payload: ToolStreamEvent) -> Int? {
-        guard isActiveStreamReplayConnection else { return nil }
+    private func loadedToolStartIndex(for payload: ToolStreamEvent) -> Int? {
+        guard isActiveStreamReplayConnection || payload.stableID?.nonEmptyReplayMatchText != nil else { return nil }
 
         if let stableID = payload.stableID?.nonEmptyReplayMatchText,
            let index = activeStreamReplayLoadedToolCalls.firstIndex(where: { $0.matchesStableToolID(stableID) }) {
@@ -5284,8 +5286,10 @@ final class ChatViewModel {
         return activeStreamReplayLoadedToolCalls[index].matchesReplayToolStart(payload) ? index : nil
     }
 
-    private func duplicateLoadedReplayToolCompletion(for payload: ToolStreamEvent) -> Bool {
-        guard isActiveStreamReplayConnection else { return false }
+    private func applyLoadedToolCompletion(for payload: ToolStreamEvent) -> Bool {
+        // A snapshot can resume with a cursor rather than a full replay. Stable
+        // completions still belong to the saved row, not a new live row.
+        guard isActiveStreamReplayConnection || payload.stableID?.nonEmptyReplayMatchText != nil else { return false }
 
         let index: Int?
         if let stableID = payload.stableID?.nonEmptyReplayMatchText {
@@ -5305,6 +5309,21 @@ final class ChatViewModel {
         guard let index else { return false }
         activeStreamReplayLoadedToolMatchIndex = max(activeStreamReplayLoadedToolMatchIndex, index + 1)
         activeStreamReplayPendingLoadedToolMatchIndex = nil
+        let toolID = activeStreamReplayLoadedToolCalls[index].id
+        let updatedGroups = completedToolCallGroups.map { group in
+            ToolCallGroup(
+                id: group.id,
+                anchorMessageID: group.anchorMessageID,
+                toolCalls: group.toolCalls.map { toolCall in
+                    toolCall.id == toolID && !toolCall.isCompleted
+                        ? toolCall.applyingCompletionPayload(payload)
+                        : toolCall
+                }
+            )
+        }
+        if updatedGroups != completedToolCallGroups {
+            setCompletedToolCallGroups(updatedGroups)
+        }
         return true
     }
 
@@ -6113,7 +6132,7 @@ extension ChatViewModel: ChatStreamCoordinatorDelegate {
         activeStreamReplayMatchedInterimLength = 0
         activeStreamReplayMatchedReasoningLength = 0
         activeStreamReplayLoadedReasoningText = isReplay ? loadedReplayReasoningText() : ""
-        activeStreamReplayLoadedToolCalls = isReplay ? loadedReplayToolCalls() : []
+        activeStreamReplayLoadedToolCalls = loadedReplayToolCalls()
         activeStreamReplayLoadedToolMatchIndex = 0
         activeStreamReplayPendingLoadedToolMatchIndex = nil
         activeStreamReplayToolMatchIndex = 0

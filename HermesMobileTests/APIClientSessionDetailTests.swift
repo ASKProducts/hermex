@@ -834,6 +834,52 @@ final class APIClientSessionDetailTests: APIClientTestCase {
         XCTAssertEqual(groups.first?.isComplete, true)
     }
 
+    func testActiveTurnProjectionKeepsEmptyToolResultsCompleted() throws {
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let messages = try decoder.decode([ChatMessage].self, from: Data("""
+        [
+          {"role":"user","content":"Run tools","message_id":"user-1"},
+          {"role":"assistant","content":"","message_id":"assistant-1","tool_calls":[
+            {"id":"answered","function":{"name":"terminal","arguments":"{}"}},
+            {"id":"pending","function":{"name":"terminal","arguments":"{}"}},
+            {"function":{"name":"read_file","arguments":"{}"}}
+          ]},
+          {"role":"tool","tool_call_id":"answered","content":""}
+        ]
+        """.utf8))
+        let summaries = [
+            PersistedToolCall(name: "terminal", snippet: "", tid: "answered", assistantMsgIdx: 1, args: nil),
+            PersistedToolCall(name: "terminal", snippet: "", tid: "pending", assistantMsgIdx: 1, args: nil)
+        ]
+        let calls = ToolCallGroup.groups(persistedToolCalls: summaries, messages: messages,
+                                         messageOffset: 0, isCurrentTurnActive: true).flatMap(\.toolCalls)
+        XCTAssertEqual(calls.first { $0.id == "answered" }?.isCompleted, true)
+        XCTAssertEqual(calls.first { $0.id == "pending" }?.isCompleted, false)
+        XCTAssertEqual(calls.first { $0.id.hasPrefix("message-tool-") }?.isCompleted, true)
+    }
+
+    func testActiveAnthropicToolsUseResultPresenceRatherThanNonemptyOutput() throws {
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let messages = try decoder.decode([ChatMessage].self, from: Data("""
+        [
+          {"role":"user","content":"Run tools","message_id":"user-1"},
+          {"role":"assistant","message_id":"assistant-1","content":[
+            {"type":"tool_use","id":"answered","name":"terminal","input":{}},
+            {"type":"tool_use","id":"pending","name":"terminal","input":{}}
+          ]},
+          {"role":"user","content":[{"type":"tool_result","tool_use_id":"answered","content":[]}]}
+        ]
+        """.utf8))
+        let active = ToolCallGroup.groups(persistedToolCalls: [], messages: messages,
+                                          messageOffset: 0, isCurrentTurnActive: true).flatMap(\.toolCalls)
+        XCTAssertEqual(active.map(\.id), ["answered", "pending"])
+        XCTAssertEqual(active.map(\.isCompleted), [true, false])
+        let finished = ToolCallGroup.groups(persistedToolCalls: [], messages: messages, messageOffset: 0)
+        XCTAssertTrue(finished.allSatisfy(\.isComplete))
+    }
+
     func testContentArrayDisplaysTextAndPreservesToolParts() throws {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase

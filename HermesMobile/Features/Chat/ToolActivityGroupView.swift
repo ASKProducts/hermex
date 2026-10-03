@@ -16,6 +16,9 @@ enum ToolActivityEntrance {
 struct ToolActivityGroupView: View {
     let group: ToolCallGroup
     var isLive = false
+    /// A saved current-turn call can still be executing after reattachment.
+    /// Its status is live, but its restored row retains the history entrance policy.
+    var isCurrentTurnActive = false
     /// True while a reattached stream replays calls the transcript missed.
     var isReplaying = false
 
@@ -35,7 +38,7 @@ struct ToolActivityGroupView: View {
 
     @ViewBuilder
     var body: some View {
-        let entries = ToolCallSummaryFormatter.entries(for: group.toolCalls, isLive: isLive)
+        let entries = ToolCallSummaryFormatter.entries(for: group.toolCalls, isLive: isLive || isCurrentTurnActive)
 
         if let lastEntry = entries.last {
             let previousEntries = Array(entries.dropLast())
