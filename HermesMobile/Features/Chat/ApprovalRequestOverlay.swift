@@ -3,6 +3,9 @@ import UIKit
 
 struct ApprovalRequestOverlay: View {
     let prompt: ApprovalPromptState
+    /// The plain-words explanation's state, or nil for no area (feature off, no Hermes
+    /// connection, or nothing to explain): then the card is exactly as without it.
+    var explanation: ApprovalExplanations.State? = nil
     let isResponding: Bool
     let errorMessage: String?
     let onChoice: (ApprovalChoice) -> Void
@@ -76,6 +79,10 @@ struct ApprovalRequestOverlay: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
+            }
+
+            if let explanation {
+                ApprovalExplanationView(state: explanation)
             }
 
             if let scope = prompt.scopeLine {

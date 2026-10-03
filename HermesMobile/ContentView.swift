@@ -39,6 +39,11 @@ struct ContentView: View {
                 drainPendingIntentDeepLink()
             }
             .onChange(of: authManager.state) {
+                if case .loggedIn(let server) = authManager.state {
+                    ApprovalExplanationRegistry.shared.activate(server: server)
+                } else {
+                    ApprovalExplanationRegistry.shared.activate(server: nil)
+                }
                 // A held conversation link resolves again once sign-in or a server switch
                 // changes what it can reach.
                 if let destination = pendingWebuiPush { routeWebuiPush(destination) }

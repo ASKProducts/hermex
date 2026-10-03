@@ -714,9 +714,11 @@ struct ChatView: View {
         if let approvalPrompt = viewModel.approvalPrompt {
             ApprovalRequestOverlay(
                 prompt: approvalPrompt,
+                explanation: approvalExplanationState(for: approvalPrompt),
                 isResponding: viewModel.isRespondingToApproval,
                 errorMessage: viewModel.approvalErrorMessage,
                 onChoice: { choice in
+                    ApprovalExplanationRegistry.shared.explanations(for: server)?.leave(scope: approvalExplanationScope)
                     Task {
                         let didRespond = await viewModel.respondToApproval(choice)
                         if didRespond {
@@ -734,6 +736,42 @@ struct ChatView: View {
                 }
             )
             .zIndex(10)
+        }
+    }
+
+    /// This chat's approvals in the server's explanation cache.
+    private var approvalExplanationScope: String { "chat|\(session.id)" }
+
+    private func approvalExplanationKey(for prompt: ApprovalPromptState) -> ApprovalExplanations.Key {
+        ApprovalExplanations.Key(scope: approvalExplanationScope, approvalID: prompt.id)
+    }
+
+    private func approvalExplanationInput(for prompt: ApprovalPromptState) -> String? {
+        ApprovalExplanations.input(
+            description: prompt.pending.description, command: prompt.pending.command, workingDirectory: session.workspace
+        )
+    }
+
+    /// Nil when the server explains no approvals (setting off, no Hermes connection).
+    private func approvalExplanationState(for prompt: ApprovalPromptState) -> ApprovalExplanations.State? {
+        ApprovalExplanationRegistry.shared.explanations(for: server)?
+            .state(for: approvalExplanationKey(for: prompt), input: approvalExplanationInput(for: prompt))
+    }
+
+    /// Asks about the approval now on screen, and drops this chat's others (answered,
+    /// expired or cleared).
+    private func explainCurrentApproval() {
+        guard isOnScreen else { return }
+        let registry = ApprovalExplanationRegistry.shared
+        registry.refresh(server: server)
+        guard let explanations = registry.explanations(for: server) else { return }
+        let prompt = viewModel.approvalPrompt
+        let current = prompt.map(approvalExplanationKey(for:))
+        let pending: Set<ApprovalExplanations.Key>? = viewModel.hasAuthoritativeApprovalState
+            ? Set(current.map { [$0] } ?? []) : nil
+        explanations.retain(current, inScope: approvalExplanationScope, pending: pending)
+        if let prompt {
+            explanations.show(approvalExplanationKey(for: prompt), input: approvalExplanationInput(for: prompt))
         }
     }
 
@@ -836,9 +874,14 @@ struct ChatView: View {
                 viewModel.stopListening()
                 viewModel.suspendStreamForNavigation()
                 viewModel.cleanupPollingTasks()
+                ApprovalExplanationRegistry.shared.explanations(for: server)?.leave(scope: approvalExplanationScope)
             }
+            .onChange(of: viewModel.approvalPrompt?.id) { explainCurrentApproval() }
+            .onChange(of: viewModel.hasAuthoritativeApprovalState) { explainCurrentApproval() }
             .onAppear {
                 isOnScreen = true
+                // Reconcile the visible approval without retrying a cancelled explanation.
+                explainCurrentApproval()
                 appearanceTask?.cancel()
                 appearanceTask = Task {
                     await viewModel.reconnectStreamIfNeeded(modelContext: modelContext)

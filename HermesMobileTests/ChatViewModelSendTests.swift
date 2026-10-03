@@ -1623,7 +1623,9 @@ final class ChatViewModelSendTests: XCTestCase {
             }
         }
 
+        XCTAssertFalse(viewModel.hasAuthoritativeApprovalState)
         await viewModel.refreshApprovalBypassState()
+        XCTAssertTrue(viewModel.hasAuthoritativeApprovalState)
 
         XCTAssertNil(viewModel.activeStreamID)
         XCTAssertEqual(viewModel.approvalPrompt?.pending.approvalId, "approval-1")
@@ -1632,6 +1634,9 @@ final class ChatViewModelSendTests: XCTestCase {
         approvalStreamClient.emit(.approvalPending(ApprovalPendingResponse(pending: nil, pendingCount: 0)))
         XCTAssertNil(viewModel.approvalPrompt)
         XCTAssertEqual(approvalStreamClient.stopCount, 1)
+        XCTAssertTrue(viewModel.hasAuthoritativeApprovalState, "Server-confirmed empty is authoritative")
+        viewModel.cleanupPollingTasks()
+        XCTAssertFalse(viewModel.hasAuthoritativeApprovalState, "Navigation cleanup is unknown, not server-confirmed empty")
     }
 
     @MainActor

@@ -471,6 +471,88 @@ import XCTest
         XCTAssertEqual(socket.sentRequests.last?["method"].text, "profiles.list")
     }
 
+    /// The summary deadline includes a socket whose ready frame never arrives.
+    func testApprovalExplanationDeadlineCancelsAttachmentBeforeSending() async throws {
+        BotHTTPFixture.handler = Self.signIn
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [BotHTTPFixture.self]
+        let socket = BotScriptedSocket(ready: false)
+        let opening = expectation(description: "socket opening")
+        let client = BotClient(connection: connection(), configuration: configuration) { _ in
+            opening.fulfill(); return socket
+        }
+        let (explain, release) = ApprovalExplanationRegistry.explain(using: client)
+        let armed = expectation(description: "whole-request deadline armed")
+        let released = expectation(description: "consumer released")
+        var expire: CheckedContinuation<Void, Error>?
+        let summaries = ApprovalExplanations(explain: explain, release: {
+            release(); released.fulfill()
+        }, waitForDeadline: {
+            try await withCheckedThrowingContinuation { expire = $0; armed.fulfill() }
+        })
+        let key = ApprovalExplanations.Key(scope: "chat", approvalID: "approval")
+        summaries.show(key, input: "Command: ls")
+        await fulfillment(of: [opening, armed], timeout: 2)
+        XCTAssertEqual(summaries.states[key], .loading)
+        expire?.resume()
+        await fulfillment(of: [released], timeout: 2)
+        XCTAssertEqual(summaries.states[key], .failed)
+        XCTAssertFalse(client.isAttached)
+        XCTAssertTrue(socket.isClosed)
+        XCTAssertTrue(socket.outbound.isEmpty, "No capabilities or explanation precedes gateway.ready")
+        summaries.show(key, input: "Command: ls")
+        XCTAssertEqual(summaries.inFlightCount, 0, "No retry after an attachment timeout")
+    }
+
+    /// An approval card's explanation is optional: a stalled or cancelled `llm.oneshot`
+    /// fails only that request, and the screen's socket stays.
+    func testApprovalExplanationTimeoutFailsOnlyThatRequest() async throws {
+        BotHTTPFixture.handler = Self.signIn
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [BotHTTPFixture.self]
+        let socket = BotScriptedSocket()
+        socket.withholdReply = { $0["method"].text == "llm.oneshot" }
+        let client = BotClient(connection: connection(), configuration: configuration,
+                               rpcDeadline: .milliseconds(50)) { _ in socket }
+        var disconnects = 0
+        client.onDisconnect = { _ in disconnects += 1 }
+        try await client.connect()
+        defer { client.close() }
+        XCTAssertTrue(client.isAttached)
+
+        do {
+            _ = try await client.call(.approvalExplanation(input: "Command: rm -rf build"))
+            XCTFail("A timed-out explanation succeeded")
+        } catch {
+            XCTAssertEqual(error as? BotFailure, .transport)
+        }
+
+        let started = expectation(description: "llm.oneshot dispatched")
+        socket.withholdReply = { request in
+            guard request["method"].text == "llm.oneshot" else { return false }
+            started.fulfill()
+            return true
+        }
+        let explanation = Task { try await client.call(.approvalExplanation(input: "Command: ls")) }
+        await fulfillment(of: [started], timeout: 2)
+        explanation.cancel()
+        do { _ = try await explanation.value; XCTFail("A cancelled explanation succeeded") }
+        catch { XCTAssertTrue(error is CancellationError) }
+
+        socket.withholdReply = nil
+        socket.reply = { request in
+            request["method"].text == "llm.oneshot"
+                ? .object(["id": request["id"], "result": .object(["text": .string("Lists the folder.")])])
+                : .object(["id": request["id"], "result": .object(["profiles": .array([])])])
+        }
+        let reply = try await client.call(.approvalExplanation(input: "Command: ls"))
+        XCTAssertEqual(reply["text"].text, "Lists the folder.")
+        XCTAssertEqual(disconnects, 0)
+        XCTAssertTrue(client.isAttached)
+        XCTAssertEqual(socket.sentRequests.map { $0["method"].text }, ["llm.oneshot", "llm.oneshot", "llm.oneshot"])
+        XCTAssertNil(socket.sentRequests.last?["params"]["session_id"].text, "Stateless: never bound to a chat")
+    }
+
     func testLifecycleAllowlistAdmitsOnlyTheCreateShapeAndCanonicalChatCalls() async throws {
         var deletes: [(String, String)] = []
         BotHTTPFixture.handler = { request in
@@ -1228,6 +1310,9 @@ final class BotScriptedSocket: BotSocket, @unchecked Sendable {
     ]
     private var waiter: CheckedContinuation<URLSessionWebSocketTask.Message, Error>?
     private var closed = false
+    init(ready: Bool = true) {
+        if !ready { frames.removeAll() }
+    }
     var reply: ((BotJSON) -> BotJSON)?
     var withholdReply: ((BotJSON) -> Bool)?
     /// Answers `client.capabilities`; nil answers as a current host does.

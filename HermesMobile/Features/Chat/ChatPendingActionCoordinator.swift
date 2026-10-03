@@ -41,6 +41,11 @@ protocol ChatPendingActionCoordinatorDelegate: AnyObject {
 @Observable
 final class ChatPendingActionCoordinator {
     private(set) var approvalPrompt: ApprovalPromptState?
+    private var observedApprovalSessionID: String?
+    var hasAuthoritativeApprovalState: Bool {
+        guard let sessionID = delegate?.pendingActionSessionID else { return false }
+        return observedApprovalSessionID == sessionID
+    }
     private(set) var isRespondingToApproval = false
     private(set) var approvalErrorMessage: String?
     private(set) var isSessionApprovalBypassEnabled = false
@@ -95,6 +100,7 @@ final class ChatPendingActionCoordinator {
             guard !Task.isCancelled, delegate?.pendingActionSessionID == sessionID else { return }
             isSessionApprovalBypassEnabled = response.yoloEnabled == true
             if isSessionApprovalBypassEnabled {
+                observedApprovalSessionID = sessionID
                 approvalStateGeneration &+= 1
                 approvalPendingBySession[sessionID] = nil
                 approvalPrompt = nil
@@ -227,6 +233,7 @@ final class ChatPendingActionCoordinator {
         }
 
         guard sessionID == delegate?.pendingActionSessionID else { return }
+        observedApprovalSessionID = sessionID
         approvalStateGeneration &+= 1
         renderApprovalPromptForCurrentSession()
         if approvalPendingBySession[sessionID] != nil {
@@ -323,6 +330,8 @@ final class ChatPendingActionCoordinator {
         approvalHadPendingWhileMonitoring = false
 
         guard clearPrompt else { return }
+        // Navigation cleared local presentation, not the backend approval lifetime.
+        observedApprovalSessionID = nil
         approvalStateGeneration &+= 1
         if let sessionID = delegate?.pendingActionSessionID {
             approvalPendingBySession[sessionID] = nil

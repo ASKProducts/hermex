@@ -2273,6 +2273,8 @@ private struct ServerDetailView: View {
     @State private var colorHex: String
     @State private var isConfirmingRemove = false
     @State private var isRemoving = false
+    @State private var hasHermesConnection = false
+    @State private var explainsApprovals = true
 
     init(authManager: AuthManager, account: ServerAccount) {
         self.authManager = authManager
@@ -2316,6 +2318,28 @@ private struct ServerDetailView: View {
                                                  systemImage: account.kind == .hermes ? "person.badge.key" : "bell.badge")
                         }
                         .buttonStyle(.plain)
+
+                        // The explanation travels over this server's Hermes connection, so the
+                        // switch exists only once there is one.
+                        if hasHermesConnection {
+                            SettingsDivider()
+
+                            SettingsToggleRow(
+                                title: String(localized: "Explain approvals in plain words"),
+                                systemImage: "text.bubble",
+                                isOn: Binding(get: { explainsApprovals }, set: { isOn in
+                                    explainsApprovals = isOn
+                                    ApprovalExplanationSetting.setEnabled(isOn, server: server)
+                                    ApprovalExplanationRegistry.shared.refresh(server: server)
+                                })
+                            )
+
+                            SettingsFootnote(String(localized: "Approval cards ask this server’s Hermes for a short AI summary of the command. The command itself is what you approve."))
+                        }
+                    }
+                    .onAppear {
+                        hasHermesConnection = ((try? BotConnectionStore().load(server: server)) ?? nil) != nil
+                        explainsApprovals = ApprovalExplanationSetting.isEnabled(server: server)
                     }
                 }
 
