@@ -49,6 +49,11 @@ enum Endpoint {
     case btw
     case background
     case backgroundStatus(sessionID: String)
+    case terminalStart
+    case terminalInput
+    case terminalResize
+    case terminalClose
+    case terminalOutput(sessionID: String)
     case workspaces
     case workspaceSuggestions(prefix: String)
     case workspaceAdd
@@ -234,6 +239,16 @@ enum Endpoint {
             return "/api/background"
         case .backgroundStatus:
             return "/api/background/status"
+        case .terminalStart:
+            return "/api/terminal/start"
+        case .terminalInput:
+            return "/api/terminal/input"
+        case .terminalResize:
+            return "/api/terminal/resize"
+        case .terminalClose:
+            return "/api/terminal/close"
+        case .terminalOutput:
+            return "/api/terminal/output"
         case .workspaces:
             return "/api/workspaces"
         case .workspaceSuggestions:
@@ -474,7 +489,7 @@ enum Endpoint {
             let .clarifyPending(sessionID),
             let .clarifyStream(sessionID):
             return [URLQueryItem(name: "session_id", value: sessionID)]
-        case let .backgroundStatus(sessionID):
+        case let .backgroundStatus(sessionID), let .terminalOutput(sessionID):
             return [URLQueryItem(name: "session_id", value: sessionID)]
         case let .directoryList(sessionID, path):
             var items = [URLQueryItem(name: "session_id", value: sessionID)]
