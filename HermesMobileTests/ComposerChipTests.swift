@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 import UIKit
 import XCTest
 
@@ -1019,5 +1020,100 @@ final class ComposerFocusTransitionTests: XCTestCase {
         window.endEditing(true)
         window.isHidden = true
         window.rootViewController = nil
+    }
+}
+
+/// Exercises the real ChatView send callback, with the HTTP reply held until
+/// the user has made a newer focus choice. No latency sleeps are needed.
+@MainActor
+final class ChatSendFocusTests: XCTestCase {
+    override class func setUp() {
+        super.setUp()
+        MainActor.assumeIsolated { warmUpSoftwareKeyboard() }
+    }
+
+    func testDismissingDuringSendKeepsComposerUnfocused() async throws {
+        try await assertFocusAfterSend(initiallyFocused: true, focusDuringSend: false)
+    }
+
+    func testFocusedSendKeepsComposerFocused() async throws {
+        try await assertFocusAfterSend(initiallyFocused: true, focusDuringSend: true)
+    }
+
+    func testFocusingDuringSendKeepsNewFocus() async throws {
+        try await assertFocusAfterSend(initiallyFocused: false, focusDuringSend: true)
+    }
+
+    private func assertFocusAfterSend(initiallyFocused: Bool, focusDuringSend: Bool) async throws {
+        let started = expectation(description: "send request started")
+        let finished = expectation(description: "send accepted")
+        let release = DispatchSemaphore(value: 0)
+        MockURLProtocol.requestHandler = { request in
+            if request.url?.path == "/api/chat/start" {
+                started.fulfill()
+                guard release.wait(timeout: .now() + 30) == .success else { throw URLError(.timedOut) }
+                return apiTestJSONResponse(
+                    #"{"session_id":"focus-session","stream_id":"focus-stream"}"#, for: request
+                )
+            }
+            return apiTestJSONResponse("{}", for: request)
+        }
+        defer {
+            release.signal()
+            MockURLProtocol.requestHandler = nil
+            ChatViewModel.resetActiveStreamSnapshotsForTesting()
+        }
+        let container = try ModelContainer(for: CachedSession.self, CachedMessage.self,
+                                           configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let server = URL(string: "https://keyboard-focus.example")!
+        let session = SessionSummary(sessionId: "focus-session", title: "Focus fixture")
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [MockURLProtocol.self]
+        let client = APIClient(baseURL: server, session: URLSession(configuration: configuration))
+        let model = ChatViewModel(session: session, server: server, client: client,
+                                  streamClient: ScriptedSSEStreamingClient(),
+                                  approvalStreamClient: ScriptedSSEStreamingClient(),
+                                  clarifyStreamClient: ScriptedSSEStreamingClient())
+        defer {
+            model.suspendStreamForNavigation()
+            model.cleanupPollingTasks()
+        }
+        let screen = ChatView(session: session, server: server,
+                              onAPIError: { _ in }, initialDraft: "Focus fixture message",
+                              loadsInitialMessages: false, viewModel: model,
+                              onConversationStarted: { finished.fulfill() })
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+        let window = UIWindow(windowScene: scene)
+        window.frame = UIScreen.main.bounds
+        window.rootViewController = UIHostingController(rootView: NavigationStack { screen }
+            .modelContainer(container).environment(\.scenePhase, .inactive))
+        window.makeKeyAndVisible()
+        defer {
+            window.endEditing(true)
+            window.isHidden = true
+            window.rootViewController = nil
+        }
+        await settle(window)
+        let editor = try XCTUnwrap(findEditor(in: window))
+        if initiallyFocused { XCTAssertTrue(editor.becomeFirstResponder()) }
+        else { editor.resignFirstResponder() }
+        await settle(window)
+        XCTAssertEqual(editor.isFirstResponder, initiallyFocused)
+        XCTAssertTrue(editor.isKeyboardSendEnabled)
+        editor.onKeyboardSend()
+        await fulfillment(of: [started], timeout: 30)
+        if focusDuringSend { XCTAssertTrue(editor.becomeFirstResponder()) }
+        else { XCTAssertTrue(editor.resignFirstResponder()) }
+        await settle(window)
+        XCTAssertEqual(editor.isFirstResponder, focusDuringSend)
+        release.signal()
+        await fulfillment(of: [finished], timeout: 30)
+        await settle(window)
+        XCTAssertEqual(editor.isFirstResponder, focusDuringSend,
+                       "Send completion must not overwrite the user's newer focus choice")
+    }
+
+    private func findEditor(in view: UIView) -> ComposerChipTextView? {
+        (view as? ComposerChipTextView) ?? view.subviews.lazy.compactMap { self.findEditor(in: $0) }.first
     }
 }

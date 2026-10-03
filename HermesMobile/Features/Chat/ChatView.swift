@@ -398,6 +398,7 @@ struct ChatView: View {
         draftStore: ChatDraftStore? = nil,
         draftAttachmentStore: (any ChatDraftAttachmentStoring)? = nil,
         restoresDraftSettings: Bool = false,
+        viewModel: ChatViewModel? = nil,
         onConversationStarted: @escaping () -> Void = {}
     ) {
         self.session = session
@@ -413,7 +414,7 @@ struct ChatView: View {
         _draftMessage = State(initialValue: initialDraft)
         _draftQuotes = State(initialValue: initialQuotes)
         _initialAttachments = State(initialValue: initialAttachments)
-        _viewModel = State(initialValue: ChatViewModel(
+        _viewModel = State(initialValue: viewModel ?? ChatViewModel(
             session: session,
             server: server,
             showsLiveActivityResponseExcerpts: UserDefaults.standard.bool(
@@ -1969,7 +1970,6 @@ struct ChatView: View {
             quotes: submittedContent.quotes
         )
         let submittedDraftRevision = draftRevision
-        let shouldRestoreFocusAfterSend = composerIsFocused
 
         if submittedContent.quotes.isEmpty,
            submittedDraft.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("/") {
@@ -2030,11 +2030,6 @@ struct ChatView: View {
 
         if didStart {
             ChatHaptics.messageSent(isEnabled: isHapticsEnabled)
-            if shouldRestoreFocusAfterSend {
-                requestComposerFocusIfPossible()
-            } else {
-                composerIsFocused = false
-            }
         }
 
         if let lastError = viewModel.lastError {
