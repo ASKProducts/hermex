@@ -338,6 +338,7 @@ struct ChatView: View {
     @State private var goalDraft = ""
     @State private var showsGoalSheet = false
     @State private var activeGitSheet: ActiveGitSheet?
+    @State private var showsTerminal = false
     @State private var turnDiffPresentation: TurnDiffPresentation?
     @State private var viewModel: ChatViewModel
     @State private var gitAvailabilityViewModel: GitWorkspaceAvailabilityViewModel
@@ -881,6 +882,16 @@ struct ChatView: View {
 
                 ToolbarItem(placement: .topBarTrailing) {
                     ChatToolbarActionCluster {
+                        ChatToolbarActionSlot {
+                            Button {
+                                composerIsFocused = false
+                                showsTerminal = true
+                            } label: {
+                                Label("Terminal", systemImage: "apple.terminal")
+                            }
+                            .disabled(viewModel.isViewingCachedData)
+                            .accessibilityIdentifier("chat-terminal")
+                        }
                         if viewModel.hasActivatedGoalCommand {
                             ChatToolbarActionSlot {
                                 goalControlMenu
@@ -909,6 +920,9 @@ struct ChatView: View {
             }
             .navigationDestination(item: $pushedSession) { session in
                 ChatView(session: session, server: server, onAPIError: onAPIError)
+            }
+            .fullScreenCover(isPresented: $showsTerminal) {
+                TerminalScreen(session: session, server: server)
             }
             .sheet(item: $attachmentPreviewItem) { item in
                 ChatAttachmentPreviewView(

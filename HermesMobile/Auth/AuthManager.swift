@@ -56,7 +56,10 @@ final class AuthManager {
 
     private(set) var state: State = .unconfigured {
         // The shared Bot connection signs in with the active server's saved credentials.
-        didSet { if let old = oldValue.server, old != state.server { hermesConnections.retire(server: old) } }
+        didSet {
+            if let old = oldValue.server, old != state.server { hermesConnections.retire(server: old) }
+            NotificationCenter.default.post(name: .hermexAuthStateDidChange, object: self)
+        }
     }
     private(set) var lastErrorMessage: String?
 
