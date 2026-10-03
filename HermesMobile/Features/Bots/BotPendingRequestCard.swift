@@ -33,6 +33,8 @@ struct BotPendingRequestCard: View {
     let onStop: () -> Void
     /// One row's answer, or Continue, for a connection operation.
     let onConnection: (BotConnectionOperation.Answer) -> Void
+    /// An approval's plain-words explanation state; nil draws no area.
+    var explanation: ApprovalExplanations.State? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -40,7 +42,7 @@ struct BotPendingRequestCard: View {
             case .approval(let approval):
                 BotApprovalRequestBody(
                     approval: approval, identity: identity, isEnabled: isEnabled,
-                    isAnswering: isAnswering, onApprove: onApprove
+                    isAnswering: isAnswering, explanation: explanation, onApprove: onApprove
                 )
             case .question(let question):
                 BotQuestionRequestBody(
@@ -108,6 +110,7 @@ private struct BotApprovalRequestBody: View {
     let identity: String
     let isEnabled: Bool
     let isAnswering: Bool
+    let explanation: ApprovalExplanations.State?
     let onApprove: (BotApprovalRequest.Choice) -> Void
 
     var body: some View {
@@ -130,6 +133,9 @@ private struct BotApprovalRequestBody: View {
                     .textSelection(.enabled)
             }
             .pendingRequestBlockSurface()
+        }
+        if let explanation {
+            ApprovalExplanationView(state: explanation)
         }
         if let scope = approval.scopeLine {
             Text(scope)

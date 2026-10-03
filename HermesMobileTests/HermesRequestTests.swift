@@ -120,7 +120,13 @@ final class HermesRequestTests: XCTestCase {
             (.groupsRename(roomID: "room", eventID: "e1", name: "Crew"), "groups.rename",
              ["room_id": .string("room"), "event_id": .string("e1"), "name": .string("Crew")]),
             (.groupsDisband(roomID: "room"), "groups.disband", ["room_id": .string("room")]),
-            (.clientCapabilities, "client.capabilities", ["server_requests": .bool(true)])
+            (.clientCapabilities, "client.capabilities", ["server_requests": .bool(true)]),
+            // hermes-agent `LlmOneshotParams` (tui_gateway/contracts/sessions.py), extra="forbid":
+            // no `session_id`, so the host runs the `title_generation` auxiliary model.
+            (.approvalExplanation(input: "Command: rm -rf build"), "llm.oneshot", [
+                "instructions": .string(HermesCall.approvalExplanationInstructions),
+                "input": .string("Command: rm -rf build"), "task": .string("title_generation"), "max_tokens": .number(200)
+            ])
         ]
         for (call, method, params) in cases {
             XCTAssertEqual(call.method, method)

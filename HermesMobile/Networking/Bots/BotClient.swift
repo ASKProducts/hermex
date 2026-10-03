@@ -46,6 +46,9 @@ import Foundation
         consumerID = gateway.makeConsumerID()
     }
 
+    /// Whether this client is attached to an open socket, so `call` can go without `connect()`.
+    var isAttached: Bool { gateway.isAttached(consumerID) }
+
     /// Attaches to the gateway socket once its handshake is done, so no RPC can precede it.
     /// A socket another screen has open is joined as it is; otherwise this signs in unless
     /// the connection already is and opens one, or waits for the one already opening.

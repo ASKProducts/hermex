@@ -96,6 +96,15 @@ enum HermesCall: Equatable, Sendable {
     /// The socket handshake's opt-in to server→client requests. `BotClient` sends it itself.
     case clientCapabilities
 
+    // One-shot model calls
+
+    /// A plain-words explanation of one flagged command for its approval card: one
+    /// stateless `llm.oneshot` with no `session_id`, so the host runs it on its
+    /// `title_generation` auxiliary model and writes nothing to any chat.
+    case approvalExplanation(input: String)
+    static let approvalExplanationInstructions = "Explain in one or two short sentences, for a non-programmer, "
+        + "what this command will do and what could go wrong. No code, no preamble."
+
     /// A new avatar as a base64 data URL, or its removal.
     enum AvatarChange: Equatable, Sendable {
         case replace(String)
@@ -223,6 +232,7 @@ enum HermesCall: Equatable, Sendable {
         case .groupsRename: return "groups.rename"
         case .groupsDisband: return "groups.disband"
         case .clientCapabilities: return "client.capabilities"
+        case .approvalExplanation: return "llm.oneshot"
         }
     }
 
@@ -329,6 +339,9 @@ enum HermesCall: Equatable, Sendable {
         case .groupsRename(let roomID, let eventID, let name):
             return ["room_id": .string(roomID), "event_id": .string(eventID), "name": .string(name)]
         case .clientCapabilities: return ["server_requests": .bool(true)]
+        case .approvalExplanation(let input):
+            return ["instructions": .string(Self.approvalExplanationInstructions), "input": .string(input),
+                    "task": .string("title_generation"), "max_tokens": .number(200)]
         }
     }
 
@@ -395,6 +408,7 @@ enum HermesCall: Equatable, Sendable {
         case .groupsCreate(let room): valid = room.isAdmissible
         case .groupsRename(let roomID, let eventID, let name):
             valid = BotRoomRPC.validID(roomID) && BotRoomRPC.validID(eventID) && BotRoomRPC.validName(name)
+        case .approvalExplanation(let input): valid = !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         case .profilesList, .profilesGetAsset, .sessionList, .sessionResume, .sessionEventsSince, .sessionActiveList,
              .promptSubmit, .sessionSteer, .sessionRedirect, .sessionInterrupt, .fileAttach, .approvalRespond,
              .requestAnswer, .clarifyLock, .modelOptions, .configuredModelOptions, .sessionCwdSet, .sessionControlRead,

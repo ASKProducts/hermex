@@ -19,6 +19,7 @@ import SwiftUI
     @State private var recoveryID = UUID()
     @State private var followLatch = ChatScrollPolicy.FollowLatch()
     @State private var isNearBottom = true
+    @State private var isOnScreen = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage(AppHaptics.isEnabledKey) private var isHapticsEnabled = true
     @AppStorage(ChatTranscriptDisplaySettings.foldsSettledTurnsKey) private var foldsSettledTurns = true
@@ -56,7 +57,7 @@ import SwiftUI
         _model = State(initialValue: model)
     }
 
-    var body: some View {
+    private var transcript: some View {
         VStack(spacing: 0) {
             ScrollViewReader { proxy in
                 ScrollView {
@@ -140,7 +141,8 @@ import SwiftUI
                                 onApprove: approve, onAnswer: answer, onSkip: skip,
                                 onCredential: sendCredential,
                                 onStop: { stopAction = model.prepareStop() },
-                                onConnection: answerConnection
+                                onConnection: answerConnection,
+                                explanation: approvalExplanationState(for: request)
                             )
                             .id(BotChatView.requestAnchor)
                         } else if let withdrawal = model.withdrawnRequest {
@@ -228,6 +230,10 @@ import SwiftUI
                 .safeAreaInset(edge: .bottom, spacing: 0) { composer }
             }
         }
+    }
+
+    var body: some View {
+        transcript
         .navigationTitle(model.profile.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -298,7 +304,15 @@ import SwiftUI
             }
         }
         .onChange(of: model.turn) { workingBeat.observe(model.turn, at: Date()) }
-        .onDisappear { stopAction = nil; model.suspend() }
+        .onDisappear {
+            isOnScreen = false
+            stopAction = nil; model.suspend()
+            ApprovalExplanationRegistry.shared.explanations(for: model.server)?.leave(scope: approvalExplanationScope)
+        }
+        .onAppear { isOnScreen = true; explainCurrentApproval() }
+        .onChange(of: model.pendingRequest?.requestID) { explainCurrentApproval() }
+        .onChange(of: model.pendingApprovalIDs) { explainCurrentApproval() }
+        .onChange(of: model.hasAuthoritativePendingRequests) { explainCurrentApproval() }
         .onChange(of: model.feedback) { _, feedback in
             if let feedback { ChatHaptics.botFeedback(feedback.event, isEnabled: isHapticsEnabled) }
         }
@@ -335,8 +349,45 @@ import SwiftUI
         return resolution
     }
 
+    /// This bot conversation's approvals in the server's explanation cache.
+    private var approvalExplanationScope: String { "bot|\(model.connection.id.uuidString)|\(model.profile.id)" }
+
+    /// The approval on screen as a cache key and the model's input; nil for any other request.
+    private func approvalExplanationRequest(for request: BotPendingRequest?)
+        -> (key: ApprovalExplanations.Key, input: String?)? {
+        guard case .approval(let approval) = request,
+              model.pendingApprovalIDs.contains(approval.requestID) else { return nil }
+        let input = ApprovalExplanations.input(
+            description: approval.consequence, command: approval.command, workingDirectory: model.chatControls.workspace
+        )
+        return (ApprovalExplanations.Key(scope: approvalExplanationScope, approvalID: approval.requestID), input)
+    }
+
+    /// Nil when this isn't an approval or the server explains none (setting off).
+    private func approvalExplanationState(for request: BotPendingRequest) -> ApprovalExplanations.State? {
+        guard let approval = approvalExplanationRequest(for: request) else { return nil }
+        return ApprovalExplanationRegistry.shared.explanations(for: model.server)?.state(for: approval.key, input: approval.input)
+    }
+
+    /// Asks about the approval now on screen, and drops this conversation's others
+    /// (answered, expired or withdrawn).
+    private func explainCurrentApproval() {
+        guard isOnScreen else { return }
+        let registry = ApprovalExplanationRegistry.shared
+        registry.refresh(server: model.server)
+        guard let explanations = registry.explanations(for: model.server) else { return }
+        let approval = approvalExplanationRequest(for: model.pendingRequest)
+        let pending: Set<ApprovalExplanations.Key>? = model.hasAuthoritativePendingRequests
+            ? Set(model.pendingApprovalIDs.map {
+                ApprovalExplanations.Key(scope: approvalExplanationScope, approvalID: $0)
+            }) : nil
+        explanations.retain(approval?.key, inScope: approvalExplanationScope, pending: pending)
+        if let approval { explanations.show(approval.key, input: approval.input) }
+    }
+
     private func approve(_ choice: BotApprovalRequest.Choice) {
         guard let action = model.prepareAnswer() else { return }
+        ApprovalExplanationRegistry.shared.explanations(for: model.server)?.leave(scope: approvalExplanationScope)
         Task { await model.respond(action, choice: choice) }
     }
 

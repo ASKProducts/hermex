@@ -430,6 +430,19 @@ import OSLog
             ?? connectionOperation.map(BotPendingRequest.connection)
     }
 
+    /// All pending approvals, independent of which request has presentation priority.
+    private(set) var hasAuthoritativePendingRequests = false
+
+    var pendingApprovalIDs: Set<String> {
+        let requests = serverRequests.compactMap(\.pending) + (blockingRequest.map { [$0] } ?? [])
+        return Set(requests.compactMap { request in
+            guard case .approval(let approval) = request else { return nil }
+            if let resolution = requestResolution, resolution.requestID == approval.requestID,
+               resolution.blocksFurtherAnswers { return nil }
+            return approval.requestID
+        })
+    }
+
     /// The request on screen by its envelope. Nil for a connection operation,
     /// and for an approval the snapshot shows without one.
     private var envelopeOnScreen: BotRequestWithdrawal.Envelope? {
@@ -918,6 +931,7 @@ import OSLog
         if requestsRevision == nil || requestsRevision == requestRevision {
             restoreServerRequests(snapshot)
             applyPendingRequest(snapshot)
+            hasAuthoritativePendingRequests = true
             restoreConnectionOperation(snapshot)
             // A request on screen takes the withdrawn card's slot.
             if withdrawnRequest != nil, pendingRequest != nil { withdrawnRequest = nil }
@@ -1767,6 +1781,7 @@ import OSLog
     }
 
     private func resetConnection() {
+        hasAuthoritativePendingRequests = false
         confirmedWorkingStart = nil
         withdrawnRequest = nil
         chatControls.disconnect()

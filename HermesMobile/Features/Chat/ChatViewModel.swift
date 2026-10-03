@@ -472,6 +472,7 @@ final class ChatViewModel {
     /// it with Retry; `clearSteerFailure()` removes it.
     private(set) var steerFailureMessage: String?
     var approvalPrompt: ApprovalPromptState? { pendingActionCoordinator.approvalPrompt }
+    var hasAuthoritativeApprovalState: Bool { pendingActionCoordinator.hasAuthoritativeApprovalState }
     var isRespondingToApproval: Bool { pendingActionCoordinator.isRespondingToApproval }
     var approvalErrorMessage: String? { pendingActionCoordinator.approvalErrorMessage }
     var isSessionApprovalBypassEnabled: Bool { pendingActionCoordinator.isSessionApprovalBypassEnabled }

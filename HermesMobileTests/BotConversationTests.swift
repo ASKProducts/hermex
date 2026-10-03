@@ -532,6 +532,28 @@ import Vision
         model.suspend()
     }
 
+    func testPendingApprovalLifetimeSurvivesQuestionPresentationPriority() async throws {
+        let wire = BotFixtureWire()
+        wire.attention = true
+        wire.openClarify = BotFixtureWire.clarify()
+        let model = make(wire)
+        XCTAssertFalse(model.hasAuthoritativePendingRequests)
+        await model.recover()
+        XCTAssertTrue(model.hasAuthoritativePendingRequests)
+        XCTAssertEqual(model.pendingRequest?.requestID, "clr-1", "The question is on screen")
+        XCTAssertEqual(model.pendingApprovalIDs, ["req-1"], "The hidden approval remains pending")
+        model.suspend()
+        XCTAssertFalse(model.hasAuthoritativePendingRequests)
+        wire.openClarify = .null
+        await model.recover()
+        XCTAssertTrue(model.hasAuthoritativePendingRequests)
+        XCTAssertEqual(model.pendingRequest?.requestID, "req-1")
+        XCTAssertEqual(model.pendingApprovalIDs, ["req-1"])
+        await model.respond(try XCTUnwrap(model.prepareAnswer()), choice: .deny)
+        XCTAssertTrue(model.pendingApprovalIDs.isEmpty, "The host resolved the approval")
+        model.suspend()
+    }
+
     func testApprovalPublishesItsChoiceOnlyWhenTheHostResolvedIt() async throws {
         for resolved in [1, 0] {
             let wire = BotFixtureWire(); wire.attention = true; wire.approvalResolved = resolved
