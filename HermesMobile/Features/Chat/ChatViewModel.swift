@@ -5323,7 +5323,6 @@ final class ChatViewModel {
         }
         if updatedGroups != completedToolCallGroups {
             setCompletedToolCallGroups(updatedGroups)
-            scheduleStreamingScrollTrigger()
         }
         return true
     }
