@@ -46,8 +46,9 @@ password focused, no Remove, the avatar as the way out. No Bot screen exists in 
 state, so nothing sends the refused password again; saving a sign-in signs the server
 back in. A webui server's own connection keeps #884's per-screen flag instead. A
 Hermes server sends no webui request: Settings skips its webui loads and hides their
-rows, a webui 401 never signs it out, and new chats, webui's serverless session links
-(`session?id=`) and shares switch to the first webui server (or say there is none). It has no push pairing until #706,
+rows, a webui 401 never signs it out, and webui's serverless session links (`session?id=`) and
+bare-Profile New Chat in Profile links switch to the first webui server, or open nothing without
+one. New chats (#1180) and shares (#1181) stay on it. It has no push pairing until #706,
 so removing it never calls the relay. Its connection form is reached through Settings
 → Active Server → Hermes connection or Settings → Servers → the server, and saving it
 from either signs the server back in. That server screen's button is Remove Server
@@ -1693,6 +1694,33 @@ deleted with the server) with the Profile's name under it. An unreadable host li
 webui section, "<server> (Web UI)", is the `profileServer` list with its model · provider subtitle.
 A saved Hermes id resolves from the id while its server is configured, without a network read.
 
+## Shares on Hermes (#1181)
+
+A share while a Hermes server is active opens a new session there, never a webui server. The
+extension and its app-group inbox are unchanged: `ContentView` reserves the next share and hands
+it to `HermesServerHome`, which turns to Sessions; without a saved connection it releases the
+share, which stays queued. Once the list has settled New Session's Profile and read the host live
+(`SharedImportReservation.hermesOpening`, as a Shortcut's new chat), it moves the share into that Profile's new-session
+draft (`transfer`, `moveIntoDraft`, `ChatDraftStore.appendShare`): the text goes after any unsent
+text and the files, prepared as a Hermes send takes them under Bot Chat's limits, after any staged
+ones, all written to disk before `ContentView` consumes the reservation. A file that can't go now
+(its type or size, an unreadable image, a full draft, rechecked as the move commits) fails the
+whole move, which releases the share; one
+cut short by leaving the list hands it back still reserved (`SharedImportQueue.abandon`), so a
+staged share is never lost. The list claims the share as its move starts, and no home, on this
+server or another, is offered it until that move ends, so a server switch mid-write can't put it
+in two servers' drafts. The draft records
+the share's item id with its content (`ChatDraft.sharedImportIDs`), so a retry, or a replay after
+the app quit before consuming, adds nothing and is consumed. A composer already open on that draft
+keeps records it never saw (`setAttachments(_:replacing:for:)`), and a move whose records or text
+are gone by the time its write lands takes back only what it added, on disk before the share is
+released, and stays queued (#1198 tracks the composer's side). The list then pushes `.new(profile:)`, whose composer restores that draft, and the first Send creates
+the session and uploads each file once (#1012). Leaving without sending keeps it for the next New
+Session, and a Profile picked before sending carries the draft into the new Profile's chat
+(#1015), unless a draft already waits there. A webui list opens one share and offers later ones in
+its Open Next banner; the Hermes home has none, so it opens each share as it arrives
+(`SharedImportGate`), and each adds to whatever the same Profile's draft already holds.
+
 ## Bot lifecycle
 
 The inbox's `+` button and a row's context menu create, duplicate and delete
@@ -1807,8 +1835,8 @@ bot chats push on from the inbox. It has no title of its own: the back button
 and its search / new / connection toolbar are the whole header.
 
 New Bot code belongs only to the main app and XCTest target, apart from the Live
-Activity below. Share-extension commands still route to webui sessions; App Intents
-open Hermes sessions on a Hermes server (#1180).
+Activity below. Shares open a new Hermes session on a Hermes server (#1181), with the
+extension unchanged; App Intents open Hermes sessions on a Hermes server (#1180).
 Existing external entry points (session deep links, App Intents, shared imports,
 webui push) replace the navigation destination, which pops an open Bots inbox.
 

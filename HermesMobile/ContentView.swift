@@ -4,15 +4,8 @@ struct ContentView: View {
     @Bindable var authManager: AuthManager
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage(ResponseCompletionNotifications.isEnabledKey) private var isResponseCompletionNotificationsEnabled = false
-    @State private var pendingSharedImport: SharedImportReservation?
-    @State private var hasWaitingSharedImport = false
-    @State private var hasRoutedSharedImport = false
+    @State private var shares = SharedImportQueue()
     @State private var pendingLinks = PendingLinks()
-    /// Shown when a webui Profile's new chat, a legacy session link or a share arrives while a
-    /// Hermes server is active and no webui server is configured to take it (#899).
-    @State private var isShowingNoWebuiServer = false
-    /// The share that alert offers to discard; nil for a new chat or session link.
-    @State private var unroutableShare: SharedImportReservation?
     @State private var didCheckInitialPendingShare = false
     @State private var intentRouter = AppIntentRouter.shared
     @AppStorage(BotModeGate.isEnabledKey) private var isBotModeEnabled = false
@@ -61,14 +54,6 @@ struct ContentView: View {
                 // paths own notifications while the app is alive.
                 Task { await reconcileOrphanedLiveActivities(notifiesOnCompletion: false) }
             }
-            .alert("Add a WebUI server to start a chat.", isPresented: $isShowingNoWebuiServer) {
-                if let share = unroutableShare {
-                    Button("Discard", role: .destructive) { settleUnroutableShare(share, discarding: true) }
-                    Button("Cancel", role: .cancel) { settleUnroutableShare(share, discarding: false) }
-                } else {
-                    Button("OK", role: .cancel) {}
-                }
-            }
     }
 
     private func reconcileOrphanedLiveActivities(notifiesOnCompletion: Bool) async {
@@ -108,7 +93,10 @@ struct ContentView: View {
         case .loggedIn(let server) where authManager.kind(of: server) == .hermes:
             HermesServerHome(authManager: authManager, server: server, pendingBotDestination: $pendingLinks.bot,
                              pendingSessionDestination: $pendingLinks.hermesSession,
-                             pendingNewChat: $pendingLinks.hermesNewChat)
+                             pendingNewChat: $pendingLinks.hermesNewChat,
+                             pendingShare: shares.pending, claimShare: { shares.claim($0) },
+                             didRouteShare: consumePendingSharedImport, didDeclineShare: releasePendingSharedImport,
+                             didAbandonShare: { shares.abandon($0) })
                 .id(server)
         case .loggedOut(let server):
             OnboardingView(authManager: authManager, savedServer: server)
@@ -116,9 +104,9 @@ struct ContentView: View {
             SessionListView(
                 authManager: authManager,
                 server: server,
-                pendingSharedImport: $pendingSharedImport,
+                pendingSharedImport: $shares.pending,
                 didRoutePendingSharedImport: consumePendingSharedImport,
-                hasWaitingSharedImport: hasWaitingSharedImport,
+                hasWaitingSharedImport: shares.hasWaiting,
                 openNextSharedImport: openNextSharedImport,
                 pendingDeepLinkedSessionID: $pendingLinks.deepLinkedSessionID,
                 requestedNewChat: $pendingLinks.newChatRequest,
@@ -221,10 +209,11 @@ struct ContentView: View {
     }
 
     /// Readies a webui-only entry point (a webui Profile's New Chat in Profile, a legacy
-    /// session link, a share) and returns whether it can go ahead. While a Hermes server is active it
+    /// session link) and returns whether it can go ahead. While a Hermes server is active it
     /// switches to the first webui server, as a webui push tap does, and the rebuilt
-    /// session list takes the held request. With no webui server it shows why and returns
-    /// false. On a webui server, or with nothing configured, there is nothing to do.
+    /// session list takes the held request. With no webui server it opens nothing: a Hermes-only
+    /// user is never asked to add one (#1181). On a webui server, or with nothing configured,
+    /// there is nothing to do.
     private func reachWebuiServer() -> Bool {
         switch WebuiEntryRoute.resolve(active: authManager.state.server, servers: authManager.servers) {
         case .stay:
@@ -233,24 +222,14 @@ struct ContentView: View {
             authManager.switchActiveServer(to: account)
             return true
         case .unavailable:
-            isShowingNoWebuiServer = true
             return false
         }
     }
 
-    /// Deletes a share no webui server can take, or keeps it queued to be offered again on
-    /// the next launch or return to the app. Either way nothing was routed, so the next
-    /// queued share is offered the same way rather than waiting behind it.
-    private func settleUnroutableShare(_ reservation: SharedImportReservation, discarding: Bool) {
-        unroutableShare = nil
-        if pendingSharedImport?.reservationID == reservation.reservationID { pendingSharedImport = nil }
-        guard let directory = HermesShareDraft.containerURL() else { return }
-        if discarding {
-            try? HermesShareDraft.consume(reservation, from: directory)
-        } else {
-            try? HermesShareDraft.release(reservation, in: directory)
-        }
-        refreshWaitingSharedImport(in: directory)
+    /// Keeps a share the Hermes home can't open (it has no saved connection, or its draft
+    /// couldn't take it) queued, to be offered again on the next launch or return to the app.
+    private func releasePendingSharedImport(_ reservation: SharedImportReservation) {
+        shares.release(reservation, in: HermesShareDraft.containerURL())
     }
 
     /// Routes a deep link queued by an App Intent through the same `handleOpenURL` parser
@@ -262,59 +241,105 @@ struct ContentView: View {
     }
 
     private func importPendingSharedDraftIfAvailable() {
-        guard pendingSharedImport == nil else {
-            return
-        }
-
-        guard let directory = HermesShareDraft.containerURL() else {
-            return
-        }
-
-        guard !hasRoutedSharedImport else {
-            refreshWaitingSharedImport(in: directory)
-            return
-        }
-
-        do {
-            pendingSharedImport = try HermesShareDraft.reserveNextPendingImport(from: directory)
-            refreshWaitingSharedImport(in: directory)
-            if let reservation = pendingSharedImport, !reachWebuiServer() { unroutableShare = reservation }
-        } catch {
-            pendingSharedImport = nil
-            hasWaitingSharedImport = false
-        }
+        shares.reserveNext(in: HermesShareDraft.containerURL(), active: authManager.state.server, servers: authManager.servers)
     }
 
     private func consumePendingSharedImport(_ reservation: SharedImportReservation) {
-        hasRoutedSharedImport = true
+        shares.consume(reservation, in: HermesShareDraft.containerURL(), active: authManager.state.server,
+                       servers: authManager.servers)
+    }
 
-        defer {
-            if pendingSharedImport?.reservationID == reservation.reservationID {
-                pendingSharedImport = nil
-            }
+    private func openNextSharedImport() {
+        shares.openNext(in: HermesShareDraft.containerURL(), active: authManager.state.server, servers: authManager.servers)
+    }
+}
+
+/// The shares waiting in the app group, handed to the active server's home one at a time
+/// (#1181): the one reserved for it or being moved into a Hermes draft, whether more wait, and
+/// whether one was routed since the last Open Next. `ContentView` owns it; a nil directory (no app group) reserves nothing.
+struct SharedImportQueue {
+    /// The reserved share the active home is opening.
+    var pending: SharedImportReservation?
+    /// More shares wait behind it, which a webui session list offers in its Open Next banner.
+    private(set) var hasWaiting = false
+    private var hasRouted = false
+    /// The share a Hermes list is moving into its draft (`claim`), offered to no home meanwhile.
+    private var moving: SharedImportReservation?
+
+    /// Reserves the next waiting share when the active home opens it now (`SharedImportGate`).
+    mutating func reserveNext(in directory: URL?, active: URL?, servers: [ServerAccount]) {
+        guard pending == nil, moving == nil, let directory else { return }
+        guard SharedImportGate.opensNext(afterRouting: hasRouted, active: active, servers: servers) else {
+            return refreshWaiting(in: directory)
         }
-
-        guard let directory = HermesShareDraft.containerURL() else {
-            return
+        do {
+            pending = try HermesShareDraft.reserveNextPendingImport(from: directory)
+            refreshWaiting(in: directory)
+        } catch {
+            pending = nil
+            hasWaiting = false
         }
+    }
 
+    /// The home routed `reservation`, so it leaves the queue, and a Hermes home, which has no
+    /// Open Next banner, takes the next share at once.
+    mutating func consume(_ reservation: SharedImportReservation, in directory: URL?, active: URL?,
+                          servers: [ServerAccount]) {
+        hasRouted = true
+        settle(reservation)
+        guard let directory else { return }
         do {
             try HermesShareDraft.consume(reservation, from: directory)
         } catch {
             // Keep the share recoverable if acknowledgement fails after routing.
             try? HermesShareDraft.release(reservation, in: directory)
+            return refreshWaiting(in: directory)
         }
-        refreshWaitingSharedImport(in: directory)
+        refreshWaiting(in: directory)
+        reserveNext(in: directory, active: active, servers: servers)
     }
 
-    private func openNextSharedImport() {
-        hasWaitingSharedImport = false
-        hasRoutedSharedImport = false
-        importPendingSharedDraftIfAvailable()
+    /// Keeps a share the Hermes home can't open queued, to be offered again on the next launch
+    /// or return to the app.
+    mutating func release(_ reservation: SharedImportReservation, in directory: URL?) {
+        settle(reservation)
+        guard let directory else { return }
+        try? HermesShareDraft.release(reservation, in: directory)
+        refreshWaiting(in: directory)
     }
 
-    private func refreshWaitingSharedImport(in directory: URL) {
-        hasWaitingSharedImport = (try? HermesShareDraft.hasPendingImport(in: directory)) ?? false
+    /// A Hermes list starts moving `reservation` into a draft: no home is offered it again until
+    /// the move ends in `consume`, `release` or `abandon`, so a server switch mid-move can't open
+    /// it in a second server's draft. False when it isn't the pending share.
+    mutating func claim(_ reservation: SharedImportReservation) -> Bool {
+        guard pending?.reservationID == reservation.reservationID else { return false }
+        moving = pending
+        pending = nil
+        return true
+    }
+
+    /// The move was cut short before the draft took the share, so whichever home is active
+    /// opens it again.
+    mutating func abandon(_ reservation: SharedImportReservation) {
+        guard moving?.reservationID == reservation.reservationID else { return }
+        pending = moving
+        moving = nil
+    }
+
+    /// A webui session list's Open Next.
+    mutating func openNext(in directory: URL?, active: URL?, servers: [ServerAccount]) {
+        hasWaiting = false
+        hasRouted = false
+        reserveNext(in: directory, active: active, servers: servers)
+    }
+
+    private mutating func settle(_ reservation: SharedImportReservation) {
+        if pending?.reservationID == reservation.reservationID { pending = nil }
+        if moving?.reservationID == reservation.reservationID { moving = nil }
+    }
+
+    private mutating func refreshWaiting(in directory: URL) {
+        hasWaiting = (try? HermesShareDraft.hasPendingImport(in: directory)) ?? false
     }
 }
 
@@ -334,20 +359,38 @@ enum WebuiEntryRoute: Equatable {
     }
 }
 
+/// Whether the next share waiting in the app group opens now. A webui session list opens the
+/// first and offers each later one in its Open Next banner, so a draft in progress is never
+/// replaced; a Hermes home has no banner and opens each as it arrives (#1181).
+enum SharedImportGate {
+    static func opensNext(afterRouting hasRouted: Bool, active: URL?, servers: [ServerAccount]) -> Bool {
+        !hasRouted || servers.first(where: { $0.id == active?.absoluteString })?.kind == .hermes
+    }
+}
+
 /// A signed-in Hermes server's whole app (#899, #709): one navigation stack, full width on iPad
 /// too, where chats push, rooted on either side of the home's `[Bots | Sessions]` switch. Each
 /// side leads with the session list's header, whose avatar opens Settings on a tap and switches
 /// servers on a hold, and takes the home's bar (`HermesHomeChrome`). The home keeps both sides'
 /// state, so a switch shows the last roster or rows at once while they refresh. It opens on the
 /// side last shown, Sessions at first, and a Bot link (a push tap, a search hit) turns it to Bots,
-/// where the inbox opens it. A session link (#1176) or a Shortcut's new session (#1180) turns it to
-/// Sessions, where the list opens it.
+/// where the inbox opens it. A session link (#1176), a Shortcut's new session (#1180) or a share
+/// (#1181) turns it to Sessions, where the list opens it.
 struct HermesServerHome: View {
     @Bindable var authManager: AuthManager
     let server: URL
     @Binding var pendingBotDestination: BotDestination?
     @Binding var pendingSessionDestination: HermesSessionDestination?
     @Binding var pendingNewChat: HermesNewChatDestination?
+    /// The share `ContentView` reserved; the list claims it as it starts moving it into its new
+    /// session's draft and routes it once the draft holds it. The home declines it without a saved
+    /// connection, and the list when that move fails, which keeps it queued; a move cut short
+    /// abandons it to whichever home is active.
+    let pendingShare: SharedImportReservation?
+    let claimShare: (SharedImportReservation) -> Bool
+    let didRouteShare: (SharedImportReservation) -> Void
+    let didDeclineShare: (SharedImportReservation) -> Void
+    let didAbandonShare: (SharedImportReservation) -> Void
     @SceneStorage("hermesHome.tab") private var tab = HermesHomeTab.sessions
     @State private var inbox: BotInbox
     /// The Sessions side's list on the saved Bot connection, read again each time a side shows,
@@ -358,12 +401,21 @@ struct HermesServerHome: View {
     @State private var isPresentingAddServer = false
 
     init(authManager: AuthManager, server: URL, pendingBotDestination: Binding<BotDestination?>,
-         pendingSessionDestination: Binding<HermesSessionDestination?>, pendingNewChat: Binding<HermesNewChatDestination?>) {
+         pendingSessionDestination: Binding<HermesSessionDestination?>, pendingNewChat: Binding<HermesNewChatDestination?>,
+         pendingShare: SharedImportReservation?, claimShare: @escaping (SharedImportReservation) -> Bool,
+         didRouteShare: @escaping (SharedImportReservation) -> Void,
+         didDeclineShare: @escaping (SharedImportReservation) -> Void,
+         didAbandonShare: @escaping (SharedImportReservation) -> Void) {
         self.authManager = authManager
         self.server = server
         _pendingBotDestination = pendingBotDestination
         _pendingSessionDestination = pendingSessionDestination
         _pendingNewChat = pendingNewChat
+        self.pendingShare = pendingShare
+        self.claimShare = claimShare
+        self.didRouteShare = didRouteShare
+        self.didDeclineShare = didDeclineShare
+        self.didAbandonShare = didAbandonShare
         _inbox = State(initialValue: BotInbox(server: server))
         _sessions = State(initialValue: HermesSessionsSide(server: server))
     }
@@ -376,7 +428,10 @@ struct HermesServerHome: View {
                 // Without a saved connection the inbox's welcome sets one up.
                 if tab == .sessions, let sessions {
                     HermesSessionListView(entry: sessions.entry, model: sessions.model, home: home,
-                                          pendingLink: $pendingSessionDestination, pendingNewChat: $pendingNewChat)
+                                          pendingLink: $pendingSessionDestination, pendingNewChat: $pendingNewChat,
+                                          pendingShare: pendingShare, claimShare: claimShare,
+                                          didRouteShare: didRouteShare, didDeclineShare: didDeclineShare,
+                                          didAbandonShare: didAbandonShare)
                         .id(sessions.entry.id)
                 } else {
                     BotsInboxView(server: server, pendingDestination: $pendingBotDestination, home: home, inbox: inbox)
@@ -409,6 +464,12 @@ struct HermesServerHome: View {
         .onChange(of: pendingNewChat, initial: true) {
             guard pendingNewChat != nil else { return }
             if sessions == nil { pendingNewChat = nil; return }
+            tab = .sessions; isShowingSettings = false; isPresentingAddServer = false
+        }
+        // And a share (#1181), which stays queued while there is no list to open it.
+        .onChange(of: pendingShare?.reservationID, initial: true) {
+            guard let pendingShare else { return }
+            if sessions == nil { didDeclineShare(pendingShare); return }
             tab = .sessions; isShowingSettings = false; isPresentingAddServer = false
         }
         .sheet(isPresented: $isPresentingAddServer) {

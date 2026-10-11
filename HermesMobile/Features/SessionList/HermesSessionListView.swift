@@ -29,7 +29,7 @@ struct HermesSessionListEntry: Hashable, Identifiable {
 /// pages; a bot's Bot Chat among them opens in that bot. Every page it reads goes to the offline
 /// cache, which it shows, read-only under the offline banner, while the host can't be reached (#1054).
 /// As the home's list it opens the session a link named (#1176), as that session's row would, and
-/// a Shortcut's new session (#1180), as New Session would.
+/// a Shortcut's new session (#1180) and a share (#1181), as New Session would.
 struct HermesSessionListView: View {
 
     @Environment(\.scenePhase) private var scenePhase
@@ -52,6 +52,15 @@ struct HermesSessionListView: View {
     @Binding private var pendingLink: HermesSessionDestination?
     /// The new session a Shortcut asked for, held by `ContentView` until this list can open it.
     @Binding private var pendingNewChat: HermesNewChatDestination?
+    /// The share `ContentView` reserved, and how this list tells it the share is moving, open,
+    /// declined or cut short.
+    private let pendingShare: SharedImportReservation?
+    private let claimShare: (SharedImportReservation) -> Bool
+    private let didRouteShare: (SharedImportReservation) -> Void
+    private let didDeclineShare: (SharedImportReservation) -> Void
+    private let didAbandonShare: (SharedImportReservation) -> Void
+    /// Moving `pendingShare` into its new session's draft; leaving cancels it.
+    @State private var shareTransfer: Task<Void, Never>?
     @State private var viewModel: SessionListViewModel
     /// The chat, pushed screens, sheets and confirmations over the rows.
     @State private var covers = HermesSessionListCovers()
@@ -69,15 +78,25 @@ struct HermesSessionListView: View {
     }
 
     /// The Sessions side of the Hermes home, on a `model` the home keeps across its switch, so a
-    /// switch back shows the last rows at once (#709), and opening the session `pendingLink` names
-    /// and the new session `pendingNewChat` asks for.
+    /// switch back shows the last rows at once (#709), and opening the session `pendingLink` names,
+    /// the new session `pendingNewChat` asks for and `pendingShare`.
     init(entry: HermesSessionListEntry, model: SessionListViewModel, home: HermesHome?,
          pendingLink: Binding<HermesSessionDestination?> = .constant(nil),
-         pendingNewChat: Binding<HermesNewChatDestination?> = .constant(nil)) {
+         pendingNewChat: Binding<HermesNewChatDestination?> = .constant(nil),
+         pendingShare: SharedImportReservation? = nil,
+         claimShare: @escaping (SharedImportReservation) -> Bool = { _ in false },
+         didRouteShare: @escaping (SharedImportReservation) -> Void = { _ in },
+         didDeclineShare: @escaping (SharedImportReservation) -> Void = { _ in },
+         didAbandonShare: @escaping (SharedImportReservation) -> Void = { _ in }) {
         self.entry = entry
         self.home = home
         _pendingLink = pendingLink
         _pendingNewChat = pendingNewChat
+        self.pendingShare = pendingShare
+        self.claimShare = claimShare
+        self.didRouteShare = didRouteShare
+        self.didDeclineShare = didDeclineShare
+        self.didAbandonShare = didAbandonShare
         _searchText = State(initialValue: entry.query)
         _viewModel = State(initialValue: model)
     }
@@ -246,11 +265,18 @@ struct HermesSessionListView: View {
         // what it opens or says shows here.
         .onChange(of: pendingLink, initial: true) { covers.accept(pendingLink, on: entry.server) }
         .task(id: pendingLink) { await openPendingLink() }
-        // Brings the rows forward at once, then opens once the list has read the host live,
-        // whichever Profile the request names.
-        .onChange(of: NewChatReadiness(request: pendingNewChat, profile: profile, isLive: viewModel.isHermesLive),
-                  initial: true) { openPendingNewChat() }
+        // A Shortcut's new session brings the rows forward at once; it and a share open once the
+        // list has read the host live, whichever Profile the request names. A share reserved while
+        // another moves into its draft opens once that move ends.
+        .onChange(of: NewChatReadiness(request: pendingNewChat, share: pendingShare?.reservationID, profile: profile,
+                                       isLive: viewModel.isHermesLive, isTransferringShare: shareTransfer != nil),
+                  initial: true) {
+            openPendingNewChat()
+            openPendingShare()
+        }
         .onDisappear {
+            shareTransfer?.cancel()
+            shareTransfer = nil
             actionToast.dismiss()
             if covers.chat == nil { viewModel.closeHermes() } else { viewModel.pauseHermes() }
         }
@@ -537,6 +563,36 @@ struct HermesSessionListView: View {
         if covers.open(pendingNewChat, on: entry, listed: profile, isLive: viewModel.isHermesLive) { pendingNewChat = nil }
     }
 
+    /// Opens a share (#1181) as a new session over whatever covers the rows, once `transfer` has
+    /// moved it into that session's draft and let it go. The share is claimed for the move, so no
+    /// home, here or on another server, starts a second one. A transfer that fails keeps it queued
+    /// and says why; one cut short by leaving hands it back for the next try.
+    private func openPendingShare() {
+        guard shareTransfer == nil, let share = pendingShare,
+              let opening = share.hermesOpening(on: entry, listed: profile, isLive: viewModel.isHermesLive) else {
+            return
+        }
+        guard case .chat(let chat) = opening else { return didRouteShare(share) }
+        guard claimShare(share) else { return }
+        shareTransfer = Task {
+            do {
+                try await share.transfer(into: chat, route: didRouteShare, decline: didDeclineShare)
+                if !Task.isCancelled {
+                    covers.bringForward()
+                    covers.chat = chat
+                }
+            } catch is CancellationError {
+                didAbandonShare(share)
+            } catch {
+                if !Task.isCancelled {
+                    showLinkNotice((error as? BotAttachmentFailure)?.localizedDescription
+                                   ?? String(localized: "Could not save the attachment on this device."))
+                }
+            }
+            if !Task.isCancelled { shareTransfer = nil }
+        }
+    }
+
     private func showLinkNotice(_ message: String) {
         actionToast.show(ActionToast(message: message, systemImage: "exclamationmark.triangle", accessibilityLabel: message))
     }
@@ -602,12 +658,91 @@ struct HermesSessionListView: View {
     }
 }
 
-/// What a Shortcut's new session waits on: its request, New Session's Profile, and the list's
-/// live read of the host.
+/// How the Hermes home's Sessions list takes a share (#1181).
+enum HermesShareOpening: Equatable {
+    /// A new session in New Session's Profile, which opens once its draft holds the share.
+    case chat(HermesSessionChat)
+    /// Nothing in the share survived staging: it is consumed without a chat, as on webui.
+    case nothing
+}
+
+extension SharedImportReservation {
+    /// What `entry`'s Sessions list opens for this share, in `listed`, the Profile its New Session
+    /// uses; nil until the list `isLive`, having read the host and showing no offline cache, as a
+    /// Shortcut's new session does.
+    @MainActor func hermesOpening(on entry: HermesSessionListEntry, listed: String?, isLive: Bool) -> HermesShareOpening? {
+        guard let chat = HermesNewChatDestination(server: entry.server, profile: nil)
+            .chat(on: entry, listed: listed, isLive: isLive) else { return nil }
+        let isEmpty = HermesShareDraft.composerDraft(from: sharedImport.draft).isEmpty && sharedImport.attachments.isEmpty
+        return isEmpty ? .nothing : .chat(chat)
+    }
+
+    /// Moves the share into `chat`'s draft, then lets it go with `route` (`ContentView` consumes
+    /// it), even when the caller was cancelled after the draft took it: the draft owns it from then
+    /// on. A failure keeps it queued with `decline` and rethrows; a cancellation before the draft
+    /// took it rethrows and keeps it reserved for the next try.
+    @MainActor func transfer(into chat: HermesSessionChat, drafts: ChatDraftStore = .shared,
+                             route: (Self) -> Void, decline: (Self) -> Void) async throws {
+        do {
+            try await moveIntoDraft(of: chat, drafts: drafts)
+        } catch {
+            if !(error is CancellationError) { decline(self) }
+            throw error
+        }
+        route(self)
+    }
+
+    /// Moves the share into `chat`'s new-session draft, which the chat opens on: its text after
+    /// any unsent text, its files after any staged ones, each as a Hermes send takes it
+    /// (`BotAttachmentUpload.prepare`, Bot Chat's limits). A file Hermes can't take now (its type or
+    /// size, an unreadable image, no room left in the draft) throws its reason and moves nothing, so the
+    /// whole share stays recoverable. Once it returns the draft owns the share, under its item id,
+    /// so a retry or replay adds nothing; a throw leaves the draft as it was.
+    @MainActor func moveIntoDraft(of chat: HermesSessionChat, drafts: ChatDraftStore = .shared) async throws {
+        let key = chat.target.draftKey(server: chat.server, connectionID: chat.connection.id, lineageRoot: chat.lineageRoot)
+        let draft = await drafts.draft(for: key)
+        var files: [(data: Data, name: String, mime: String, image: Bool)] = []
+        if draft?.sharedImportIDs.contains(itemID) != true {
+            let staged = draft?.attachments ?? []
+            var room = HermexAttachmentPickerPolicy.maximumBotAttachments - staged.count
+            var bytes = staged.reduce(0) { $0 + ($1.size ?? BotAttachmentUpload.maximumFileBytes) }
+            for attachment in sharedImport.attachments {
+                let prepared: (data: Data, name: String, mime: String, image: Bool)
+                do {
+                    prepared = try await Task.detached {
+                        try BotAttachmentUpload.prepare(data: attachment.data, filename: attachment.filename)
+                    }.value
+                } catch {
+                    throw error as? BotAttachmentFailure ?? .unreadable
+                }
+                guard room > 0, prepared.data.count <= BotAttachmentUpload.maximumFileBytes,
+                      bytes + prepared.data.count <= BotAttachmentUpload.maximumTotalBytes else {
+                    throw BotAttachmentFailure.limit
+                }
+                room -= 1
+                bytes += prepared.data.count
+                files.append(prepared)
+            }
+            try Task.checkCancellation()
+        }
+        try await drafts.appendShare(itemID, text: HermesShareDraft.composerDraft(from: sharedImport.draft), files: files,
+                                     to: key, maximumFileBytes: BotAttachmentUpload.maximumFileBytes) { attachments in
+            // A composer open on this draft may have added files since the check above.
+            guard attachments.count <= HermexAttachmentPickerPolicy.maximumBotAttachments,
+                  attachments.reduce(0, { $0 + ($1.size ?? BotAttachmentUpload.maximumFileBytes) })
+                    <= BotAttachmentUpload.maximumTotalBytes else { throw BotAttachmentFailure.limit }
+        }
+    }
+}
+
+/// What a Shortcut's new session and a share wait on: the request or share, New Session's
+/// Profile, the list's live read of the host, and the end of an earlier share's move.
 private struct NewChatReadiness: Equatable {
     let request: HermesNewChatDestination?
+    let share: String?
     let profile: String?
     let isLive: Bool
+    let isTransferringShare: Bool
 }
 
 /// What a search runs against: a new query, Profile or All Profiles cancels the one in flight.
