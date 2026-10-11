@@ -28,7 +28,8 @@ struct HermesSessionListEntry: Hashable, Identifiable {
 /// filters the loaded rows at once and then adds the host's matches, which reach past the loaded
 /// pages; a bot's Bot Chat among them opens in that bot. Every page it reads goes to the offline
 /// cache, which it shows, read-only under the offline banner, while the host can't be reached (#1054).
-/// As the home's list it opens the session a link named (#1176), as that session's row would.
+/// As the home's list it opens the session a link named (#1176), as that session's row would, and
+/// a Shortcut's new session (#1180), as New Session would.
 struct HermesSessionListView: View {
 
     @Environment(\.scenePhase) private var scenePhase
@@ -49,6 +50,8 @@ struct HermesSessionListView: View {
     private let home: HermesHome?
     /// The session a link named, held by `ContentView` until this list looks it up.
     @Binding private var pendingLink: HermesSessionDestination?
+    /// The new session a Shortcut asked for, held by `ContentView` until this list can open it.
+    @Binding private var pendingNewChat: HermesNewChatDestination?
     @State private var viewModel: SessionListViewModel
     /// The chat, pushed screens, sheets and confirmations over the rows.
     @State private var covers = HermesSessionListCovers()
@@ -66,12 +69,15 @@ struct HermesSessionListView: View {
     }
 
     /// The Sessions side of the Hermes home, on a `model` the home keeps across its switch, so a
-    /// switch back shows the last rows at once (#709), and opening the session `pendingLink` names.
+    /// switch back shows the last rows at once (#709), and opening the session `pendingLink` names
+    /// and the new session `pendingNewChat` asks for.
     init(entry: HermesSessionListEntry, model: SessionListViewModel, home: HermesHome?,
-         pendingLink: Binding<HermesSessionDestination?> = .constant(nil)) {
+         pendingLink: Binding<HermesSessionDestination?> = .constant(nil),
+         pendingNewChat: Binding<HermesNewChatDestination?> = .constant(nil)) {
         self.entry = entry
         self.home = home
         _pendingLink = pendingLink
+        _pendingNewChat = pendingNewChat
         _searchText = State(initialValue: entry.query)
         _viewModel = State(initialValue: model)
     }
@@ -240,6 +246,10 @@ struct HermesSessionListView: View {
         // what it opens or says shows here.
         .onChange(of: pendingLink, initial: true) { covers.accept(pendingLink, on: entry.server) }
         .task(id: pendingLink) { await openPendingLink() }
+        // Brings the rows forward at once, then opens once the list has read the host live,
+        // whichever Profile the request names.
+        .onChange(of: NewChatReadiness(request: pendingNewChat, profile: profile, isLive: viewModel.isHermesLive),
+                  initial: true) { openPendingNewChat() }
         .onDisappear {
             actionToast.dismiss()
             if covers.chat == nil { viewModel.closeHermes() } else { viewModel.pauseHermes() }
@@ -522,6 +532,11 @@ struct HermesSessionListView: View {
         }
     }
 
+    /// Opens the new session a Shortcut asked for (#1180) over whatever covers the rows.
+    private func openPendingNewChat() {
+        if covers.open(pendingNewChat, on: entry, listed: profile, isLive: viewModel.isHermesLive) { pendingNewChat = nil }
+    }
+
     private func showLinkNotice(_ message: String) {
         actionToast.show(ActionToast(message: message, systemImage: "exclamationmark.triangle", accessibilityLabel: message))
     }
@@ -587,6 +602,14 @@ struct HermesSessionListView: View {
     }
 }
 
+/// What a Shortcut's new session waits on: its request, New Session's Profile, and the list's
+/// live read of the host.
+private struct NewChatReadiness: Equatable {
+    let request: HermesNewChatDestination?
+    let profile: String?
+    let isLive: Bool
+}
+
 /// What a search runs against: a new query, Profile or All Profiles cancels the one in flight.
 private struct SearchScope: Hashable {
     let profile: String?
@@ -630,9 +653,9 @@ private struct HermesSessionListChrome<ProfileMenu: View, Filter: View, NewSessi
 }
 
 /// What covers a Hermes Sessions list's rows: the chat a row opened, the screens it pushed, and
-/// its sheets and confirmations. A session link (#1176) for the list's server clears them all, so
-/// its chat, or why it can't open, shows on the list itself; a closed chat keeps its draft in the
-/// draft store.
+/// its sheets and confirmations. A session link (#1176) for the list's server, or a Shortcut's new
+/// session (#1180), clears them all, so its chat, or why it can't open, shows on the list itself; a
+/// closed chat keeps its draft in the draft store.
 struct HermesSessionListCovers {
     var chat: HermesSessionChat?
     var renaming: SessionSummary?
@@ -665,6 +688,24 @@ struct HermesSessionListCovers {
     /// Brings the rows forward for `link` when it names `server`, the list's own.
     mutating func accept(_ link: HermesSessionDestination?, on server: URL) {
         guard link?.server == server else { return }
+        bringForward()
+    }
+
+    /// Opens a Shortcut's new session for `entry`'s server (#1180) over everything on the rows,
+    /// once `HermesNewChatDestination.chat(on:listed:isLive:)` can. The rows come forward first,
+    /// so a chat that paused the list closes and the list, appearing again, reads the host the
+    /// request waits on. True once it opened.
+    @MainActor mutating func open(_ request: HermesNewChatDestination?, on entry: HermesSessionListEntry, listed: String?,
+                                  isLive: Bool) -> Bool {
+        guard let request, request.server == entry.server else { return false }
+        bringForward()
+        guard let chat = request.chat(on: entry, listed: listed, isLive: isLive) else { return false }
+        self.chat = chat
+        return true
+    }
+
+    /// Closes everything over the rows, so what opens next shows on the list itself.
+    mutating func bringForward() {
         let next = generation + 1
         self = Self()
         generation = next

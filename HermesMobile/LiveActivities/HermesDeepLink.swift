@@ -66,22 +66,36 @@ enum HermesDeepLink {
     /// Query-item name carrying the profile's server name.
     static let profileQueryItem = "profile"
 
-    /// `hermes-agent://new-chat-profile?profile=<name>` (scheme follows the active build).
+    /// Query-item name carrying the configured server a bot link (#554) or a Hermes server's
+    /// Profile's new chat (#1180) names.
+    static let serverQueryItem = "server"
+
+    /// `hermes-agent://new-chat-profile?profile=<name>` (scheme follows the active build), with
+    /// `server=` first for a Hermes server's Profile (#1180), which only opens there.
     /// Returns nil for a blank profile name so callers can pass it straight through.
-    static func newChatInProfileURL(profileName: String) -> URL? {
+    static func newChatInProfileURL(profileName: String, server: URL? = nil) -> URL? {
         let trimmed = profileName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
 
         var components = URLComponents()
         components.scheme = scheme
         components.host = newChatInProfileHost
-        components.queryItems = [URLQueryItem(name: profileQueryItem, value: trimmed)]
+        components.queryItems = (server.map { [URLQueryItem(name: serverQueryItem, value: $0.absoluteString)] } ?? [])
+            + [URLQueryItem(name: profileQueryItem, value: trimmed)]
         return components.url
     }
 
     static func isNewChatInProfileURL(_ url: URL) -> Bool {
         url.scheme?.lowercased() == scheme
             && url.host?.lowercased() == newChatInProfileHost
+    }
+
+    /// A "New Chat in <Profile>" link with no `server=` item: the webui route a Shortcut saved
+    /// before #1180 keeps (#339, #971). One naming a server opens only there, or nowhere.
+    static func isWebuiNewChatInProfileURL(_ url: URL) -> Bool {
+        isNewChatInProfileURL(url)
+            && URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?
+                .contains(where: { $0.name == serverQueryItem }) != true
     }
 
     /// Extracts the profile name from a "New Chat in <Profile>" URL, or nil when the URL is a
