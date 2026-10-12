@@ -65,6 +65,9 @@ final class AuthManager {
     /// the Settings server list updates reactively (#17). The active server is the
     /// one whose `id` matches `state.server?.absoluteString`.
     private(set) var servers: [ServerAccount] = []
+    /// Servers `removeServer` is part way through removing. A Move to Hermes runner treats its
+    /// destination as gone from the start, before the removal's first await (#1216).
+    @ObservationIgnored private(set) var removingServerIDs: Set<String> = []
 
     // `keychain`, `serverRegistry`, `preferences` and `refreshServers` are internal for
     // `AuthManager+MoveToHermes`; nothing outside this type and that extension uses them.
@@ -483,6 +486,10 @@ final class AuthManager {
     /// headers, and cookies — leaving the active server's auth untouched (#17).
     func removeServer(_ account: ServerAccount) async {
         guard let serverURL = URL(string: account.urlString) else { return }
+        removingServerIDs.insert(account.id)
+        defer { removingServerIDs.remove(account.id) }
+        // A move committed during the awaits below leaves an orphan journal, which `MoveToHermesPending.all` deletes.
+        let movedSources = (servers.first { $0.id == account.id } ?? account).movedWebuiServers.map(\.sourceServerID)
         try? await BotHistoryCache.shared.removeServer(serverURL, activeConnectionID: (try? BotConnectionStore(keychain: keychain).load(server: serverURL))?.id)
         SessionUnreadStore().remove(for: serverURL)
         // Kept through a sign-out, which the Shortcuts picker still lists the server's Profiles across (#1180).
@@ -501,6 +508,8 @@ final class AuthManager {
             serverRegistry.remove(id: account.id)
             refreshServers()
         }
+        // After the entry is gone, so a running Move finds no record and writes nothing more (#1216).
+        MoveToHermesJournal.discard(sources: movedSources, destinationID: account.id)
     }
 
     /// Switches the active server to an already-registered one (the Settings
