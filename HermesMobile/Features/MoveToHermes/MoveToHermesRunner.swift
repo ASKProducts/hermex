@@ -56,7 +56,8 @@ struct MoveToHermesReport: Codable, Equatable, Sendable {
     /// missing from Hermes; chats that couldn't be checked or confirmed count as unchecked.
     func summary(at date: Date) -> MovedWebuiReport {
         MovedWebuiReport(remaining: partialScan ? nil : notCopied.count + oversized.count + rejected.count + keptOnWebui.count,
-                         unchecked: unchecked.count + sentUnconfirmed.count, oversized: oversized.count, recordedAt: date)
+                         unchecked: unchecked.count + sentUnconfirmed.count, oversized: oversized.count,
+                         kept: partialScan ? nil : keptOnWebui.count, recordedAt: date)
     }
 }
 
@@ -476,6 +477,43 @@ struct MoveToHermesProgress {
         (journal ?? loadJournal())?.discard()
         journal = nil
         state = .idle
+    }
+
+    /// Where a move stands, for the guided sheet's paused details and the banners (#1218).
+    struct Snapshot: Equatable {
+        /// The report as things stand, or the saved final report.
+        let report: MoveToHermesReport
+        /// Every webui chat the scan listed.
+        let total: Int
+        /// Chats Resume would copy, writes it would send and drafts it would move.
+        let copyLeft: Int
+        let changesLeft: Int
+        let draftsLeft: Int
+        /// Chats in Hermes whose titles, pins, folders and drafts aren't planned yet.
+        let unplanned: Int
+
+        /// Chats in Hermes, whether this move copied them or not.
+        var inHermes: Int { report.copied.count + report.alreadyThere.count + report.presentUnconfirmed.count }
+    }
+
+    /// Reads the move's journal without changing `state`; nil when it can't be read, or while
+    /// another runner holds it (opening cuts a torn last line, which could be that runner's).
+    func snapshot() async -> Snapshot? {
+        let opened: MoveToHermesJournal
+        if let journal {
+            opened = journal
+        } else if !MoveToHermesJournal.isClaimed(folder),
+                  case .ready(let read) = MoveToHermesJournal.open(folder, willWrite: environment.willWrite) {
+            opened = read
+        } else {
+            return nil
+        }
+        let progress = MoveToHermesProgress(review: opened.review, events: opened.events)
+        let waiting = await draftsWaiting(progress)
+        let report = opened.finishedReport ?? progress.report(finishedEarly: false, draftsWaiting: waiting)
+        return Snapshot(report: report, total: opened.review.entries.count, copyLeft: progress.copyItems.count,
+                        changesLeft: progress.operationsToApply.count, draftsLeft: waiting.count,
+                        unplanned: progress.unplannedTargets.count)
     }
 
     /// The journal, read from disk unless this runner holds it, or nil with `state` saying why.

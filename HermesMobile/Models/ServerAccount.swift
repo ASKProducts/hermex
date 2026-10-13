@@ -221,17 +221,20 @@ struct MovedWebuiReport: Codable, Equatable, Sendable {
     var unchecked: Int?
     /// Chats over the import limits, reported and never trimmed.
     var oversized: Int?
+    /// Of `remaining`, the chats in webui Profiles kept there or left unmapped (#1218).
+    var kept: Int?
     var recordedAt: Date
 
-    init(remaining: Int?, unchecked: Int?, oversized: Int?, recordedAt: Date) {
+    init(remaining: Int?, unchecked: Int?, oversized: Int?, kept: Int? = nil, recordedAt: Date) {
         self.remaining = remaining
         self.unchecked = unchecked
         self.oversized = oversized
+        self.kept = kept
         self.recordedAt = recordedAt
     }
 
     enum CodingKeys: String, CodingKey {
-        case remaining, unchecked, oversized, recordedAt
+        case remaining, unchecked, oversized, kept, recordedAt
     }
 
     init(from decoder: Decoder) throws {
@@ -239,6 +242,7 @@ struct MovedWebuiReport: Codable, Equatable, Sendable {
         remaining = try? container.decodeIfPresent(Int.self, forKey: .remaining)
         unchecked = try? container.decodeIfPresent(Int.self, forKey: .unchecked)
         oversized = try? container.decodeIfPresent(Int.self, forKey: .oversized)
+        kept = try? container.decodeIfPresent(Int.self, forKey: .kept)
         recordedAt = try container.decode(Date.self, forKey: .recordedAt)
     }
 }

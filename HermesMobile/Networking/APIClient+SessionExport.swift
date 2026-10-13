@@ -162,8 +162,32 @@ struct WebuiScanListing: Decodable, Equatable {
         let archived: Bool?
         let pinned: Bool?
         let workspace: String?
+        let isStreaming: Bool?
+        let activeStreamId: String?
+        let isCliSession: Bool?
+        let sessionSource: String?
+        let sourceTag: String?
+        let rawSource: String?
 
-        enum CodingKeys: String, CodingKey { case sessionId, profile, title, messageCount, archived, pinned, workspace }
+        enum CodingKeys: String, CodingKey {
+            case sessionId, profile, title, messageCount, archived, pinned, workspace, isStreaming, activeStreamId
+            case isCliSession, sessionSource, sourceTag, rawSource
+        }
+
+        /// The webui is streaming a reply into it now, so a Move must wait (#1218). Either field
+        /// counts, as in the session list (`SessionRowView.isActiveStreaming`).
+        var isRunning: Bool { isStreaming == true || activeStreamId?.isEmpty == false }
+
+        /// A Hermes CLI/TUI session or an external agent's transcript (Claude Code) the webui only
+        /// shows, not a webui chat, so a Move never counts, waits for or copies it (#1218). The
+        /// webui sets `is_cli_session` from its own classifier, which keeps webui, cron, webhook
+        /// and messaging rows out; Claude Code rows also carry `session_source: external_agent`.
+        /// A webui source marker wins over a stale CLI flag, as in the webui and the session list.
+        var isExternal: Bool {
+            let sources = [sessionSource, sourceTag, rawSource].map { $0?.trimmingCharacters(in: .whitespaces).lowercased() }
+            if sources.contains("webui") { return false }
+            return isCliSession == true || sources.contains("external_agent")
+        }
 
         init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -174,9 +198,16 @@ struct WebuiScanListing: Decodable, Equatable {
             archived = try? c.decodeIfPresent(Bool.self, forKey: .archived)
             pinned = try? c.decodeIfPresent(Bool.self, forKey: .pinned)
             workspace = try? c.decodeIfPresent(String.self, forKey: .workspace)
+            isStreaming = try? c.decodeIfPresent(Bool.self, forKey: .isStreaming)
+            activeStreamId = try? c.decodeIfPresent(String.self, forKey: .activeStreamId)
+            isCliSession = try? c.decodeIfPresent(Bool.self, forKey: .isCliSession)
+            sessionSource = try? c.decodeIfPresent(String.self, forKey: .sessionSource)
+            sourceTag = try? c.decodeIfPresent(String.self, forKey: .sourceTag)
+            rawSource = try? c.decodeIfPresent(String.self, forKey: .rawSource)
         }
     }
 
+    /// The webui's own chats; external rows are dropped here, so no Move reader sees them.
     let sessions: [Row]
     let allProfiles: Bool?
     let activeProfile: String?
@@ -185,7 +216,7 @@ struct WebuiScanListing: Decodable, Equatable {
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        sessions = try c.decode([Slot].self, forKey: .sessions).compactMap(\.row).filter { !$0.sessionId.isEmpty }
+        sessions = try c.decode([Slot].self, forKey: .sessions).compactMap(\.row).filter { !$0.sessionId.isEmpty && !$0.isExternal }
         allProfiles = try? c.decodeIfPresent(Bool.self, forKey: .allProfiles)
         activeProfile = try? c.decodeIfPresent(String.self, forKey: .activeProfile)
     }

@@ -874,6 +874,40 @@ final class AuthManagerStateTests: XCTestCase {
         }
     }
 
+    /// Move to Hermes's host choice (#1218): the form checks the dashboard sign-in and hands it
+    /// back, saving, adding and activating nothing; a webui address is refused.
+    func testTheMoveDestinationFormOnlyChecksAHermesSignIn() async throws {
+        defer { HermesHostFixture.reset() }
+        HermesHostFixture.reset()
+        let keychain = InMemoryKeychainStore()
+        let manager = makeFormManager(keychain: keychain)
+        await manager.configure(serverURLString: webuiServer.absoluteString, password: "")
+        let form = makeForm(entry: .moveDestination)
+        form.serverURLString = "hermes.example"
+        let found = await form.connect(authManager: manager)
+        XCTAssertNil(found, "The first Connect only finds the dashboard")
+        form.username = "me"
+        form.password = "secret"
+
+        let checked = await form.connect(authManager: manager)
+
+        XCTAssertEqual(checked, hermesServer)
+        let verified = try XCTUnwrap(form.verifiedConnection)
+        XCTAssertEqual(verified.username, "me")
+        XCTAssertEqual(verified.hermesVersion, "0.21.5")
+        XCTAssertEqual(manager.state, .loggedIn(server: webuiServer), "Nothing is activated")
+        XCTAssertFalse(manager.servers.contains { $0.id == hermesServer.absoluteString }, "Nothing is added")
+        XCTAssertNil(try BotConnectionStore(keychain: keychain).load(server: hermesServer), "Nothing is saved")
+
+        HermesHostFixture.reset()
+        let webuiForm = makeForm(entry: .moveDestination) { $0.url?.path == "/api/status" ? .json(404, .object([:])) : nil }
+        webuiForm.serverURLString = "webui.example:8787"
+        let refused = await webuiForm.connect(authManager: manager)
+        XCTAssertNil(refused)
+        XCTAssertNotNil(webuiForm.errorMessage, "Only a Hermes dashboard can be a destination")
+        XCTAssertEqual(manager.servers.count, 1)
+    }
+
     func testASavedSignInIsOfferedOnlyAtExactlyTheSameAddress() async throws {
         defer { HermesHostFixture.reset() }
         // Every host reports the side connection's install id, as any host can.

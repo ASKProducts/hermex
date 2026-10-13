@@ -12,6 +12,7 @@ struct ContentView: View {
 
     var body: some View {
         content
+            .moveToHermesNotices(authManager)
             .onOpenURL(perform: handleOpenURL)
             .task {
                 guard !didCheckInitialPendingShare else { return }

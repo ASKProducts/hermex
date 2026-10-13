@@ -124,6 +124,8 @@ enum MoveToHermesScan {
         /// Set when the webui listed only this Profile (it ignored `all_profiles`): every other
         /// webui Profile went unscanned, which is not the same as empty.
         var onlyProfile: String?
+        /// Chats the webui listed as streaming a reply (#1218): a Move waits for them.
+        var running: [String] = []
     }
 
     /// Scans `webui` against `hermesProfiles` on `hermes`. `progress` gets the chats located so
@@ -141,7 +143,8 @@ enum MoveToHermesScan {
             progress(located, chats.count)
         }
         return Result(entries: chats.map { Entry(chat: $0, location: locations[$0.id] ?? .unknown) },
-                      onlyProfile: listing.allProfiles == true ? nil : listing.activeProfile)
+                      onlyProfile: listing.allProfiles == true ? nil : listing.activeProfile,
+                      running: listing.sessions.filter(\.isRunning).map(\.sessionId))
     }
 
     /// Every id each Profile lists, or nil for a Profile whose listing failed, so its ids are
