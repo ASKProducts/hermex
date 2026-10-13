@@ -25,9 +25,10 @@ A Hermes server's id is its dashboard address as `BotConnection.address(_:)` par
 and its sign-in record is the same `BotConnection` JSON under `bot_connection::<its
 URL>`, so every Bot store, draft, cache, section order and bot link keys by it as they
 do by a webui server. `AuthManager.addHermesServer` saves a sign-in the form already
-verified and activates the server; it needs Bot Mode on and refuses an address already
-in the registry. Turning Bot Mode off later never locks a user out: an existing Hermes
-server still opens, and so do its bot links. Its home (#709) has two sides on one stack
+verified and activates the server, and refuses an address already in the registry.
+Hermes is the default kind (#712), so nothing about a Hermes server needs Bot Mode:
+adding one, moving a webui server to one, and opening one and its bot links all work
+with it off. Its home (#709) has two sides on one stack
 and one shared connection, the Bots inbox and the Sessions list, switched by a bottom bar
 of `(filter) [Bots | Sessions] (new chat)` that each side fills: on Bots the filter holds
 hidden bots and section order and new chat makes a bot or a group chat; on Sessions the
@@ -66,8 +67,7 @@ advice and stop, and a mode switch keeps that advice. Anything else, including a
 address or headers only the webui path accepts, goes on to the webui path unchanged:
 onboarding's `configure`, Add Server's `addServer`. Once a webui answered, the "Will
 connect to" line shows `AuthManager.normalizedServerURL`'s URL instead of the Hermes
-parser's. Header rows without a value are never sent or saved. With Bot Mode off, a
-found dashboard shows a one-tap opt-in instead of its fields. When a webui server's own
+parser's. Header rows without a value are never sent or saved. When a webui server's own
 Hermes connection uses exactly the same parsed address, the form offers "Use the sign-in
 saved on <server>": it fills username, password and headers, and the sign-in still
 expects that record's `install_id`. The copies stay until the address parses to another
@@ -1826,14 +1826,13 @@ was), and stops once all are idle. Caveats: `waiting` relies on the
 other processes and never appear; a tip the live agent rotated after the roster
 read matches no bot until the next roster read.
 
-Bot Mode ships behind `BotModeGate`, one app-wide `@AppStorage` bool that is off
-by default and owned by the Settings "Bot Mode (beta)" row (#496), which sits
-under Archived Sessions so new users notice it. Off hides the Bots row on the
-session list and pops the Bots inbox if it is open; nothing else changes, and
-Bot connections and drafts stay in the Keychain until it is turned on again. The
-gate is not per-server because it hides screens rather than storing user data.
-It is removed, together with its Settings row and `BotModeGateTests`, in the
-release PR that ships Bot Mode, not before.
+A webui server's Bots row sits behind `BotModeGate`, one app-wide `@AppStorage`
+bool that is off by default and owned by the Settings "Bot Mode (beta)" row (#496),
+which sits under Archived Sessions so new users notice it. Off hides the Bots row on a
+webui server's session list and pops the Bots inbox if it is open; nothing else
+changes, and Bot connections and drafts stay in the Keychain until it is turned on
+again. Hermes servers ignore it (#712). The gate is not per-server because it hides
+screens rather than storing user data.
 
 The Bots inbox is a utility destination of the session list, pushed like Tasks
 (the detail column on iPad), so the system back button returns to Sessions and
