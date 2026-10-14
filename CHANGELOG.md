@@ -7,7 +7,176 @@ Security sections per release.
 
 ## [Unreleased]
 
-## [1.9.0] - Unreleased
+## [2.0.0] - Unreleased
+
+Hermex now talks to Hermes directly ([#713]). Add a Hermes host as a server and
+chats, Sessions, Tasks, Kanban, Skills, Memory, Usage, Files and Git all run
+against it, with no webui in between. webui servers are now legacy: they keep
+working and get fixes, and new features go to Hermes.
+
+### Added
+- Chat in a Hermes session: stream replies; answer approvals, questions, sudo
+  and secret prompts; attach images and documents, with thumbnails and previews
+  of sent files and replies' images, audio and files; and use /goal, /btw,
+  background, and slash commands with autocomplete. ([#1020], [#1022], [#1023],
+  [#1024], [#1039], [#1055], [#1154])
+- Pick the model, Profile, reasoning, personality and fast mode from the Hermes
+  composer, and pause or resume a loop or heartbeat from the goal menu.
+  ([#1034], [#1037], [#1150], [#1172])
+- Hermes sessions: list, open and search them, and page long transcripts with
+  tool output. Rename, pin, archive, delete, export, branch and duplicate a
+  session; edit, regenerate, undo, retry, compress and clear inside one.
+  Projects show as folder lanes, and sessions stay readable offline. ([#1076],
+  [#1094], [#1097], [#1098], [#1099], [#1100], [#1101], [#1105], [#1106])
+- A Hermes server's home switches between Bots and Sessions from a bottom bar,
+  with a Profile filter and a new-chat button. ([#1108])
+- Every Hermes chat shows the plan and the turn's outcome, lets you follow and
+  interrupt delegated work, and shows Hermes Desktop task and app-connection
+  cards. ([#1157], [#1160], [#1162])
+- Files and Git in Hermes chats: browse and preview workspace files, find them
+  with `@`, choose a working folder, and see Git status, stage, discard,
+  commit, push and switch branches. With the hermex-push plugin, also Fetch,
+  Pull and New branch. ([#1119], [#1120], [#1123], [#1130], [#1136], [#1137],
+  [#1233], [#1243])
+- Tasks on Hermes: create and manage them, Run Now with a running state the
+  server confirms, and read run history and output. ([#1057], [#1061], [#1064])
+- Kanban on Hermes: boards and Cards with live updates, and changes to both.
+  ([#1056], [#1059], [#1063])
+- Skills, Memory and Usage on Hermes: browse and toggle skills and open their
+  linked files, edit memory and soul, and read Insights. With the hermex-push
+  plugin, Usage shows provider limits. ([#1077], [#1078], [#1080], [#1086],
+  [#1242])
+- Listen to replies in the host's voice, and transcribe dictation with the
+  host's speech-to-text. ([#1082], [#1087], [#1246])
+- Update Hermes from Settings. ([#1083])
+- Hermes sessions open from everywhere a webui session does: links that name
+  their server, push taps that land on the exact session, Live Activities that
+  tap through and stay current, New Chat Shortcuts, and the share extension.
+  ([#1026], [#1185], [#1188], [#1190], [#1192], [#1195], [#1209], [#1211],
+  [#1240])
+- Move to Hermes: a webui server's Settings page guides you through moving its
+  chats, drafts and push pairing to a Hermes host. It scans before it changes
+  anything, can be paused and resumed safely, and old links and entry points
+  follow the moved chats. ([#1220], [#1221], [#1222], [#1223], [#1224],
+  [#1225], [#1231])
+- Onboarding offers a setup prompt for a Hermes dashboard. ([#1183])
+- Sign in to Hermes hosts that use browser sign-in (OIDC). Tested so far only
+  through a password host's browser sign-in, not against a real OIDC provider.
+  ([#1247], [#1248])
+- Bot Mode: a bot's chat opens in the regular chat from every entry point, with
+  its avatar pill, rules and @mentions, and stays readable offline. ([#1151],
+  [#1164], [#1166])
+
+### Changed
+- Hermes is the default when adding a server, with no Bot Mode opt-in. Settings
+  marks webui servers Legacy, and Bot Mode now only adds the Bots row on webui
+  servers. ([#1239])
+- Connecting to a Hermes dashboard at a saved webui server's address offers to
+  replace that webui server. ([#1032])
+- Streamed text appears in word-boundary steps instead of fading in word by
+  word, so a fast reply no longer trickles in behind the agent. ([#1128],
+  [#1131])
+- Bot Mode no longer has time separators, quick replies or reactions. ([#1159])
+
+### Fixed
+- Approval cards no longer stop arriving after the approval stream's connection
+  drops. ([#1206])
+- A finished reply's header and footer no longer overlap its first and last
+  lines. ([#1245])
+- A Hermes chat reconnects when the host reclaims an idle session, instead of
+  failing the next send. ([#1234])
+- Push setup on a Hermes host that hasn't loaded the hermex-push plugin yet
+  shows the restart card instead of failing or an HTTP 404, and removing one of
+  two saved entries for the same host no longer stops the other's pushes.
+  ([#1184], [#1238])
+- An approval answer the host can't confirm keeps the card answerable with a
+  warning, and an approval with malformed choices offers only Deny. ([#1103],
+  [#1104])
+
+[#713]: https://github.com/uzairansaruzi/hermex/issues/713
+[#1020]: https://github.com/uzairansaruzi/hermex/pull/1020
+[#1022]: https://github.com/uzairansaruzi/hermex/pull/1022
+[#1023]: https://github.com/uzairansaruzi/hermex/pull/1023
+[#1024]: https://github.com/uzairansaruzi/hermex/pull/1024
+[#1026]: https://github.com/uzairansaruzi/hermex/pull/1026
+[#1032]: https://github.com/uzairansaruzi/hermex/pull/1032
+[#1034]: https://github.com/uzairansaruzi/hermex/pull/1034
+[#1037]: https://github.com/uzairansaruzi/hermex/pull/1037
+[#1039]: https://github.com/uzairansaruzi/hermex/pull/1039
+[#1055]: https://github.com/uzairansaruzi/hermex/pull/1055
+[#1056]: https://github.com/uzairansaruzi/hermex/pull/1056
+[#1057]: https://github.com/uzairansaruzi/hermex/pull/1057
+[#1059]: https://github.com/uzairansaruzi/hermex/pull/1059
+[#1061]: https://github.com/uzairansaruzi/hermex/pull/1061
+[#1063]: https://github.com/uzairansaruzi/hermex/pull/1063
+[#1064]: https://github.com/uzairansaruzi/hermex/pull/1064
+[#1076]: https://github.com/uzairansaruzi/hermex/pull/1076
+[#1077]: https://github.com/uzairansaruzi/hermex/pull/1077
+[#1078]: https://github.com/uzairansaruzi/hermex/pull/1078
+[#1080]: https://github.com/uzairansaruzi/hermex/pull/1080
+[#1082]: https://github.com/uzairansaruzi/hermex/pull/1082
+[#1083]: https://github.com/uzairansaruzi/hermex/pull/1083
+[#1086]: https://github.com/uzairansaruzi/hermex/pull/1086
+[#1087]: https://github.com/uzairansaruzi/hermex/pull/1087
+[#1094]: https://github.com/uzairansaruzi/hermex/pull/1094
+[#1097]: https://github.com/uzairansaruzi/hermex/pull/1097
+[#1098]: https://github.com/uzairansaruzi/hermex/pull/1098
+[#1099]: https://github.com/uzairansaruzi/hermex/pull/1099
+[#1100]: https://github.com/uzairansaruzi/hermex/pull/1100
+[#1101]: https://github.com/uzairansaruzi/hermex/pull/1101
+[#1103]: https://github.com/uzairansaruzi/hermex/pull/1103
+[#1104]: https://github.com/uzairansaruzi/hermex/pull/1104
+[#1105]: https://github.com/uzairansaruzi/hermex/pull/1105
+[#1106]: https://github.com/uzairansaruzi/hermex/pull/1106
+[#1108]: https://github.com/uzairansaruzi/hermex/pull/1108
+[#1119]: https://github.com/uzairansaruzi/hermex/pull/1119
+[#1120]: https://github.com/uzairansaruzi/hermex/pull/1120
+[#1123]: https://github.com/uzairansaruzi/hermex/pull/1123
+[#1128]: https://github.com/uzairansaruzi/hermex/pull/1128
+[#1130]: https://github.com/uzairansaruzi/hermex/pull/1130
+[#1131]: https://github.com/uzairansaruzi/hermex/pull/1131
+[#1136]: https://github.com/uzairansaruzi/hermex/pull/1136
+[#1137]: https://github.com/uzairansaruzi/hermex/pull/1137
+[#1150]: https://github.com/uzairansaruzi/hermex/pull/1150
+[#1151]: https://github.com/uzairansaruzi/hermex/pull/1151
+[#1154]: https://github.com/uzairansaruzi/hermex/pull/1154
+[#1157]: https://github.com/uzairansaruzi/hermex/pull/1157
+[#1159]: https://github.com/uzairansaruzi/hermex/pull/1159
+[#1160]: https://github.com/uzairansaruzi/hermex/pull/1160
+[#1162]: https://github.com/uzairansaruzi/hermex/pull/1162
+[#1164]: https://github.com/uzairansaruzi/hermex/pull/1164
+[#1166]: https://github.com/uzairansaruzi/hermex/pull/1166
+[#1172]: https://github.com/uzairansaruzi/hermex/pull/1172
+[#1183]: https://github.com/uzairansaruzi/hermex/pull/1183
+[#1184]: https://github.com/uzairansaruzi/hermex/pull/1184
+[#1185]: https://github.com/uzairansaruzi/hermex/pull/1185
+[#1188]: https://github.com/uzairansaruzi/hermex/pull/1188
+[#1190]: https://github.com/uzairansaruzi/hermex/pull/1190
+[#1192]: https://github.com/uzairansaruzi/hermex/pull/1192
+[#1195]: https://github.com/uzairansaruzi/hermex/pull/1195
+[#1206]: https://github.com/uzairansaruzi/hermex/pull/1206
+[#1209]: https://github.com/uzairansaruzi/hermex/pull/1209
+[#1211]: https://github.com/uzairansaruzi/hermex/pull/1211
+[#1220]: https://github.com/uzairansaruzi/hermex/pull/1220
+[#1221]: https://github.com/uzairansaruzi/hermex/pull/1221
+[#1222]: https://github.com/uzairansaruzi/hermex/pull/1222
+[#1223]: https://github.com/uzairansaruzi/hermex/pull/1223
+[#1224]: https://github.com/uzairansaruzi/hermex/pull/1224
+[#1225]: https://github.com/uzairansaruzi/hermex/pull/1225
+[#1231]: https://github.com/uzairansaruzi/hermex/pull/1231
+[#1233]: https://github.com/uzairansaruzi/hermex/pull/1233
+[#1234]: https://github.com/uzairansaruzi/hermex/pull/1234
+[#1238]: https://github.com/uzairansaruzi/hermex/pull/1238
+[#1239]: https://github.com/uzairansaruzi/hermex/pull/1239
+[#1240]: https://github.com/uzairansaruzi/hermex/pull/1240
+[#1242]: https://github.com/uzairansaruzi/hermex/pull/1242
+[#1243]: https://github.com/uzairansaruzi/hermex/pull/1243
+[#1245]: https://github.com/uzairansaruzi/hermex/pull/1245
+[#1246]: https://github.com/uzairansaruzi/hermex/pull/1246
+[#1247]: https://github.com/uzairansaruzi/hermex/pull/1247
+[#1248]: https://github.com/uzairansaruzi/hermex/pull/1248
+
+## [1.9.0] - 2026-10-04
 
 ### Added
 - Lock Hermex with Face ID or the device passcode. The lock is off until
