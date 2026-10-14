@@ -4,8 +4,8 @@ import XCTest
 @testable import HermesMobile
 
 /// A Hermes server's offline cache (#1054) from its screens: the Sessions list and a session's
-/// chat write what they read, and show it, read-only, while the host can't be reached, until a
-/// read succeeds. The list runs on `HermesSessionListWire`, the chat on the scripted host below.
+/// chat write what they read, and show it, read-only, while they connect and while the host can't
+/// be reached, until a read succeeds. The list runs on `HermesSessionListWire`, the chat on the scripted host below.
 @MainActor final class HermesOfflineCacheTests: XCTestCase {
     private let server = URL(string: "https://hermes.example")!
     private let connection = BotConnection(id: UUID(), name: "Mac", address: URL(string: "https://hermes.example")!,
@@ -46,9 +46,12 @@ import XCTest
         await list.openHermes(modelContext: context)
 
         XCTAssertTrue(list.isViewingCachedData)
+        XCTAssertTrue(list.showsOfflineCache, "the rows shown while connecting become the offline state")
         XCTAssertNil(list.errorMessage)
         let shown = list.visibleSessions(searchText: "", selectedProjectID: nil)
         XCTAssertEqual(shown.map(\.title), ["Pinned", "Newest", "Chain"])
+        XCTAssertTrue(SessionRowView.accessibilityStateLabels(for: shown[0], isViewingCachedData: true,
+                                                              isCachedCopyProvisional: list.isCachedCopyProvisional).contains("Cached"))
         XCTAssertTrue(list.isUnread(shown[1]))
         XCTAssertEqual(shown[2].id, "root")
         XCTAssertEqual(shown[2].hermesTarget(listedIn: "default"), .session(profile: "default", key: "tip"))
@@ -118,6 +121,116 @@ import XCTest
         XCTAssertEqual(list.visibleSessions(searchText: "nimbus", selectedProjectID: nil).compactMap(\.sessionId), ["plan", "newer"])
     }
 
+    /// An empty list shows its cached rows while it connects, read-only but without the offline
+    /// banner or Cached labels and with no loading skeleton; the host's first read replaces them.
+    func testAListShowsItsCachedRowsWhileItConnects() async throws {
+        let context = try makeContext()
+        let rows = [HermesSessionRow(id: "a", title: "A", lastActive: 20), HermesSessionRow(id: "b", title: "B", lastActive: 10)]
+        let online = HermesSessionListWire()
+        online.pages["default"] = [0: HermesSessionPage(rows: rows)]
+        await makeList(online).openHermes(modelContext: context)
+
+        let wire = HermesSessionListWire()
+        wire.holdsConnect = true
+        wire.pages["default"] = [0: HermesSessionPage(rows: [HermesSessionRow(id: "c", title: "C", lastActive: 30)] + rows)]
+        let list = makeList(wire)
+        let open = Task { await list.openHermes(modelContext: context) }
+        await waitUntil("the cached rows show") { wire.connects == 1 && !list.sessions.isEmpty }
+
+        XCTAssertEqual(list.sessions.map(\.title), ["A", "B"])
+        XCTAssertTrue(list.isViewingCachedData)
+        XCTAssertTrue(list.isCachedCopyProvisional)
+        XCTAssertFalse(list.showsOfflineCache)
+        XCTAssertFalse(list.isLoading)
+        XCTAssertFalse(SessionRowView.accessibilityStateLabels(for: list.sessions[0], isViewingCachedData: true,
+                                                               isCachedCopyProvisional: true).contains("Cached"))
+        let renamed = await list.rename(list.sessions[0], to: "Too soon")
+        XCTAssertFalse(renamed)
+
+        wire.release()
+        await open.value
+
+        XCTAssertFalse(list.isViewingCachedData)
+        XCTAssertFalse(list.isCachedCopyProvisional)
+        XCTAssertEqual(list.sessions.map(\.title), ["C", "A", "B"])
+    }
+
+    /// A host that answers and refuses drops the rows shown while connecting: the list says why,
+    /// as it does with nothing cached.
+    func testARefusedConnectDropsTheRowsShownWhileConnecting() async throws {
+        let context = try makeContext()
+        let online = HermesSessionListWire()
+        online.pages["default"] = [0: HermesSessionPage(rows: [HermesSessionRow(id: "a", title: "A", lastActive: 1)])]
+        await makeList(online).openHermes(modelContext: context)
+
+        let wire = HermesSessionListWire()
+        wire.connectFailure = BotFailure.rejected(401)
+        let list = makeList(wire)
+        await list.openHermes(modelContext: context)
+
+        XCTAssertEqual(list.sessions, [])
+        XCTAssertFalse(list.isViewingCachedData)
+        XCTAssertEqual(list.errorMessage, "Hermes didn't accept the username or password.")
+    }
+
+    /// The home's list, with no pick, shows the cached rows of the Profile it last read while it
+    /// connects, without taking that Profile: the host still settles the one it lists.
+    func testAListWithoutAPickShowsTheProfileItLastReadWhileItConnects() async throws {
+        let context = try makeContext()
+        let online = HermesSessionListWire()
+        online.pages = ["research": [0: HermesSessionPage(rows: [HermesSessionRow(id: "r", title: "R", lastActive: 2)])]]
+        await makeList(online, profile: "research").openHermes(modelContext: context)
+        XCTAssertNil(defaults.string(forKey: HermesProfilePreference.key(for: server)), "reading a Profile is not picking it")
+
+        let wire = HermesSessionListWire()
+        wire.holdsConnect = true
+        wire.pages = ["default": [0: HermesSessionPage(rows: [HermesSessionRow(id: "d", title: "D", lastActive: 1)])]]
+        let list = makeList(wire, profile: nil)
+        let open = Task { await list.openHermes(modelContext: context) }
+        await waitUntil("the cached rows show") { wire.connects == 1 && !list.sessions.isEmpty }
+
+        XCTAssertEqual(list.sessions.map(\.title), ["R"])
+        XCTAssertTrue(list.isCachedCopyProvisional)
+        XCTAssertNil(list.hermesProfile)
+
+        wire.release()
+        await open.value
+
+        XCTAssertEqual(list.hermesProfile, "default")
+        XCTAssertEqual(list.sessions.map(\.title), ["D"])
+        XCTAssertEqual(HermesProfilePreference.lastListed(for: server, in: defaults), "default")
+    }
+
+    /// Rows shown while the list connects take no read mark, though the socket is up: Mark as
+    /// Read is off and opening a row writes nothing, until the host's rows are in.
+    func testRowsShownWhileConnectingWriteNoReadMark() async throws {
+        let context = try makeContext()
+        let rows = [HermesSessionRow(id: "a", title: "A", lastActive: 1, unread: true)]
+        let online = HermesSessionListWire()
+        online.pages["default"] = [0: HermesSessionPage(rows: rows)]
+        await makeList(online).openHermes(modelContext: context)
+
+        let wire = HermesSessionListWire()
+        wire.holdsPages = true
+        wire.pages["default"] = [0: HermesSessionPage(rows: rows)]
+        let list = makeList(wire)
+        let open = Task { await list.openHermes(modelContext: context) }
+        await waitUntil("the socket is up and the page read waits") { wire.pageReads.count == 1 }
+        let cached = try XCTUnwrap(list.sessions.first)
+
+        XCTAssertTrue(list.isCachedCopyProvisional)
+        XCTAssertFalse(list.canToggleUnread(cached))
+        list.toggleUnread(cached)
+        list.beginViewing(cached)
+        XCTAssertTrue(list.isUnread(cached))
+        XCTAssertEqual(wire.unreadWrites, [])
+
+        wire.release()
+        await open.value
+
+        XCTAssertTrue(list.canToggleUnread(try XCTUnwrap(list.sessions.first)))
+    }
+
     /// With nothing cached, a list whose proxy answers for a host that isn't there says so in the
     /// connection's own words, not a webui server's unreachable copy.
     func testAnUnreachableHostWithNothingCachedKeepsItsAdvice() async throws {
@@ -175,6 +288,7 @@ import XCTest
         await chat.model.loadMessages(modelContext: context)
 
         XCTAssertTrue(chat.model.isViewingCachedData)
+        XCTAssertTrue(chat.model.showsOfflineCache, "the transcript shown while connecting becomes the offline state")
         XCTAssertEqual(chat.model.messages.map(\.content), ["Hi", "Hello."])
         XCTAssertEqual(chat.model.messages.map(\.rowID), [1, 2])
         let sent = await chat.model.sendMessage("Still there?")
@@ -188,6 +302,89 @@ import XCTest
 
         XCTAssertEqual(chat.model.messages.map(\.content), ["Hi", "Hello.", "Sent from Desktop"])
         XCTAssertFalse(wire.methods.contains("prompt.submit"))
+    }
+
+    /// A session shows its cached transcript while it connects, read-only but without the
+    /// offline banner or reconnect line, and holds Send without a word; the attach's first
+    /// newest read puts the host's rows in its place.
+    func testASessionShowsItsCachedTranscriptWhileItConnects() async throws {
+        let context = try makeContext()
+        let visit = makeChat(HermesOfflineWire(rows: [row(1, "user", "Hi"), row(2, "assistant", "Hello.")]))
+        await visit.model.loadMessages(modelContext: context)
+
+        let wire = HermesOfflineWire(rows: [row(1, "user", "Hi"), row(2, "assistant", "Hello."), row(3, "user", "Sent from Desktop")])
+        let connected = Gate()
+        wire.connectGate = connected
+        let chat = makeChat(wire)
+        let load = Task { await chat.model.loadMessages(modelContext: context) }
+        await waitUntil("the cached transcript shows") { !chat.model.messages.isEmpty }
+
+        XCTAssertEqual(chat.model.messages.map(\.content), ["Hi", "Hello."])
+        XCTAssertTrue(chat.model.isViewingCachedData)
+        XCTAssertTrue(chat.model.isCachedCopyProvisional)
+        XCTAssertFalse(chat.model.showsOfflineCache)
+        XCTAssertFalse(chat.model.isLoading)
+        XCTAssertNil(ChatView.composerReadOnlyMessage(for: SessionSummary(profile: "default"),
+                                                      isViewingCachedData: chat.model.showsOfflineCache))
+        let sent = await chat.model.sendMessage("Too soon")
+        XCTAssertFalse(sent)
+        XCTAssertNil(chat.model.sendErrorMessage)
+
+        connected.open()
+        await load.value
+
+        XCTAssertFalse(chat.model.isViewingCachedData)
+        XCTAssertFalse(chat.model.isCachedCopyProvisional)
+        XCTAssertEqual(chat.model.messages.map(\.content), ["Hi", "Hello.", "Sent from Desktop"])
+        XCTAssertFalse(wire.methods.contains("prompt.submit"))
+    }
+
+    /// `ChatView` asks for the cached transcript before its appearance completes, ahead of the
+    /// attach, which its first load then starts.
+    func testASessionShowsItsCachedTranscriptBeforeItsAppearanceCompletes() async throws {
+        let context = try makeContext()
+        let visit = makeChat(HermesOfflineWire(rows: [row(1, "user", "Hi"), row(2, "assistant", "Hello.")]))
+        await visit.model.loadMessages(modelContext: context)
+
+        let wire = HermesOfflineWire(rows: [row(1, "user", "Hi"), row(2, "assistant", "Hello."), row(3, "user", "Sent from Desktop")])
+        let chat = makeChat(wire)
+        chat.model.prepareInitialMessageLoad(modelContext: context)
+
+        XCTAssertEqual(chat.model.messages.map(\.content), ["Hi", "Hello."])
+        XCTAssertTrue(chat.model.isCachedCopyProvisional)
+        XCTAssertEqual(wire.methods, [])
+
+        await chat.model.loadMessages(modelContext: context, usesInitialPrefetch: true)
+
+        XCTAssertFalse(chat.model.isViewingCachedData)
+        XCTAssertEqual(chat.model.messages.map(\.content), ["Hi", "Hello.", "Sent from Desktop"])
+    }
+
+    /// A running turn whose first history read fails (a 500) while its reply streams keeps that
+    /// reply: the copy shown while connecting goes, and the deltas still land in the reply's row.
+    func testAFailedFirstHistoryReadKeepsTheRunningReply() async throws {
+        let context = try makeContext()
+        let visit = makeChat(HermesOfflineWire(rows: [row(1, "user", "Hi"), row(2, "assistant", "Hello.")]))
+        await visit.model.loadMessages(modelContext: context)
+
+        let wire = HermesOfflineWire(rows: [])
+        wire.running = true
+        wire.messagesFailure = BotFailure.rejected(500)
+        // The reply's first delta lands while the attach reads the history, so the engine holds it.
+        wire.onRead = { [weak wire] in
+            wire?.onRead = nil
+            wire?.onEvent?(Self.delta(1, "Working"))
+        }
+        let chat = makeChat(wire)
+        await chat.model.loadMessages(modelContext: context)
+        XCTAssertEqual(chat.model.messages.map(\.messageId), [chat.model.streamingAssistantMessageID],
+                       "the reply's row is the only one, and still streaming")
+        XCTAssertNotNil(chat.model.errorMessage)
+        wire.onEvent?(Self.delta(2, " on it"))
+        await waitUntil("the reply streams") { chat.model.messages.last?.content == "Working on it" }
+
+        XCTAssertFalse(chat.model.isViewingCachedData)
+        XCTAssertEqual(chat.model.messages.map(\.content), ["Working on it"])
     }
 
     /// An attach that fails after the host named the session's runtime, here as its replay is
@@ -384,6 +581,7 @@ import XCTest
         await waitUntil("the cached transcript shows") { !chat.model.messages.isEmpty }
 
         XCTAssertTrue(chat.model.isViewingCachedData)
+        XCTAssertFalse(chat.model.showsOfflineCache, "no offline banner while it connects")
         XCTAssertEqual(chat.model.messages.map(\.content), ["Hi", "Hello."])
         XCTAssertEqual(wire.methods, [])
 
@@ -391,6 +589,7 @@ import XCTest
         await load.value
 
         XCTAssertFalse(chat.model.isViewingCachedData)
+        XCTAssertFalse(chat.model.isCachedCopyProvisional)
         XCTAssertEqual(chat.model.messages.map(\.content), ["Hi", "Hello.", "Sent from Desktop"])
     }
 
@@ -405,6 +604,45 @@ import XCTest
         XCTAssertEqual(visit.model.messages.map(\.content), ["Hi", "Hello."])
 
         XCTAssertEqual(try botChatMessages(in: context), ["Hi", "Hello."])
+    }
+
+    /// An attach `ChatView` started as it appeared that the host refused (401) before the cached
+    /// transcript showed has had its answer: the copy shows as the offline state, with the
+    /// reconnect line, not as one held while the chat connects.
+    func testABotChatRefusedBeforeItsCacheShowsShowsItOffline() async throws {
+        let context = try makeContext()
+        let visit = makeChat(HermesOfflineWire(rows: [row(1, "user", "Hi")]), target: .canonicalChat(profile: "default"))
+        await visit.model.loadMessages(modelContext: context)
+
+        let wire = HermesOfflineWire(rows: [])
+        wire.connectFailure = BotFailure.rejected(401)
+        let chat = makeChat(wire, target: .canonicalChat(profile: "default"))
+        await chat.model.reconnectStreamIfNeeded(modelContext: context)
+        chat.model.prepareInitialMessageLoad(modelContext: context)
+        await chat.model.loadMessages(modelContext: context)
+
+        XCTAssertEqual(chat.model.messages.map(\.content), ["Hi"])
+        XCTAssertTrue(chat.model.showsOfflineCache)
+        XCTAssertFalse(chat.model.isCachedCopyProvisional)
+    }
+
+    /// A Bot Chat whose attach connected before the cache could show, but whose history read
+    /// failed, keeps its cached copy as the offline state rather than an empty screen (#1144).
+    func testABotChatAttachedBeforeItsCacheShowsKeepsItWhenHistoryFails() async throws {
+        let context = try makeContext()
+        let visit = makeChat(HermesOfflineWire(rows: [row(1, "user", "Hi")]), target: .canonicalChat(profile: "default"))
+        await visit.model.loadMessages(modelContext: context)
+
+        let wire = HermesOfflineWire(rows: [])
+        wire.messagesFailure = BotFailure.rejected(500)
+        let chat = makeChat(wire, target: .canonicalChat(profile: "default"))
+        await chat.model.reconnectStreamIfNeeded(modelContext: context)
+        chat.model.prepareInitialMessageLoad(modelContext: context)
+        await chat.model.loadMessages(modelContext: context)
+
+        XCTAssertEqual(chat.model.messages.map(\.content), ["Hi"])
+        XCTAssertTrue(chat.model.showsOfflineCache)
+        XCTAssertFalse(chat.model.isCachedCopyProvisional)
     }
 
     /// Two servers never share a Bot Chat's cache, even for the same connection and Profile: an
@@ -699,6 +937,12 @@ import XCTest
                  "tool_call_id": .null, "tool_calls": .null, "display_kind": .null, "display_metadata": .null])
     }
 
+    /// A `message.delta` on the session's runtime.
+    private static func delta(_ seq: Int, _ text: String) -> BotJSON {
+        .object(["session_id": .string("runtime"), "seq": .number(Double(seq)), "type": .string("message.delta"),
+                 "payload": .object(["text": .string(text)])])
+    }
+
     /// Waits on observation, never a clock, and fails once nothing it reads changes for 5 s.
     private func waitUntil(_ description: String, file: StaticString = #filePath, line: UInt = #line,
                            _ condition: @escaping @MainActor () -> Bool) async {
@@ -729,12 +973,12 @@ import XCTest
     }
 }
 
-/// A Hermes host for one idle session, `tip` in `default`: its attach calls and its newest
+/// A Hermes host for one session, `tip` in `default`, idle unless `running`: its attach calls and its newest
 /// transcript page. As the Profile's Bot Chat, its lookup finds `canonicalRoot` at `tip`.
 /// `connectFailure` stands for a host it can't reach, or one that refuses; `connectGate` holds
 /// the connect until opened; `replayFailure` stands for a socket lost once the host named the
 /// runtime, `messagesFailure` for a transcript read that fails. `onRead` reports each transcript
-/// read, which `messagesGate` holds until opened.
+/// read, which `messagesGate` holds until opened. `running` makes its snapshot report a turn.
 @MainActor private final class HermesOfflineWire: BotTransport {
     var replayEpoch: String? = "epoch"
     var onEvent: ((BotJSON) -> Void)?
@@ -747,6 +991,7 @@ import XCTest
     var messagesFailure: Error?
     var messagesGate: Gate?
     var onRead: (() -> Void)?
+    var running = false
     var rows: [BotJSON]
     private(set) var methods: [String] = []
 
@@ -766,7 +1011,7 @@ import XCTest
         case "session.list":
             return .object(["sessions": .array([.object(["id": .string(canonicalRoot), "resolved_id": .string(tip)])])])
         case "session.resume":
-            return .object(["session_id": .string("runtime"), "session_key": .string(tip), "running": .bool(false),
+            return .object(["session_id": .string("runtime"), "session_key": .string(tip), "running": .bool(running),
                             "messages": .array([]), "info": .object(["profile_name": .string("default")])])
         case "session.events.since":
             if let replayFailure { throw replayFailure }

@@ -253,7 +253,15 @@ final class ChatViewModel {
     private(set) var isUndoingExchange = false
     private(set) var isCompressingSession = false
     private(set) var isCancellingStream = false
-    private(set) var isViewingCachedData = false
+    private(set) var isViewingCachedData = false {
+        didSet { if !isViewingCachedData { isCachedCopyProvisional = false } }
+    }
+    /// A Hermes chat's cached transcript shows because the host has yet to answer this open, not
+    /// because it can't be reached: still read-only, with Send held, but without the offline
+    /// banner. Only while `isViewingCachedData`.
+    private(set) var isCachedCopyProvisional = false
+    /// The chat shows its offline presentation: the banner and the composer's reconnect line.
+    var showsOfflineCache: Bool { isViewingCachedData && !isCachedCopyProvisional }
     var activeStreamID: String? { turn.activeStreamID }
     var successfulResponseCompletion: ChatStreamCoordinator.SuccessfulResponseCompletion? {
         turn.successfulResponseCompletion
@@ -376,9 +384,9 @@ final class ChatViewModel {
     /// A Hermes session's compaction, from its settled history (#1047), in place of the
     /// webui's `compression_anchor_*` metadata.
     @ObservationIgnored private var hermesCompaction: HermesCompaction?
-    /// The offline cache a Hermes session's settled history is written to and read back from
-    /// while its host can't be reached (#1054), and a Bot Chat's before its attach (#1144),
-    /// from the chat's first load.
+    /// The offline cache a Hermes chat's settled history is written to and read back from
+    /// before its attach and while its host can't be reached (#1054, #1144), from the chat's
+    /// first load.
     @ObservationIgnored private var hermesCache: ModelContext?
     /// The root this Hermes chat's cached transcript is kept under, once found: a session's
     /// lineage root, or a Bot Chat's canonical root, which its attach confirms or replaces.
@@ -1813,9 +1821,8 @@ final class ChatViewModel {
     func loadMessages(modelContext: ModelContext? = nil, usesInitialPrefetch: Bool = false) async {
         if let hermesTurn {
             if let modelContext { hermesCache = modelContext }
-            // A Bot Chat shows its cached transcript at once, read-only, until the attach's
-            // first newest read puts the host's rows in its place (#1144).
-            if case .canonicalChat = hermesTurn.engine.target { showCachedHermesTranscript() }
+            // For an open that skipped `prepareInitialMessageLoad`.
+            showCachedHermesTranscriptBeforeAttach(hermesTurn)
             await loadHermesSession(hermesTurn)
             return
         }
@@ -2033,8 +2040,13 @@ final class ChatViewModel {
     /// sends its transcript request. `ChatView` applies the response only after
     /// its navigation appearance completes (`loadMessages(usesInitialPrefetch:)`),
     /// so rendering a richer transcript cannot stall the system push animation,
-    /// while the round trip overlaps it.
+    /// while the round trip overlaps it. A Hermes chat shows its cached transcript here instead,
+    /// and attaches from `loadMessages`.
     func prepareInitialMessageLoad(modelContext: ModelContext) {
+        if let hermesTurn {
+            hermesCache = modelContext
+            return showCachedHermesTranscriptBeforeAttach(hermesTurn)
+        }
         guard let sessionID else { return }
 
         if initialSessionPrefetch == nil {
@@ -2837,7 +2849,8 @@ final class ChatViewModel {
 
     func sendMessage(_ draft: String, modelContext: ModelContext? = nil) async -> Bool {
         guard !isViewingCachedData else {
-            sendErrorMessage = String(localized: "Reconnect to the server to send a message.")
+            // A cached copy shown while the chat connects holds the draft without a word.
+            if !isCachedCopyProvisional { sendErrorMessage = String(localized: "Reconnect to the server to send a message.") }
             return false
         }
 
@@ -7845,9 +7858,12 @@ extension ChatViewModel: HermesChatTurnDelegate {
     func hermesReplaceTranscript(_ transcript: HermesChatTranscript) {
         // The host's own rows replace a cached copy, which shares their ids. A rebuild whose
         // history read failed has none, so the cached copy stays, read-only, until the chat's
-        // retry or a later read succeeds.
+        // retry or a later read succeeds. A session's copy shown while it connects goes even
+        // then: the rebuild holds the running turn the frames it releases next continue, and
+        // the failure, reported after them, shows the cache again where it would offline.
         if isViewingCachedData {
-            guard transcript.newestCoverage != nil else { return }
+            let isBotChat = if case .canonicalChat = hermesTurn?.engine.target { true } else { false }
+            guard transcript.newestCoverage != nil || isCachedCopyProvisional && !isBotChat else { return }
             isViewingCachedData = false
         }
         resetPendingStreamingContentBuffers()
@@ -7925,20 +7941,53 @@ extension ChatViewModel: HermesChatTurnDelegate {
         }
     }
 
-    /// A chat with nothing on screen whose host can't be reached, to attach or to read its
-    /// history, shows its cached transcript (`showCachedHermesTranscript()`), as a webui chat
-    /// does offline. The engine keeps reattaching, and the host's transcript replaces it once
-    /// a read succeeds, as the chat's retry's does. Returns whether it shows the cached copy.
+    /// A chat whose host can't be reached, to attach or to read its history, shows its cached
+    /// transcript as the offline state, as a webui chat does offline: the copy shown while it
+    /// connected, else, with nothing on screen, one read now. The engine keeps reattaching, and
+    /// the host's transcript replaces it once a read succeeds, as the chat's retry's does.
+    /// Returns whether it shows the cached copy as the failure's answer.
     @discardableResult
     private func showCachedHermesTranscript(after error: Error) -> Bool {
-        CacheFallbackPolicy.shouldUseCache(for: error) && showCachedHermesTranscript()
+        let usesCache = CacheFallbackPolicy.shouldUseCache(for: error)
+        guard isCachedCopyProvisional else { return usesCache && showCachedHermesTranscript(provisional: false) }
+        isCachedCopyProvisional = false
+        // A Bot Chat keeps the copy it shows before every attach (#1144), whatever failed. A
+        // session's stays only where a failure shows the cache; otherwise it goes, so the chat
+        // says why with nothing on screen.
+        if case .canonicalChat = hermesTurn?.engine.target { return false }
+        guard !usesCache else { return true }
+        messages = []
+        transcriptRevision &+= 1
+        isViewingCachedData = false
+        return false
+    }
+
+    /// A chat opening shows its cached transcript at once, read-only, provisionally until the
+    /// attach's first newest read puts the host's rows in its place (#1144). Not once attached,
+    /// when the host's rows, even none, are the transcript, unless that read failed: a Bot Chat
+    /// then keeps its copy as the offline state. An attach that already failed, as one
+    /// `ChatView` starts as it appears can, has had its answer: a Bot Chat's copy shows as the
+    /// offline state, and a session's only as that failure showed it.
+    private func showCachedHermesTranscriptBeforeAttach(_ hermes: HermesChatTurnCoordinator) {
+        let engine = hermes.engine
+        let isBotChat = if case .canonicalChat = engine.target { true } else { false }
+        if engine.connectionState == .connected {
+            if isBotChat && hermes.hasHistoryFailure { showCachedHermesTranscript(provisional: false) }
+            return
+        }
+        guard hermes.needsSignIn || engine.isActive && engine.connectionState == .disconnected else {
+            showCachedHermesTranscript(provisional: true)
+            return
+        }
+        if isBotChat { showCachedHermesTranscript(provisional: false) }
     }
 
     /// With nothing on screen, shows the newest page of the chat's cached transcript, read-only
     /// (`isViewingCachedData`), with no tool, reasoning or compaction cards, until a newest
-    /// read replaces it. Returns whether it shows the cached copy.
+    /// read replaces it: `provisional` while the host has yet to answer, else as the offline
+    /// state. Returns whether it shows the cached copy.
     @discardableResult
-    private func showCachedHermesTranscript() -> Bool {
+    private func showCachedHermesTranscript(provisional: Bool) -> Bool {
         guard messages.isEmpty, let scope = hermesCacheScope() else { return false }
         var cached: [ChatMessage] = []
         do {
@@ -7956,6 +8005,7 @@ extension ChatViewModel: HermesChatTurnDelegate {
         transcriptRevision &+= 1
         hasOlderMessages = false
         isViewingCachedData = true
+        isCachedCopyProvisional = provisional
         errorMessage = nil
         setCompletedToolCallGroups([])
         completedReasoningGroups = []
