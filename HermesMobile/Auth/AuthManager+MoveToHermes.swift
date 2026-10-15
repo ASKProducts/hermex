@@ -133,6 +133,52 @@ extension AuthManager {
         refreshServers()
     }
 
+    // MARK: The one-time question (#1267)
+
+    /// Whether the one-time question is due: the signed-in active server is a webui server that
+    /// was never asked, has no move record and isn't being removed, and no move sheet has shown
+    /// this launch. Another webui server waits for a launch with it active. The root asks once
+    /// nothing else is presented (`askAboutMoveIfDue`).
+    var isMoveQuestionDue: Bool { dueMoveQuestionSource != nil }
+
+    /// Asks the question when it is due. Asking marks the server asked, so its banner follows
+    /// and a quit mid-question doesn't ask again.
+    func askAboutMoveIfDue() {
+        guard let source = dueMoveQuestionSource, let sourceURL = URL(string: source.id) else { return }
+        askedAboutMoveThisLaunch = true
+        let hasBotsSignIn = (try? BotConnectionStore(keychain: keychain).load(server: sourceURL)) != nil
+        noteMovePrompt(.asked, forSource: source.id)
+        moveQuestion = MoveToHermesQuestion(sourceID: source.id, hasBotsSignIn: hasBotsSignIn)
+    }
+
+    private var dueMoveQuestionSource: ServerAccount? {
+        guard !askedAboutMoveThisLaunch, moveOffer == nil, moveQuestion == nil, case .loggedIn = state,
+              let active = activeServer, active.kind == .webui, active.moveToHermesPrompt == nil,
+              !removingServerIDs.contains(active.id), moveRecord(forSource: active.id) == nil
+        else { return nil }
+        return active
+    }
+
+    /// Whether `serverID`'s chat list shows "Move <server> to Hermes": a webui server asked but
+    /// not dismissed, with no move record, whose Paused, Finished and Moved banners speak instead.
+    func showsMoveInvite(for serverID: String) -> Bool {
+        guard let server = servers.first(where: { $0.id == serverID }), server.kind == .webui,
+              server.moveToHermesPrompt == .asked else { return false }
+        return moveRecord(forSource: serverID) == nil
+    }
+
+    /// Moves `sourceID`'s question forward to `prompt`; never back, so a dismissed banner stays
+    /// dismissed. Best effort: a refused Keychain write leaves the server as it was.
+    func noteMovePrompt(_ prompt: MoveToHermesPrompt, forSource sourceID: String) {
+        guard let server = servers.first(where: { $0.id == sourceID && $0.kind == .webui }),
+              server.moveToHermesPrompt != prompt, server.moveToHermesPrompt != .dismissed else { return }
+        try? serverRegistry.commit { servers, _ in
+            guard let index = servers.firstIndex(where: { $0.id == sourceID }) else { return }
+            servers[index].moveToHermesPrompt = prompt
+        }
+        refreshServers()
+    }
+
     /// Why `sourceID` can't move to `destinationID` given `servers`, or nothing when it can.
     /// A record this destination already holds is not a conflict: the commit returns it.
     private static func checkMove(of sourceID: String, to destinationID: String, in servers: [ServerAccount]) throws {

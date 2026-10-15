@@ -28,6 +28,15 @@ struct MoveToHermesOffer: Identifiable, Equatable {
     }
 }
 
+/// The one-time "Move <server> to Hermes" question for a webui server (#1267).
+struct MoveToHermesQuestion: Identifiable, Equatable {
+    let sourceID: String
+    /// The webui server has a Bots connection, so Move to Hermes goes straight to the scan
+    /// instead of the Hermes sign-in; the sheet's second line says which.
+    let hasBotsSignIn: Bool
+    var id: String { sourceID }
+}
+
 /// The guided Move to Hermes sheet's model (#1218). It reads what Review shows without changing
 /// either server: the host's own sign-in check (refusals R1 and R3), Profiles and a scan, then the
 /// webui's running chats (R4). Move hands the frozen Review to `MoveToHermesRunner.start`, which
@@ -634,6 +643,21 @@ struct MoveToHermesNotice: Equatable {
     func noteClosed(source: String, destination: String) { closed.insert(Self.key(source, destination)) }
     func clearClosed(source: String, destination: String) { closed.remove(Self.key(source, destination)) }
     func wasClosed(source: String, destination: String) -> Bool { closed.contains(Self.key(source, destination)) }
+
+    /// How many of each server's chat lists are on screen. A webui list reports its appearance
+    /// (`noteChatList`): on iPhone it disappears under a pushed chat, on iPad with its sidebar.
+    /// Counted, so a rebuild's new list appearing before the old one leaves doesn't hide it.
+    private var chatListsOnScreen: [String: Int] = [:]
+
+    func noteChatList(of serverID: String, onScreen: Bool) {
+        let count = (chatListsOnScreen[serverID] ?? 0) + (onScreen ? 1 : -1)
+        chatListsOnScreen[serverID] = count > 0 ? count : nil
+    }
+
+    /// Whether `serverID`'s chat list is on screen, which the one-time question waits for.
+    func showsChatList(of serverID: String?) -> Bool {
+        serverID.map { chatListsOnScreen[$0] != nil } ?? false
+    }
 
     /// The Settings card's notice for a webui server, or nil before any move.
     func card(forSource sourceID: String, in servers: [ServerAccount]) -> MoveToHermesNotice? {
