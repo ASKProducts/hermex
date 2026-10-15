@@ -67,6 +67,7 @@ struct HermesSessionListView: View {
     @State private var viewModel: SessionListViewModel
     /// The chat, pushed screens, sheets and confirmations over the rows.
     @State private var covers = HermesSessionListCovers()
+    @State private var terminalHTTP: HermesConnection?
     @State private var actionToast = ActionToastState()
     /// The project lane the list shows; nil shows every session.
     @State private var selectedProjectID: String?
@@ -168,6 +169,13 @@ struct HermesSessionListView: View {
             await viewModel.searchSessions(query: searchText)
         }
         .modifier(chrome)
+        .task(id: entry) {
+            terminalHTTP = nil
+            let http = HermesConnections.shared.connection(for: entry.connection, server: entry.server)
+            let available = await HermesTerminalClient.isAvailable(on: http)
+            if !Task.isCancelled, available { terminalHTTP = http }
+        }
+        .fullScreenCover(item: $covers.terminal) { target in TerminalScreen(target: target) }
         // Keyed by the chat, so a Profile picked in an empty chat replaces its screen (#1015).
         .navigationDestination(item: $covers.chat) { chat in
             // `/sessions` and `/resume` in the chat come back here, in the chat's Profile, searching
@@ -535,7 +543,11 @@ struct HermesSessionListView: View {
                         covers.present(SessionExportShareItem(fileURL: url), startedAt: generation)
                     }
                 }
-            }
+            },
+            terminal: terminalHTTP.map { http in { session in
+                guard let target = HermesTerminalTarget.listed(session, server: entry.server, http: http, profile: profile) else { return nil }
+                return { covers.terminal = target }
+            } }
         )
     }
 
@@ -849,6 +861,7 @@ private struct HermesSessionListChrome<ProfileMenu: View, Filter: View, NewSessi
 /// the list itself; a closed chat keeps its draft in the draft store.
 struct HermesSessionListCovers {
     var chat: HermesSessionChat?
+    var terminal: HermesTerminalTarget?
     var renaming: SessionSummary?
     var deleting: SessionSummary?
     var exported: SessionExportShareItem?
@@ -869,7 +882,7 @@ struct HermesSessionListCovers {
 
     /// A screen this list pushed covers it, so the socket stays closed until it returns.
     var isCoveredByScreen: Bool {
-        showingArchived || showingKanban || tasks != nil || skills != nil || memory != nil || insights != nil
+        terminal != nil || showingArchived || showingKanban || tasks != nil || skills != nil || memory != nil || insights != nil
     }
 
     /// Counts the links that brought the rows forward, so work started before one (an export)

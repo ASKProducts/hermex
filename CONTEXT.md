@@ -12,6 +12,10 @@ _Avoid_: server (alone, when the kind matters), WebUI
 A configured Hermes dashboard that Hermex reaches directly, and the default kind when adding a server. Its sign-in is its own Hermes connection, and it opens on the Bots inbox.
 _Avoid_: Hermes connection (that is the sign-in), bot server
 
+**Terminal**:
+A chat's interactive shell on the Hermes host, starting in its stored folder as the dashboard's OS user. Closing detaches; `exit` ends the shell.
+_Avoid_: agent terminal backend, filesystem sandbox
+
 **Connection mode**:
 How this iPhone reaches the server, chosen in the connect form: Same Wi-Fi, Private network or Cloudflare Tunnel. It changes only the form's placeholder, help and header rows, and is not saved.
 _Avoid_: network type, connection type

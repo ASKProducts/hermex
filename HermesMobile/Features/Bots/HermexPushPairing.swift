@@ -139,6 +139,7 @@ struct HermexCompanionRoutes: Equatable, Sendable {
     }
 
     func supports(_ route: String) -> Bool { routes.contains(route) }
+    var supportsTerminal: Bool { supports("WS /terminal/shell") }
 }
 
 /// The pairing route's 404s that say what the host lacks (`HermexPushPlugin.missingRoute`).

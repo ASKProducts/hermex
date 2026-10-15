@@ -72,6 +72,8 @@ import OSLog
     /// Counts sign-ins, so a 401 can tell whether another consumer has already recovered.
     private var epoch = 0
     private var signInTask: Task<Void, Error>?
+    var companionRouteProbe: Task<HermexCompanionRoutes, Error>?
+    func invalidateCompanionRoutes() { companionRouteProbe = nil }
     private(set) var isRetired = false
     /// Called with `.rejected(401)` when the login step answers 401, and with `.signInExpired`
     /// when the host refuses a browser sign-in's refresh token, before the failure reaches any
@@ -410,6 +412,13 @@ import OSLog
     func kanbanEventsUpgrade(board: String, since: Int) async throws -> URLRequest {
         try await upgrade {
             try HermesREST.kanbanEventsUpgrade(base: connection.address, board: board, since: since, ticket: $0)
+        }
+    }
+
+    /// A new ticket for every shell attach; no gateway ticket or credential is reused.
+    func terminalUpgrade(sessionID: String, profile: String, size: TerminalSize) async throws -> URLRequest {
+        try await upgrade {
+            try HermesREST.terminalUpgrade(base: connection.address, sessionID: sessionID, profile: profile, size: size, ticket: $0)
         }
     }
 

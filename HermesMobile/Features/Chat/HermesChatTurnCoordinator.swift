@@ -544,6 +544,14 @@ struct HermesChatTranscript: Equatable {
         engine.connectionState == .connected && engine.storedKey != nil ? engine.generation : nil
     }
 
+    /// A shell belongs to this stored chat on its existing sign-in, not its runtime or cwd.
+    var terminalTarget: HermesTerminalTarget? {
+        guard case .session = engine.target else { return nil }
+        guard engine.connectionState == .connected, let key = engine.storedKey,
+              let http = (engine.wire as? BotClient)?.http else { return nil }
+        return HermesTerminalTarget(server: engine.server, http: http, sessionID: key, profile: engine.target.profile)
+    }
+
     /// This chat's working folder on its host (#1112), once the session has a stored key and
     /// `session.info` has named its folder; nil before.
     var workspace: HermesWorkspaceContext? {

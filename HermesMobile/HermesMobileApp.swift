@@ -15,7 +15,13 @@ private struct HermexSceneActionsKey: FocusedValueKey {
     typealias Value = HermexSceneActions
 }
 
+private struct HermexTerminalActionKey: FocusedValueKey { typealias Value = () -> Void }
+
 extension FocusedValues {
+    var hermexTerminalAction: (() -> Void)? {
+        get { self[HermexTerminalActionKey.self] }
+        set { self[HermexTerminalActionKey.self] = newValue }
+    }
     var hermexSceneActions: HermexSceneActions? {
         get { self[HermexSceneActionsKey.self] }
         set { self[HermexSceneActionsKey.self] = newValue }
@@ -24,6 +30,7 @@ extension FocusedValues {
 
 struct HermexCommands: Commands {
     @FocusedValue(\.hermexSceneActions) private var focusedActions
+    @FocusedValue(\.hermexTerminalAction) private var terminalAction
 
     /// Every command is off while the app lock is up (#885). Read live, so a stale
     /// menu can't act either.
@@ -41,6 +48,9 @@ struct HermexCommands: Commands {
         }
 
         CommandGroup(after: .newItem) {
+            Button("Terminal") { if !AppLock.shared.isLocked { terminalAction?() } }
+                .keyboardShortcut("t", modifiers: [.command, .shift])
+                .disabled(AppLock.shared.isLocked || terminalAction == nil)
             Button("Search Sessions") {
                 actions?.searchSessions()
             }

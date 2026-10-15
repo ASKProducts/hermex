@@ -141,6 +141,7 @@ enum HermesREST: Equatable, Sendable {
     case pushPairing
     /// hermex-push's mounted routes (#1235, plugin 0.5.0): no side effects, never 409.
     case pluginCapabilities
+    case terminalStatus(sessionID: String, profile: String)
     /// hermex-push 0.7.0's account limits for one provider and Profile (#1237), in webui's
     /// `/api/provider/quota` envelope. `refresh` skips the plugin's 45 s cache.
     case companionProviderQuota(provider: String, profile: String, refresh: Bool)
@@ -401,6 +402,11 @@ enum HermesREST: Equatable, Sendable {
         case .restartGateway: return try Self.send("POST", base.appendingPathComponent("api/gateway/restart"), [:])
         case .pushPairing: return Self.get(base.appendingPathComponent("api/plugins/hermex-push/pairing"))
         case .pluginCapabilities: return Self.get(base.appendingPathComponent("api/plugins/hermex-push/capabilities"))
+        case .terminalStatus(let sessionID, let profile):
+            guard !sessionID.isEmpty, !profile.isEmpty else { throw BotFailure.invalidAddress }
+            return try Self.pathQuery(base, "api/plugins/hermex-push/terminal/shell/status", [
+                URLQueryItem(name: "session_id", value: sessionID), URLQueryItem(name: "profile", value: profile)
+            ])
         case .companionProviderQuota(let provider, let profile, let refresh):
             guard var parts = URLComponents(url: base.appendingPathComponent("api/plugins/hermex-push/provider-quota"),
                                             resolvingAgainstBaseURL: false) else { throw BotFailure.invalidAddress }
@@ -686,6 +692,19 @@ enum HermesREST: Equatable, Sendable {
         var request = URLRequest(url: url)
         request.setValue("hermes-gateway-v1, hermes-gateway-ticket." + ticket, forHTTPHeaderField: "Sec-WebSocket-Protocol")
         return request
+    }
+
+    static func terminalUpgrade(base: URL, sessionID: String, profile: String, size: TerminalSize, ticket: String) throws -> URLRequest {
+        let request = try pathQuery(base, "api/plugins/hermex-push/terminal/shell", [
+            URLQueryItem(name: "session_id", value: sessionID), URLQueryItem(name: "shell_profile", value: profile),
+            URLQueryItem(name: "cols", value: String(size.columns)), URLQueryItem(name: "rows", value: String(size.rows)),
+            URLQueryItem(name: "ticket", value: ticket)
+        ])
+        guard !ticket.isEmpty, let url = request.url,
+              var parts = URLComponents(url: url, resolvingAgainstBaseURL: false) else { throw BotFailure.invalidAddress }
+        parts.scheme = base.scheme == "https" ? "wss" : "ws"
+        guard let upgrade = parts.url else { throw BotFailure.invalidAddress }
+        return URLRequest(url: upgrade)
     }
 
     /// A Board's Kanban event socket (#1045): `/api/plugins/kanban/events` on the `ws`/`wss`

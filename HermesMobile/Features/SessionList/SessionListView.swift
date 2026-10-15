@@ -1119,7 +1119,8 @@ struct SessionListView: View {
             },
             export: { session, format in
                 Task { await export(session, format: format) }
-            }
+            },
+            terminal: nil
         )
     }
 

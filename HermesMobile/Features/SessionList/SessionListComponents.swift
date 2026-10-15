@@ -98,12 +98,17 @@ struct SessionListRowActions {
     let createProject: (SessionSummary) -> Void
     let refreshProjects: () -> Void
     let export: (SessionSummary, SessionExportFormat) -> Void
+    let terminal: ((SessionSummary) -> (() -> Void)?)?
 }
 
 /// Which row actions a session offers. A Hermes server's row (#1046, #1048) offers pin,
 /// rename, archive, delete, Export as JSON, Move to Project (#1052) and Duplicate (#1051); the
 /// host has no HTML export.
 enum SessionRowActionPolicy {
+    static func offersTerminal(for session: SessionSummary) -> Bool {
+        session.hermes != nil && session.hermes?.isBotChat != true && hasServerSessionID(session)
+    }
+
     /// Pin, rename, move, archive and delete. A bot's Bot Chat, which a Hermes search lists
     /// (#1053), belongs to its bot: pinning would also unhide it, and renaming orphans it.
     static func offersMutationActions(for session: SessionSummary) -> Bool {
@@ -1127,6 +1132,11 @@ struct SessionRowContextMenu: View {
             Label(isUnread ? "Mark as Read" : "Mark as Unread", systemImage: isUnread ? "envelope.open" : "envelope.badge")
         }
         .disabled(!canToggleUnread)
+
+        if !isViewingCachedData, SessionRowActionPolicy.offersTerminal(for: session),
+           let terminal = actions.terminal?(session) {
+            Button(action: terminal) { Label("Terminal", systemImage: "terminal") }
+        }
 
         if SessionRowActionPolicy.offersMutationActions(for: session) {
             Button {

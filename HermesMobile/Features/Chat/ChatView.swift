@@ -1195,6 +1195,7 @@ struct ChatView: View {
                 Task { await loadInitialGitAvailability() }
             }
             .sheet(item: $activeGitSheet, content: gitSheet)
+            .modifier(TerminalFeature(target: viewModel.hermesTerminalTarget))
             .sheet(item: $turnDiffPresentation, content: turnDiffSheet)
             .alert(item: $gitAlert, content: gitAlertPresentation)
             .fullScreenCover(isPresented: $showsBtwFullScreen) { btwFullScreen }

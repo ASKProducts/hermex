@@ -1120,12 +1120,24 @@ import SwiftUI
     private static let photoReference = "[The user attached an image: dashboard_20261005_120000_0123abcd_IMG_2041.jpg]\n"
         + "[Examine it with the vision_analyze tool using image_url: /home/u/.hermes/images/dashboard_20261005_120000_0123abcd_IMG_2041.jpg]"
 
+    func testTerminalIsOnlyOfferedForSessionChats() async {
+        let session = await openChat()
+        XCTAssertNotNil(session.turn.terminalTarget)
+        let bot = await openChat(target: .canonicalChat(profile: "default"))
+        XCTAssertNil(bot.turn.terminalTarget)
+    }
+
     private func openChat(runtime: String = "runtime", key: String = "tip", profile: String = "default",
                           target: ConversationTarget? = nil, drafts: ChatDraftStore? = nil, lineageRoot: String? = nil,
                           history: [BotJSON] = [], snapshot: BotJSON? = nil, subagents: [BotJSON] = [],
                           rpcDeadline: Duration = .seconds(30)) async -> Chat {
         addTeardownBlock { HermesHostFixture.reset() }
         let host = BotSocketHost()
+        if case .canonicalChat = target {
+            host.always("session.list", .init(result: .object(["sessions": .array([
+                .object(["id": .string(key), "resolved_id": .string(key)])
+            ])])))
+        }
         host.always("subagent.list", .init(result: .object(["subagents": .array(subagents), "delegations": .array([])])))
         host.always("session.resume", .init(result: snapshot ?? resume(running: false, runtime: runtime, key: key, profile: profile)))
         host.always("session.events.since", .init(result: BotFixtureWire.replay(latest: 0)))

@@ -334,6 +334,9 @@ xcrun xctrace export --input /tmp/hermex.trace \
 
 ## Raw xcodebuild Fallback
 
+SwiftTerm's shader resource requires Xcode's Metal Toolchain. If `xcrun metal --version`
+reports a missing toolchain, install it with `xcodebuild -downloadComponent MetalToolchain`.
+
 Use raw `xcodebuild` for builds when XcodeBuildMCP is unavailable, when validating lower-level build failures, or when matching the GitHub Actions release/archive commands exactly. Local XCTest uses `scripts/test-sim` above. The TestFlight workflows continue to use raw `xcodebuild` and are not replaced by XcodeBuildMCP.
 
 List available simulators:

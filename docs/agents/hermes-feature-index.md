@@ -29,6 +29,7 @@ The plan's gap table: webui features no core Hermes capability covered at 0.21.4
 | Gap | Status | Today |
 | :--- | :--- | :--- |
 | Git fetch, pull, new branch | shipped | hermex-push companion routes (#1236), gated on its `/capabilities`. |
+| Per-chat host shell | shipped | Companion `WS /terminal/shell`, gated on `/capabilities`; chat toolbar, ⌘⇧T and live Sessions context menu. See `hermes-server.md` § Per-chat host terminal. |
 | Git stash-and-checkout | dropped | A dirty tree refuses a switch with "Commit or discard first." |
 | Workspace registry (add, remove, rename, reorder) | dropped | No registry: a chat's workspace is its session's `cwd`. |
 | Session project tags, Move to Project | shipped | Projects are host folders; Move to Project changes the working folder (#1052, `CONTEXT.md` Project). |

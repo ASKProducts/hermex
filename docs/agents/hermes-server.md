@@ -423,6 +423,13 @@ describe RPC, and `gateway.ready` lists no methods.
 | `GET /api/plugins/<name>/…` | 404 `{"detail": "No such API endpoint: …"}` | The dashboard never mounted the plugin's routes: it is new on disk and the host needs a restart, or the host lacks it (`kanban.md`, Absent plugin). |
 | `GET /api/plugins/hermex-push/capabilities` | `{plugin_version, routes}` / any 404 | The companion routes the loaded plugin mounts / none, so the feature doesn't show (`bots.md` § Push provisioning). |
 
+## Per-chat host terminal
+
+Chat (⌘⇧T) and live session rows offer Terminal when capabilities list `WS /terminal/shell`.
+`TerminalViewModel` checks shell status before automatic reattach; exit/replacement need user reconnect.
+SwiftTerm resets on replay start, suppresses replies for seen output and answers the unseen suffix.
+The companion's `plugin/README.md` owns the wire contract, auth, PTY lifetime and shell environment.
+
 ## Plugin routes need a host restart
 
 The dashboard mounts plugin routers once, when its process starts
@@ -432,6 +439,6 @@ restarts only the messaging gateway, so a new or updated plugin's routes appear 
 after `hermes dashboard` restarts. hermex-push 0.4.0 and newer mounts its own restart
 route (#934); anything older costs the user one restart on the host. A plugin adds REST
 routes, hooks, tools and its own sockets, but no RPC method and no `/api/ws` event, so a
-gap the companion plugin fills is always a REST route, and each new route costs a
+gap the companion plugin fills is a mounted HTTP or WebSocket route, and each new route costs a
 restart: ship them in batches, and gate each feature on `/capabilities`, never on a
 version number.

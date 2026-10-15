@@ -36,6 +36,7 @@ import Foundation
     /// device: `hermex-push` keeps its key pair in `plugin-data`, outside the install
     /// directory.
     func installPlugin(identifier: String) async throws {
+        defer { http.invalidateCompanionRoutes() }
         _ = try await send(.installPlugin(identifier: identifier))
     }
 
@@ -45,6 +46,7 @@ import Foundation
     /// sends nothing.
     func setPlugin(_ name: String, enabled: Bool,
                    validateDispatch: (@MainActor () throws -> Void)? = nil) async throws {
+        defer { http.invalidateCompanionRoutes() }
         _ = try await send(.setPlugin(name: name, enabled: enabled), validateDispatch: validateDispatch)
     }
 
@@ -58,6 +60,7 @@ import Foundation
     /// answers 202 and re-execs about a second later, stopping Bot turns running there, so
     /// only a confirmed "Restart Hermes…" reaches it.
     func restartHermes() async throws {
+        defer { http.invalidateCompanionRoutes() }
         _ = try await send(.restartDashboard)
     }
 

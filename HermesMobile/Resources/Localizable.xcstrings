@@ -40992,6 +40992,113 @@
         }
       }
     },
+    "Commands run on your Hermes host, outside agent approvals. Closing keeps the shell running." : {
+      "comment" : "Per-chat Hermes host shell. Keyboard names refer to terminal keys.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Befehle laufen auf deinem Hermes-Host ohne Agent-Genehmigungen. Beim Schließen läuft die Shell weiter."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Los comandos se ejecutan en tu host de Hermes sin aprobaciones del agente. Al cerrar, la shell sigue activa."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Les commandes s’exécutent sur votre hôte Hermes sans autorisation de l’agent. Fermer ne termine pas le shell."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "I comandi vengono eseguiti sull’host Hermes senza approvazioni dell’agente. Chiudendo, la shell resta attiva."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Polecenia są wykonywane na hoście Hermes bez zatwierdzeń agenta. Zamknięcie nie kończy działania powłoki."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Os comandos são executados no host do Hermes sem aprovações do agente. Ao fechar, o shell continua ativo."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Opdrachten worden op je Hermes-host uitgevoerd zonder agentgoedkeuring. Bij sluiten blijft de shell actief."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Komutlar, aracı onayı olmadan Hermes sunucunuzda çalışır. Kapatınca kabuk çalışmaya devam eder."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Команды выполняются на хосте Hermes без одобрения агента. После закрытия оболочка продолжает работать."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "コマンドはエージェントの承認なしでHermesホスト上で実行されます。画面を閉じてもシェルは動作し続けます。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "命令直接在 Hermes 主机上运行，无需代理审批。关闭此界面后 Shell 会继续运行。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "명령은 에이전트 승인 없이 Hermes 호스트에서 실행됩니다. 화면을 닫아도 셸은 계속 실행됩니다."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تُنفّذ الأوامر على مضيف Hermes دون موافقات الوكيل. تظل الصدفة قيد التشغيل بعد الإغلاق."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "הפקודות רצות במארח Hermes ללא אישורי הסוכן. סגירת המסך לא מפסיקה את המעטפת."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "کمانڈز ایجنٹ کی منظوری کے بغیر آپ کے Hermes میزبان پر چلتی ہیں۔ اسکرین بند کرنے پر بھی شیل چلتی رہتی ہے۔"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "指令會直接在 Hermes 主機上執行，無需代理核准。關閉此畫面後 Shell 仍會繼續執行。"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "指令會直接在 Hermes 主機上執行，毋須代理批准。關閉此畫面後 Shell 仍會繼續執行。"
+          }
+        }
+      }
+    },
     "Comment" : {
       "localizations" : {
         "ar" : { "stringUnit" : { "state" : "translated", "value" : "تعليق" } },
@@ -42460,6 +42567,113 @@
         }
       }
     },
+    "Connection lost" : {
+      "comment" : "Per-chat Hermes host shell. Keyboard names refer to terminal keys.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Verbindung verloren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Conexión perdida"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Connexion perdue"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Connessione persa"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Utracono połączenie"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Conexão perdida"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Verbinding verbroken"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bağlantı kesildi"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Соединение потеряно"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "接続が切断されました"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "连接已断开"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "연결 끊김"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "انقطع الاتصال"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "החיבור אבד"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "کنکشن منقطع ہو گیا"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "連線已中斷"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "連線已中斷"
+          }
+        }
+      }
+    },
     "Connection lost. The bot may still be working. Reconnect to check its current conversation." : { "localizations" : { "de" : { "stringUnit" : { "state" : "needs_review", "value" : "Verbindung unterbrochen. Der Bot arbeitet möglicherweise noch. Verbinde dich neu, um seine aktuelle Unterhaltung zu prüfen." } }, "es" : { "stringUnit" : { "state" : "needs_review", "value" : "Se perdió la conexión. Puede que el bot siga trabajando. Vuelve a conectarte para comprobar su conversación actual." } }, "fr" : { "stringUnit" : { "state" : "needs_review", "value" : "Connexion perdue. Le bot est peut-être encore au travail. Reconnectez-vous pour vérifier sa conversation en cours." } }, "it" : { "stringUnit" : { "state" : "needs_review", "value" : "Connessione persa. Il bot potrebbe essere ancora al lavoro. Riconnettiti per controllare la sua conversazione attuale." } }, "pl" : { "stringUnit" : { "state" : "needs_review", "value" : "Utracono połączenie. Bot może nadal pracować. Połącz się ponownie, aby sprawdzić jego bieżącą rozmowę." } }, "pt-BR" : { "stringUnit" : { "state" : "needs_review", "value" : "Conexão perdida. O bot pode ainda estar trabalhando. Reconecte-se para verificar a conversa atual dele." } }, "nl" : { "stringUnit" : { "state" : "needs_review", "value" : "Verbinding verbroken. De bot is mogelijk nog bezig. Maak opnieuw verbinding om het huidige gesprek te controleren." } }, "tr" : { "stringUnit" : { "state" : "needs_review", "value" : "Bağlantı kesildi. Bot hâlâ çalışıyor olabilir. Geçerli konuşmasını kontrol etmek için yeniden bağlanın." } }, "ru" : { "stringUnit" : { "state" : "needs_review", "value" : "Соединение потеряно. Бот может ещё работать. Переподключитесь, чтобы проверить его текущий разговор." } }, "ja" : { "stringUnit" : { "state" : "needs_review", "value" : "接続が切れました。ボットはまだ作業中の可能性があります。再接続して現在の会話を確認してください。" } }, "zh-Hans" : { "stringUnit" : { "state" : "needs_review", "value" : "连接已断开。机器人可能仍在工作。请重新连接以查看其当前对话。" } }, "ko" : { "stringUnit" : { "state" : "needs_review", "value" : "연결이 끊겼습니다. 봇이 아직 작업 중일 수 있습니다. 다시 연결하여 현재 대화를 확인하세요." } }, "ar" : { "stringUnit" : { "state" : "needs_review", "value" : "انقطع الاتصال. قد يكون الروبوت لا يزال يعمل. أعد الاتصال للتحقق من محادثته الحالية." } }, "he" : { "stringUnit" : { "state" : "needs_review", "value" : "החיבור אבד. ייתכן שהבוט עדיין עובד. יש להתחבר מחדש כדי לבדוק את השיחה הנוכחית שלו." } }, "ur" : { "stringUnit" : { "state" : "needs_review", "value" : "کنکشن ٹوٹ گیا۔ ممکن ہے بوٹ اب بھی کام کر رہا ہو۔ اس کی موجودہ گفتگو دیکھنے کے لیے دوبارہ جڑیں۔" } }, "zh-Hant" : { "stringUnit" : { "state" : "needs_review", "value" : "連線已中斷。機器人可能仍在工作。請重新連線以查看其目前的對話。" } }, "zh-HK" : { "stringUnit" : { "state" : "needs_review", "value" : "連線已中斷。機械人可能仍在工作。請重新連線以查看其當前對話。" } } } },
     "Connection name · optional" : {"localizations":{"de":{"stringUnit":{"state":"needs_review","value":"Verbindungsname · optional"}},"es":{"stringUnit":{"state":"needs_review","value":"Nombre de conexión · opcional"}},"fr":{"stringUnit":{"state":"needs_review","value":"Nom de connexion · facultatif"}},"it":{"stringUnit":{"state":"needs_review","value":"Nome connessione · facoltativo"}},"pl":{"stringUnit":{"state":"needs_review","value":"Nazwa połączenia · opcjonalnie"}},"pt-BR":{"stringUnit":{"state":"needs_review","value":"Nome da conexão · opcional"}},"nl":{"stringUnit":{"state":"needs_review","value":"Verbindingsnaam · optioneel"}},"tr":{"stringUnit":{"state":"needs_review","value":"Bağlantı adı · isteğe bağlı"}},"ru":{"stringUnit":{"state":"needs_review","value":"Имя подключения · необязательно"}},"ja":{"stringUnit":{"state":"needs_review","value":"接続名 · 任意"}},"zh-Hans":{"stringUnit":{"state":"needs_review","value":"连接名称 · 可选"}},"ko":{"stringUnit":{"state":"needs_review","value":"연결 이름 · 선택 사항"}},"ar":{"stringUnit":{"state":"needs_review","value":"اسم الاتصال · اختياري"}},"he":{"stringUnit":{"state":"needs_review","value":"שם החיבור · לא חובה"}},"ur":{"stringUnit":{"state":"needs_review","value":"کنکشن کا نام · اختیاری"}},"zh-Hant":{"stringUnit":{"state":"needs_review","value":"連線名稱 · 選填"}},"zh-HK":{"stringUnit":{"state":"needs_review","value":"連線名稱 · 選填"}}}},
     "Connection ok. Already signed in by this server." : {
@@ -43415,6 +43629,113 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "請在那裡繼續你的聊天。在這裡也傳送可能會使對話分成兩處。"
+          }
+        }
+      }
+    },
+    "Control" : {
+      "comment" : "Per-chat Hermes host shell. Keyboard names refer to terminal keys.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Steuerung"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Control"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Contrôle"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Controllo"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Control"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Control"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Control"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Control"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Control"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "コントロール"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "控制键"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "컨트롤"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تحكم"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Control"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "کنٹرول"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Control 鍵"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Control 鍵"
           }
         }
       }
@@ -57057,6 +57378,113 @@
         }
       }
     },
+    "Down" : {
+      "comment" : "Per-chat Hermes host shell. Keyboard names refer to terminal keys.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Abwärts"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Abajo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bas"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Giù"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "W dół"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Baixo"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Omlaag"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aşağı"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Вниз"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "下"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "下"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "아래"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "أسفل"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "למטה"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "نیچے"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "下"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "下"
+          }
+        }
+      }
+    },
     "Download %@" : { "localizations" : { "de" : { "stringUnit" : { "state" : "needs_review", "value" : "%@ herunterladen" } }, "es" : { "stringUnit" : { "state" : "needs_review", "value" : "Descargar %@" } }, "fr" : { "stringUnit" : { "state" : "needs_review", "value" : "Télécharger %@" } }, "it" : { "stringUnit" : { "state" : "needs_review", "value" : "Scarica %@" } }, "pl" : { "stringUnit" : { "state" : "needs_review", "value" : "Pobierz %@" } }, "pt-BR" : { "stringUnit" : { "state" : "needs_review", "value" : "Baixar %@" } }, "nl" : { "stringUnit" : { "state" : "needs_review", "value" : "%@ downloaden" } }, "tr" : { "stringUnit" : { "state" : "needs_review", "value" : "İndir: %@" } }, "ru" : { "stringUnit" : { "state" : "needs_review", "value" : "Скачать %@" } }, "ja" : { "stringUnit" : { "state" : "needs_review", "value" : "%@をダウンロード" } }, "zh-Hans" : { "stringUnit" : { "state" : "needs_review", "value" : "下载 %@" } }, "ko" : { "stringUnit" : { "state" : "needs_review", "value" : "%@ 다운로드" } }, "ar" : { "stringUnit" : { "state" : "needs_review", "value" : "تنزيل %@" } }, "he" : { "stringUnit" : { "state" : "needs_review", "value" : "הורדת %@" } }, "ur" : { "stringUnit" : { "state" : "needs_review", "value" : "%@ ڈاؤن لوڈ کریں" } }, "zh-Hant" : { "stringUnit" : { "state" : "needs_review", "value" : "下載 %@" } }, "zh-HK" : { "stringUnit" : { "state" : "needs_review", "value" : "下載 %@" } } } },
     "Download Failed" : { "localizations" : { "de" : { "stringUnit" : { "state" : "needs_review", "value" : "Download fehlgeschlagen" } }, "es" : { "stringUnit" : { "state" : "needs_review", "value" : "Error de descarga" } }, "fr" : { "stringUnit" : { "state" : "needs_review", "value" : "Échec du téléchargement" } }, "it" : { "stringUnit" : { "state" : "needs_review", "value" : "Download non riuscito" } }, "pl" : { "stringUnit" : { "state" : "needs_review", "value" : "Pobieranie nie powiodło się" } }, "pt-BR" : { "stringUnit" : { "state" : "needs_review", "value" : "Falha no download" } }, "nl" : { "stringUnit" : { "state" : "needs_review", "value" : "Downloaden mislukt" } }, "tr" : { "stringUnit" : { "state" : "needs_review", "value" : "İndirme Başarısız" } }, "ru" : { "stringUnit" : { "state" : "needs_review", "value" : "Не удалось скачать" } }, "ja" : { "stringUnit" : { "state" : "needs_review", "value" : "ダウンロードに失敗しました" } }, "zh-Hans" : { "stringUnit" : { "state" : "needs_review", "value" : "下载失败" } }, "ko" : { "stringUnit" : { "state" : "needs_review", "value" : "다운로드 실패" } }, "ar" : { "stringUnit" : { "state" : "needs_review", "value" : "فشل التنزيل" } }, "he" : { "stringUnit" : { "state" : "needs_review", "value" : "ההורדה נכשלה" } }, "ur" : { "stringUnit" : { "state" : "needs_review", "value" : "ڈاؤن لوڈ ناکام" } }, "zh-Hant" : { "stringUnit" : { "state" : "needs_review", "value" : "下載失敗" } }, "zh-HK" : { "stringUnit" : { "state" : "needs_review", "value" : "下載失敗" } } } },
     "Drafts" : {
@@ -59783,6 +60211,113 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "錯誤 %lld"
+          }
+        }
+      }
+    },
+    "Escape" : {
+      "comment" : "Per-chat Hermes host shell. Keyboard names refer to terminal keys.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Escape"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Escape"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Échap"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Escape"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Escape"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Escape"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Escape"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Escape"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Escape"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "エスケープ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "退出键"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "이스케이프"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "إفلات"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Escape"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ایسکیپ"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Escape 鍵"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Escape 鍵"
           }
         }
       }
@@ -73711,6 +74246,113 @@
         }
       }
     },
+    "Keyboard" : {
+      "comment" : "Per-chat Hermes host shell. Keyboard names refer to terminal keys.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tastatur"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Teclado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Clavier"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tastiera"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Klawiatura"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Teclado"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Toetsenbord"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Klavye"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Клавиатура"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "キーボード"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "键盘"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "키보드"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "لوحة المفاتيح"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "מקלדת"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "کی بورڈ"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "鍵盤"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "鍵盤"
+          }
+        }
+      }
+    },
     "Last" : {
       "localizations" : {
         "ar" : {
@@ -75235,6 +75877,113 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "若將模型保留為伺服器預設，伺服器會使用所選設定檔的模型。"
+          }
+        }
+      }
+    },
+    "Left" : {
+      "comment" : "Per-chat Hermes host shell. Keyboard names refer to terminal keys.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Links"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Izquierda"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gauche"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sinistra"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "W lewo"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Esquerda"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Links"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sol"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Влево"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "左"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "左"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "왼쪽"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "يسار"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "שמאלה"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "بائیں"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "左"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "左"
           }
         }
       }
@@ -117451,6 +118200,113 @@
         }
       }
     },
+    "Right" : {
+      "comment" : "Per-chat Hermes host shell. Keyboard names refer to terminal keys.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rechts"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Derecha"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Droite"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Destra"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "W prawo"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Direita"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rechts"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sağ"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Вправо"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "右"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "右"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "오른쪽"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "يمين"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ימינה"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "دائیں"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "右"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "右"
+          }
+        }
+      }
+    },
     "Right-to-Left Chat Layout" : {
       "localizations" : {
         "ar" : {
@@ -128434,6 +129290,220 @@
     },
     "Setup" : { "localizations" : { "de" : { "stringUnit" : { "state" : "needs_review", "value" : "Einrichtung" } }, "es" : { "stringUnit" : { "state" : "needs_review", "value" : "Configuración" } }, "fr" : { "stringUnit" : { "state" : "needs_review", "value" : "Configuration" } }, "it" : { "stringUnit" : { "state" : "needs_review", "value" : "Configurazione" } }, "pl" : { "stringUnit" : { "state" : "needs_review", "value" : "Konfiguracja" } }, "pt-BR" : { "stringUnit" : { "state" : "needs_review", "value" : "Configuração" } }, "nl" : { "stringUnit" : { "state" : "needs_review", "value" : "Instellen" } }, "tr" : { "stringUnit" : { "state" : "needs_review", "value" : "Kurulum" } }, "ru" : { "stringUnit" : { "state" : "needs_review", "value" : "Настройка" } }, "ja" : { "stringUnit" : { "state" : "needs_review", "value" : "セットアップ" } }, "zh-Hans" : { "stringUnit" : { "state" : "needs_review", "value" : "设置" } }, "ko" : { "stringUnit" : { "state" : "needs_review", "value" : "설정" } }, "ar" : { "stringUnit" : { "state" : "needs_review", "value" : "الإعداد" } }, "he" : { "stringUnit" : { "state" : "needs_review", "value" : "הגדרה" } }, "ur" : { "stringUnit" : { "state" : "needs_review", "value" : "سیٹ اپ" } }, "zh-Hant" : { "stringUnit" : { "state" : "needs_review", "value" : "設定" } }, "zh-HK" : { "stringUnit" : { "state" : "needs_review", "value" : "設定" } } } },
     "Share %@" : { "localizations" : { "de" : { "stringUnit" : { "state" : "needs_review", "value" : "%@ teilen" } }, "es" : { "stringUnit" : { "state" : "needs_review", "value" : "Compartir %@" } }, "fr" : { "stringUnit" : { "state" : "needs_review", "value" : "Partager %@" } }, "it" : { "stringUnit" : { "state" : "needs_review", "value" : "Condividi %@" } }, "pl" : { "stringUnit" : { "state" : "needs_review", "value" : "Udostępnij %@" } }, "pt-BR" : { "stringUnit" : { "state" : "needs_review", "value" : "Compartilhar %@" } }, "nl" : { "stringUnit" : { "state" : "needs_review", "value" : "%@ delen" } }, "tr" : { "stringUnit" : { "state" : "needs_review", "value" : "Paylaş: %@" } }, "ru" : { "stringUnit" : { "state" : "needs_review", "value" : "Поделиться: %@" } }, "ja" : { "stringUnit" : { "state" : "needs_review", "value" : "%@を共有" } }, "zh-Hans" : { "stringUnit" : { "state" : "needs_review", "value" : "共享 %@" } }, "ko" : { "stringUnit" : { "state" : "needs_review", "value" : "%@ 공유" } }, "ar" : { "stringUnit" : { "state" : "needs_review", "value" : "مشاركة %@" } }, "he" : { "stringUnit" : { "state" : "needs_review", "value" : "שיתוף %@" } }, "ur" : { "stringUnit" : { "state" : "needs_review", "value" : "%@ شیئر کریں" } }, "zh-Hant" : { "stringUnit" : { "state" : "needs_review", "value" : "分享 %@" } }, "zh-HK" : { "stringUnit" : { "state" : "needs_review", "value" : "分享 %@" } } } },
+    "Shell exited" : {
+      "comment" : "Per-chat Hermes host shell. Keyboard names refer to terminal keys.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Shell beendet"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "La shell ha finalizado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Shell terminé"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Shell terminata"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Powłoka zakończona"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Shell encerrado"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Shell beëindigd"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kabuk sona erdi"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Оболочка завершена"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "シェルが終了しました"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Shell 已退出"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "셸이 종료되었습니다"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "انتهت جلسة الصدفة"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "המעטפת הסתיימה"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "شیل بند ہو گئی"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Shell 已結束"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Shell 已結束"
+          }
+        }
+      }
+    },
+    "Shell opened elsewhere" : {
+      "comment" : "Per-chat Hermes host shell. Keyboard names refer to terminal keys.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Shell anderswo geöffnet"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Shell abierta en otro lugar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Shell ouvert ailleurs"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Shell aperta altrove"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Powłoka otwarta gdzie indziej"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Shell aberto em outro lugar"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Shell elders geopend"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kabuk başka yerde açıldı"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Оболочка открыта в другом месте"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "シェルが別の場所で開かれました"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Shell 已在其他位置打开"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "다른 곳에서 셸을 열었습니다"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "فُتحت الصدفة في مكان آخر"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "המעטפת נפתחה במקום אחר"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "شیل کہیں اور کھولی گئی"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Shell 已在其他位置開啟"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Shell 已在其他位置開啟"
+          }
+        }
+      }
+    },
     "Short replies above the Bot Chat composer. A tap fills the draft." : { "localizations" : { "de" : { "stringUnit" : { "state" : "needs_review", "value" : "Kurze Antworten über dem Eingabefeld im Bot-Chat. Ein Tippen füllt den Entwurf." } }, "es" : { "stringUnit" : { "state" : "needs_review", "value" : "Respuestas cortas encima del editor de Bot Chat. Un toque rellena el borrador." } }, "fr" : { "stringUnit" : { "state" : "needs_review", "value" : "Réponses courtes au-dessus de la zone de saisie du Bot Chat. Un toucher remplit le brouillon." } }, "it" : { "stringUnit" : { "state" : "needs_review", "value" : "Risposte brevi sopra il compositore della Bot Chat. Un tocco compila la bozza." } }, "pl" : { "stringUnit" : { "state" : "needs_review", "value" : "Krótkie odpowiedzi nad edytorem Bot Chat. Stuknięcie wstawia tekst do wersji roboczej." } }, "pt-BR" : { "stringUnit" : { "state" : "needs_review", "value" : "Respostas curtas acima do compositor do Bot Chat. Um toque preenche o rascunho." } }, "nl" : { "stringUnit" : { "state" : "needs_review", "value" : "Korte antwoorden boven het invoerveld van de botchat. Een tik vult het concept." } }, "tr" : { "stringUnit" : { "state" : "needs_review", "value" : "Bot Chat yazma alanının üstünde kısa yanıtlar. Dokunmak taslağı doldurur." } }, "ru" : { "stringUnit" : { "state" : "needs_review", "value" : "Короткие ответы над полем ввода Bot Chat. Касание вставляет текст в черновик." } }, "ja" : { "stringUnit" : { "state" : "needs_review", "value" : "ボットチャットの入力欄の上に表示する短い返信。タップすると下書きに入力されます。" } }, "zh-Hans" : { "stringUnit" : { "state" : "needs_review", "value" : "显示在机器人聊天输入框上方的简短回复。轻点即可填入草稿。" } }, "ko" : { "stringUnit" : { "state" : "needs_review", "value" : "봇 채팅 입력창 위에 표시되는 짧은 답장입니다. 탭하면 초안에 입력됩니다." } }, "ar" : { "stringUnit" : { "state" : "needs_review", "value" : "ردود قصيرة فوق محرر الرسائل في Bot Chat. النقر يملأ المسودة." } }, "he" : { "stringUnit" : { "state" : "needs_review", "value" : "תשובות קצרות מעל תיבת הכתיבה ב‑Bot Chat. הקשה ממלאת את הטיוטה." } }, "ur" : { "stringUnit" : { "state" : "needs_review", "value" : "Bot Chat کمپوزر کے اوپر مختصر جوابات۔ ٹیپ کرنے سے ڈرافٹ بھر جاتا ہے۔" } }, "zh-Hant" : { "stringUnit" : { "state" : "needs_review", "value" : "顯示在機器人聊天輸入框上方的簡短回覆。點一下即可填入草稿。" } }, "zh-HK" : { "stringUnit" : { "state" : "needs_review", "value" : "顯示在機械人聊天輸入欄上方的簡短回覆。點一下即可填入草稿。" } } } },
     "Show All (%lld)" : {
       "localizations" : {
@@ -134571,6 +135641,113 @@
         }
       }
     },
+    "Start New Shell" : {
+      "comment" : "Per-chat Hermes host shell. Keyboard names refer to terminal keys.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Neue Shell starten"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Iniciar nueva shell"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Démarrer un nouveau shell"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Avvia nuova shell"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Uruchom nową powłokę"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Iniciar novo shell"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nieuwe shell starten"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Yeni kabuk başlat"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Запустить новую оболочку"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "新しいシェルを開始"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "启动新 Shell"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "새 셸 시작"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "بدء صدفة جديدة"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "הפעלת מעטפת חדשה"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "نئی شیل شروع کریں"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "啟動新 Shell"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "啟動新 Shell"
+          }
+        }
+      }
+    },
     "Start a new chat with the same model and folder" : { "localizations" : { "de" : { "stringUnit" : { "state" : "needs_review", "value" : "Neuen Chat mit demselben Modell und Ordner starten" } }, "es" : { "stringUnit" : { "state" : "needs_review", "value" : "Iniciar un chat nuevo con el mismo modelo y carpeta" } }, "fr" : { "stringUnit" : { "state" : "needs_review", "value" : "Démarrer un nouveau chat avec le même modèle et le même dossier" } }, "it" : { "stringUnit" : { "state" : "needs_review", "value" : "Avvia una nuova chat con lo stesso modello e la stessa cartella" } }, "pl" : { "stringUnit" : { "state" : "needs_review", "value" : "Rozpocznij nowy czat z tym samym modelem i folderem" } }, "pt-BR" : { "stringUnit" : { "state" : "needs_review", "value" : "Iniciar um novo chat com o mesmo modelo e a mesma pasta" } }, "nl" : { "stringUnit" : { "state" : "needs_review", "value" : "Nieuwe chat starten met hetzelfde model en dezelfde map" } }, "tr" : { "stringUnit" : { "state" : "needs_review", "value" : "Aynı model ve klasörle yeni bir sohbet başlat" } }, "ru" : { "stringUnit" : { "state" : "needs_review", "value" : "Начать новый чат с той же моделью и папкой" } }, "ja" : { "stringUnit" : { "state" : "needs_review", "value" : "同じモデルとフォルダで新しいチャットを開始" } }, "zh-Hans" : { "stringUnit" : { "state" : "needs_review", "value" : "使用相同的模型和文件夹开始新聊天" } }, "ko" : { "stringUnit" : { "state" : "needs_review", "value" : "같은 모델과 폴더로 새 채팅 시작" } }, "ar" : { "stringUnit" : { "state" : "needs_review", "value" : "بدء دردشة جديدة بالنموذج والمجلد نفسيهما" } }, "he" : { "stringUnit" : { "state" : "needs_review", "value" : "התחלת צ׳אט חדש עם אותו מודל ואותה תיקייה" } }, "ur" : { "stringUnit" : { "state" : "needs_review", "value" : "اسی ماڈل اور فولڈر کے ساتھ نئی چیٹ شروع کریں" } }, "zh-Hant" : { "stringUnit" : { "state" : "needs_review", "value" : "使用相同的模型和資料夾開始新聊天" } }, "zh-HK" : { "stringUnit" : { "state" : "needs_review", "value" : "使用相同的模型和資料夾開始新聊天" } } } },
     "Start a new session" : {
       "localizations" : {
@@ -138631,6 +139808,113 @@
         }
       }
     },
+    "Tab" : {
+      "comment" : "Per-chat Hermes host shell. Keyboard names refer to terminal keys.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tabulator"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tabulador"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tabulation"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tabulazione"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tabulator"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tabulação"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tab"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sekme"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Табуляция"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "タブ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "制表键"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "탭"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "جدولة"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tab"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ٹیب"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tab 鍵"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tab 鍵"
+          }
+        }
+      }
+    },
     "Tails load only when requested and are limited to 16 KB." : {"localizations":{"de":{"stringUnit":{"state":"needs_review","value":"Ausgaben werden nur auf Anfrage geladen und sind auf 16 KB begrenzt."}},"es":{"stringUnit":{"state":"needs_review","value":"Las salidas se cargan solo cuando se solicitan y están limitadas a 16 KB."}},"fr":{"stringUnit":{"state":"needs_review","value":"Les sorties ne sont chargées qu’à la demande et sont limitées à 16 Ko."}},"it":{"stringUnit":{"state":"needs_review","value":"Gli output vengono caricati solo su richiesta e sono limitati a 16 KB."}},"pl":{"stringUnit":{"state":"needs_review","value":"Dane wyjściowe są ładowane tylko na żądanie i ograniczone do 16 KB."}},"pt-BR":{"stringUnit":{"state":"needs_review","value":"As saídas são carregadas somente quando solicitadas e limitadas a 16 KB."}},"nl":{"stringUnit":{"state":"needs_review","value":"Uitvoer wordt alleen op verzoek geladen en is beperkt tot 16 KB."}},"tr":{"stringUnit":{"state":"needs_review","value":"Çıktılar yalnızca istendiğinde yüklenir ve 16 KB ile sınırlıdır."}},"ru":{"stringUnit":{"state":"needs_review","value":"Вывод загружается только по запросу и ограничен 16 КБ."}},"ja":{"stringUnit":{"state":"needs_review","value":"出力は要求時にのみ読み込まれ、16 KB に制限されます。"}},"zh-Hans":{"stringUnit":{"state":"needs_review","value":"仅在请求时加载输出，最多显示 16 KB。"}},"ko":{"stringUnit":{"state":"needs_review","value":"출력은 요청할 때만 불러오며 16KB로 제한됩니다."}},"ar":{"stringUnit":{"state":"needs_review","value":"لا يتم تحميل المخرجات إلا عند طلبها، وتقتصر على 16 كيلوبايت."}},"he":{"stringUnit":{"state":"needs_review","value":"הפלט נטען רק לפי בקשה ומוגבל ל‑16 KB."}},"ur":{"stringUnit":{"state":"needs_review","value":"آؤٹ پٹ صرف درخواست پر لوڈ ہوتا ہے اور 16 KB تک محدود ہے۔"}},"zh-Hant":{"stringUnit":{"state":"needs_review","value":"僅在要求時載入輸出，最多顯示 16 KB。"}},"zh-HK":{"stringUnit":{"state":"needs_review","value":"只在要求時載入輸出，最多顯示 16 KB。"}}}},
     "Tailscale, NetBird…" : { "localizations" : { "de" : { "stringUnit" : { "state" : "needs_review", "value" : "Tailscale, NetBird…" } }, "es" : { "stringUnit" : { "state" : "needs_review", "value" : "Tailscale, NetBird…" } }, "fr" : { "stringUnit" : { "state" : "needs_review", "value" : "Tailscale, NetBird…" } }, "it" : { "stringUnit" : { "state" : "needs_review", "value" : "Tailscale, NetBird…" } }, "pl" : { "stringUnit" : { "state" : "needs_review", "value" : "Tailscale, NetBird…" } }, "pt-BR" : { "stringUnit" : { "state" : "needs_review", "value" : "Tailscale, NetBird…" } }, "nl" : { "stringUnit" : { "state" : "needs_review", "value" : "Tailscale, NetBird…" } }, "tr" : { "stringUnit" : { "state" : "needs_review", "value" : "Tailscale, NetBird…" } }, "ru" : { "stringUnit" : { "state" : "needs_review", "value" : "Tailscale, NetBird…" } }, "ja" : { "stringUnit" : { "state" : "needs_review", "value" : "Tailscale、NetBird…" } }, "zh-Hans" : { "stringUnit" : { "state" : "needs_review", "value" : "Tailscale、NetBird…" } }, "ko" : { "stringUnit" : { "state" : "needs_review", "value" : "Tailscale, NetBird…" } }, "ar" : { "stringUnit" : { "state" : "needs_review", "value" : "Tailscale، NetBird…" } }, "he" : { "stringUnit" : { "state" : "needs_review", "value" : "Tailscale, NetBird…" } }, "ur" : { "stringUnit" : { "state" : "needs_review", "value" : "Tailscale، NetBird…" } }, "zh-Hant" : { "stringUnit" : { "state" : "needs_review", "value" : "Tailscale、NetBird…" } }, "zh-HK" : { "stringUnit" : { "state" : "needs_review", "value" : "Tailscale、NetBird…" } } } },
     "Take photo" : { "localizations" : { "de" : { "stringUnit" : { "state" : "needs_review", "value" : "Foto aufnehmen" } }, "es" : { "stringUnit" : { "state" : "needs_review", "value" : "Hacer foto" } }, "fr" : { "stringUnit" : { "state" : "needs_review", "value" : "Prendre une photo" } }, "it" : { "stringUnit" : { "state" : "needs_review", "value" : "Scatta foto" } }, "pl" : { "stringUnit" : { "state" : "needs_review", "value" : "Zrób zdjęcie" } }, "pt-BR" : { "stringUnit" : { "state" : "needs_review", "value" : "Tirar foto" } }, "nl" : { "stringUnit" : { "state" : "needs_review", "value" : "Foto maken" } }, "tr" : { "stringUnit" : { "state" : "needs_review", "value" : "Fotoğraf çek" } }, "ru" : { "stringUnit" : { "state" : "needs_review", "value" : "Сделать фото" } }, "ja" : { "stringUnit" : { "state" : "needs_review", "value" : "写真を撮る" } }, "zh-Hans" : { "stringUnit" : { "state" : "needs_review", "value" : "拍照" } }, "ko" : { "stringUnit" : { "state" : "needs_review", "value" : "사진 찍기" } }, "ar" : { "stringUnit" : { "state" : "needs_review", "value" : "التقاط صورة" } }, "he" : { "stringUnit" : { "state" : "needs_review", "value" : "צילום תמונה" } }, "ur" : { "stringUnit" : { "state" : "needs_review", "value" : "تصویر لیں" } }, "zh-Hant" : { "stringUnit" : { "state" : "needs_review", "value" : "拍照" } }, "zh-HK" : { "stringUnit" : { "state" : "needs_review", "value" : "拍照" } } } },
@@ -139380,6 +140664,220 @@
     "Teal" : { "localizations" : { "de" : { "stringUnit" : { "state" : "needs_review", "value" : "Türkis" } }, "es" : { "stringUnit" : { "state" : "needs_review", "value" : "Verde azulado" } }, "fr" : { "stringUnit" : { "state" : "needs_review", "value" : "Sarcelle" } }, "it" : { "stringUnit" : { "state" : "needs_review", "value" : "Verde acqua" } }, "pl" : { "stringUnit" : { "state" : "needs_review", "value" : "Morski" } }, "pt-BR" : { "stringUnit" : { "state" : "needs_review", "value" : "Verde-azulado" } }, "nl" : { "stringUnit" : { "state" : "needs_review", "value" : "Blauwgroen" } }, "tr" : { "stringUnit" : { "state" : "needs_review", "value" : "Camgöbeği" } }, "ru" : { "stringUnit" : { "state" : "needs_review", "value" : "Бирюзовый" } }, "ja" : { "stringUnit" : { "state" : "needs_review", "value" : "青緑" } }, "zh-Hans" : { "stringUnit" : { "state" : "needs_review", "value" : "蓝绿色" } }, "ko" : { "stringUnit" : { "state" : "needs_review", "value" : "청록색" } }, "ar" : { "stringUnit" : { "state" : "needs_review", "value" : "أزرق مخضر" } }, "he" : { "stringUnit" : { "state" : "needs_review", "value" : "טורקיז" } }, "ur" : { "stringUnit" : { "state" : "needs_review", "value" : "نیلا سبز" } }, "zh-Hant" : { "stringUnit" : { "state" : "needs_review", "value" : "藍綠色" } }, "zh-HK" : { "stringUnit" : { "state" : "needs_review", "value" : "藍綠色" } } } },
     "Tenant" : { "localizations" : { "de" : { "stringUnit" : { "state" : "needs_review", "value" : "Mandant" } }, "es" : { "stringUnit" : { "state" : "needs_review", "value" : "Tenant" } }, "fr" : { "stringUnit" : { "state" : "needs_review", "value" : "Locataire" } }, "it" : { "stringUnit" : { "state" : "needs_review", "value" : "Tenant" } }, "pl" : { "stringUnit" : { "state" : "needs_review", "value" : "Dzierżawca" } }, "pt-BR" : { "stringUnit" : { "state" : "needs_review", "value" : "Tenant" } }, "nl" : { "stringUnit" : { "state" : "needs_review", "value" : "Tenant" } }, "tr" : { "stringUnit" : { "state" : "needs_review", "value" : "Kiracı" } }, "ru" : { "stringUnit" : { "state" : "needs_review", "value" : "Арендатор" } }, "ja" : { "stringUnit" : { "state" : "needs_review", "value" : "テナント" } }, "zh-Hans" : { "stringUnit" : { "state" : "needs_review", "value" : "租户" } }, "ko" : { "stringUnit" : { "state" : "needs_review", "value" : "테넌트" } }, "ar" : { "stringUnit" : { "state" : "needs_review", "value" : "المستأجر" } }, "he" : { "stringUnit" : { "state" : "needs_review", "value" : "דייר" } }, "ur" : { "stringUnit" : { "state" : "needs_review", "value" : "ٹیننٹ" } }, "zh-Hant" : { "stringUnit" : { "state" : "needs_review", "value" : "租戶" } }, "zh-HK" : { "stringUnit" : { "state" : "needs_review", "value" : "租戶" } } } },
     "Tenant is set when the Card is created and cannot be edited here." : { "localizations" : { "de" : { "stringUnit" : { "state" : "needs_review", "value" : "Der Mandant wird beim Erstellen der Karte festgelegt und kann hier nicht bearbeitet werden." } }, "es" : { "stringUnit" : { "state" : "needs_review", "value" : "El tenant se configura cuando se crea la tarjeta y no se puede editar aquí." } }, "fr" : { "stringUnit" : { "state" : "needs_review", "value" : "Le locataire est défini lors de la création de la carte et ne peut pas être modifié ici." } }, "it" : { "stringUnit" : { "state" : "needs_review", "value" : "Il tenant viene impostato al momento della creazione della scheda e non può essere modificato qui." } }, "pl" : { "stringUnit" : { "state" : "needs_review", "value" : "Dzierżawca jest ustawiany podczas tworzenia karty i nie można go tutaj edytować." } }, "pt-BR" : { "stringUnit" : { "state" : "needs_review", "value" : "O tenant é definido quando o Cartão é criado e não pode ser editado aqui." } }, "nl" : { "stringUnit" : { "state" : "needs_review", "value" : "De tenant wordt ingesteld wanneer de kaart wordt gemaakt en kan hier niet worden bewerkt." } }, "tr" : { "stringUnit" : { "state" : "needs_review", "value" : "Kiracı, Kart oluşturulduğunda ayarlanır ve burada düzenlenemez." } }, "ru" : { "stringUnit" : { "state" : "needs_review", "value" : "Арендатор задаётся при создании карты и не может быть изменён здесь." } }, "ja" : { "stringUnit" : { "state" : "needs_review", "value" : "テナントはカードの作成時に設定され、ここでは編集できません。" } }, "zh-Hans" : { "stringUnit" : { "state" : "needs_review", "value" : "租户是在创建卡片时设置的，无法在此处编辑。" } }, "ko" : { "stringUnit" : { "state" : "needs_review", "value" : "테넌트는 카드가 생성될 때 설정되며 여기에서 편집할 수 없습니다." } }, "ar" : { "stringUnit" : { "state" : "needs_review", "value" : "يتم تعيين المستأجر عند إنشاء البطاقة ولا يمكن تحريره هنا." } }, "he" : { "stringUnit" : { "state" : "needs_review", "value" : "הדייר מוגדר כאשר הכרטיס נוצר ולא ניתן לערוך אותו כאן." } }, "ur" : { "stringUnit" : { "state" : "needs_review", "value" : "ٹیننٹ اس وقت سیٹ ہوتا ہے جب کارڈ بن جاتا ہے اور یہاں اس میں ترمیم نہیں کی جا سکتی۔" } }, "zh-Hant" : { "stringUnit" : { "state" : "needs_review", "value" : "租戶是在創建卡片時設定的，無法在此處編輯。" } }, "zh-HK" : { "stringUnit" : { "state" : "needs_review", "value" : "租戶是在創建卡片時設定的，無法在此處編輯。" } } } },
+    "Terminal" : {
+      "comment" : "Per-chat Hermes host shell. Keyboard names refer to terminal keys.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Terminal"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Terminal"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Terminal"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Terminale"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Terminal"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Terminal"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Terminal"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Terminal"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Терминал"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ターミナル"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "终端"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "터미널"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "الطرفية"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "מסוף"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ٹرمینل"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "終端機"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "終端機"
+          }
+        }
+      }
+    },
+    "Terminal connection refused. Check your Hermes sign-in and host policy." : {
+      "comment" : "Per-chat Hermes host shell. Keyboard names refer to terminal keys.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Terminalverbindung abgelehnt. Prüfe deine Hermes-Anmeldung und die Host-Richtlinien."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Conexión al terminal rechazada. Comprueba tu acceso a Hermes y la política del host."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Connexion au terminal refusée. Vérifiez votre connexion à Hermes et la politique de l’hôte."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Connessione al terminale rifiutata. Controlla l’accesso a Hermes e i criteri dell’host."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odmowa połączenia z terminalem. Sprawdź logowanie do Hermes i zasady hosta."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Conexão com o terminal recusada. Verifique o acesso ao Hermes e a política do host."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Terminalverbinding geweigerd. Controleer je Hermes-aanmelding en het hostbeleid."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Terminal bağlantısı reddedildi. Hermes oturumunuzu ve sunucu politikasını kontrol edin."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Подключение к терминалу отклонено. Проверьте вход в Hermes и политику хоста."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ターミナルへの接続が拒否されました。Hermesのログインとホストのポリシーを確認してください。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "终端连接被拒绝。请检查 Hermes 登录状态和主机策略。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "터미널 연결이 거부되었습니다. Hermes 로그인과 호스트 정책을 확인하세요."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "رُفض اتصال الطرفية. تحقّق من تسجيل الدخول إلى Hermes وسياسة المضيف."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "החיבור למסוף נדחה. יש לבדוק את הכניסה ל-Hermes ואת מדיניות המארח."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ٹرمینل کنکشن مسترد ہو گیا۔ Hermes میں سائن اِن اور میزبان کی پالیسی چیک کریں۔"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "終端機連線遭拒。請檢查 Hermes 登入狀態與主機政策。"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "終端機連線被拒。請檢查 Hermes 登入狀態和主機政策。"
+          }
+        }
+      }
+    },
     "Terminal is not available in the mobile app." : {
       "localizations" : {
         "ar" : {
