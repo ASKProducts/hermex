@@ -592,6 +592,65 @@ import XCTest
         XCTAssertEqual(try BotConnectionStore(keychain: keychain).load(server: server)?.oauth?.refreshToken, "refresh-2")
     }
 
+    /// Move to Hermes's destination connection (#1265) saves the token it rotates, as the server's
+    /// own connection does, and closing it leaves that connection alone. The server's own
+    /// connection, still signed in meanwhile, refreshes next from the saved token, not the one it
+    /// held, which the host has retired.
+    func testAMoveSavesTheTokenItRotatesForTheServersOwnConnection() async throws {
+        let server = URL(string: "https://hermes.example")!
+        let keychain = InMemoryKeychainStore()
+        let store = BotConnectionStore(keychain: keychain)
+        try store.save(oauthRecord(refreshToken: "refresh-0"), server: server)
+        var sent: [String] = []
+        let connections = HermesConnections(configuration: { HermesHostFixture.configuration { request in
+            switch request.url?.path {
+            case "/auth/native/refresh":
+                let body = try? JSONDecoder().decode(BotJSON.self, from: apiTestBodyData(from: request) ?? Data())
+                sent.append(body?["refresh_token"].text ?? "")
+                return .json(200, .object(["access_token": .string("access-\(sent.count)"),
+                                           "refresh_token": .string("refresh-\(sent.count)")]))
+            case "/api/auth/me": return .json(200, .object(["provider": .string("nous"), "user_id": .string("u1")]))
+            case "/api/plugins/hermex-push/pairing":
+                // The host has since expired the own connection's first access token.
+                let expired = request.value(forHTTPHeaderField: "Authorization") == "Bearer access-1"
+                return expired ? .json(401, .object(["error": .string("session_expired")])) : nil
+            default: return nil
+            }
+        } }, keychain: keychain)
+        let own = connections.connection(for: try XCTUnwrap(store.load(server: server)), server: server)
+        try await own.signIn()
+
+        let move = MoveToHermesDestination.live(try XCTUnwrap(store.load(server: server)), connections: connections)
+        _ = try? await move.readPairing()
+        move.close()
+        XCTAssertEqual(try store.load(server: server)?.oauth?.refreshToken, "refresh-2", "The move's rotated token is saved")
+        XCTAssertFalse(own.isRetired)
+
+        _ = try await own.data(.pushPairing)
+        XCTAssertEqual(sent, ["refresh-0", "refresh-1", "refresh-2"])
+        XCTAssertEqual(try store.load(server: server)?.oauth?.refreshToken, "refresh-3")
+    }
+
+    /// A move's connection, made before the server's own is retired mid-refresh, still waits for
+    /// that refresh and sends the token it rotated to, not the one it spent (#1265).
+    func testAMovesConnectionWaitsForARefreshRetiredAfterItWasMade() async throws {
+        try await assertWaitsForARefreshRetiredLater { connections, saved, server in
+            let current = connections.connection(for: saved, server: server)
+            let own = connections.ownConnection(for: saved, server: server)
+            return (current, { connections.retire(server: server) }, own)
+        }
+    }
+
+    /// The server's own connection, made before a move's is closed mid-refresh, still waits for
+    /// that refresh and sends the token it rotated to (#1265).
+    func testTheServersOwnConnectionWaitsForAMovesRefreshClosedAfterItWasMade() async throws {
+        try await assertWaitsForARefreshRetiredLater { connections, saved, server in
+            let own = connections.ownConnection(for: saved, server: server)
+            let current = connections.connection(for: saved, server: server)
+            return (own, { connections.retire(own: own, server: server) }, current)
+        }
+    }
+
     /// A browser sign-in's own bearer is its `Authorization`, so no custom one is admitted there:
     /// Cloudflare Access takes its two-header form. A password connection keeps the JSON form.
     func testABrowserSignInRefusesACustomAuthorizationHeader() throws {
@@ -683,6 +742,51 @@ import XCTest
         var saved = BotConnection(id: record.id, name: "Host", address: record.address, username: "u1", password: "")
         saved.oauth = HermesOAuth(provider: "nous", userID: "u1", refreshToken: refreshToken)
         return saved
+    }
+
+    /// `make` returns two connections to one browser sign-in's server and how to retire the first.
+    /// The first signs in until its refresh reaches the host and is retired there; the second,
+    /// made before that, signs in before the reply arrives and must send the rotated token.
+    private func assertWaitsForARefreshRetiredLater(
+        _ make: (HermesConnections, BotConnection, URL) -> (refreshing: HermesConnection, retire: () -> Void, next: HermesConnection)
+    ) async throws {
+        let server = URL(string: "https://hermes.example")!
+        let keychain = InMemoryKeychainStore()
+        let saved = oauthRecord(refreshToken: "refresh-0")
+        try BotConnectionStore(keychain: keychain).save(saved, server: server)
+        let nextStarted = expectation(description: "the second connection's sign-in at the host")
+        var sent: [String] = [], statuses = 0
+        let connections = HermesConnections(configuration: { HermesHostFixture.configuration { request in
+            switch request.url?.path {
+            case "/api/status":
+                statuses += 1
+                if statuses == 2 { nextStarted.fulfill() }
+                return nil
+            case "/auth/native/refresh":
+                let body = try? JSONDecoder().decode(BotJSON.self, from: apiTestBodyData(from: request) ?? Data())
+                sent.append(body?["refresh_token"].text ?? "")
+                return sent.count == 1 ? .park : .json(200, .object(["access_token": .string("access-2"),
+                                                                     "refresh_token": .string("refresh-2")]))
+            case "/api/auth/me": return .json(200, .object(["provider": .string("nous"), "user_id": .string("u1")]))
+            default: return nil
+            }
+        } }, keychain: keychain)
+        let parked = expectation(description: "first refresh at the host")
+        HermesHostFixture.onPark = { parked.fulfill() }
+        let (refreshing, retire, next) = make(connections, saved, server)
+        let retired = Task { try await refreshing.signIn() }
+        await fulfillment(of: [parked], timeout: 2)
+
+        retire()
+        let signedIn = Task { try await next.signIn() }
+        await fulfillment(of: [nextStarted], timeout: 2)
+        HermesHostFixture.releaseParked(.json(200, .object(["access_token": .string("access-1"),
+                                                            "refresh_token": .string("refresh-1")])))
+        await assertStale("The retired sign-in") { try await retired.value }
+        try await signedIn.value
+
+        XCTAssertEqual(sent, ["refresh-0", "refresh-1"])
+        XCTAssertEqual(try BotConnectionStore(keychain: keychain).load(server: server)?.oauth?.refreshToken, "refresh-2")
     }
 
     private func assertStale(_ label: String, _ body: () async throws -> Void) async {
