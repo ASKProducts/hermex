@@ -711,6 +711,12 @@ fetch; a missing revision refetches on every roster load. Loading a roster drops
 every other connection's images, and removing or replacing a connection purges
 its entries, so equal Profile names on two hosts never share a picture. A
 malformed, oversized or missing asset leaves the row on its static shape fallback.
+Desktop uploads a still 160x160 PNG of its own drawing for any bot without an asset
+(`pushLocalAvatars`), sometimes from an older look than the host holds. Unless the
+look's `imageKind` is `photo`, the store treats that PNG as missing and keeps the
+answer for the revision, as Desktop does (`isBackfilledFacePng`), so the face stays
+drawn and animated. Hermex marks uploaded photos with `imageKind: photo`, so this rule
+keeps them visible. An unreadable asset is not remembered and is fetched again next load.
 Hermex renders Desktop's compatible classic shape and color metadata; blobatars,
 pets and other Desktop renderers remain Desktop-owned. Drawn faces blink on a
 sparse `BotBlinkSchedule` (shut and open entries every 3 to 5 s, phase seeded by
