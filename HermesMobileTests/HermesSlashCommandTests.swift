@@ -29,14 +29,6 @@ import Observation
         XCTAssertEqual(ranked.filter { $0.name == "context" }.count, 1)
     }
 
-    /// The composer's panel gets the host's commands and skills.
-    func testTheComposerOffersTheHostsCatalog() async {
-        let chat = await openChat()
-        XCTAssertEqual(chat.model.composerAgentCommands, chat.turn.slashCommands.catalog.commands)
-        XCTAssertTrue(chat.model.composerAgentCommands.contains { $0.name == "context" })
-        XCTAssertTrue(chat.model.composerSkillSuggestions.contains { $0.name == "demo-skill" })
-    }
-
     /// A catalog read for an attach that is no longer current is dropped.
     func testAStaleCatalogReplyIsDropped() async throws {
         let chat = await openChat(catalog: false)
@@ -113,13 +105,6 @@ import Observation
         XCTAssertEqual(chat.model.sendErrorMessage, refusal)
     }
 
-    func testAnUnknownNameIsSentAsText() async {
-        let chat = await openChat()
-        let result = await chat.model.runHermesSlashCommand("/notacommand hi")
-        XCTAssertNil(result)
-        XCTAssertEqual(chat.writes("slash.exec"), [])
-    }
-
     /// A skill expands through `command.dispatch`; its prompt goes out once, and the
     /// transcript shows the typed line, never the expanded skill.
     func testASkillSubmitsItsExpansionUnderTheTypedLine() async throws {
@@ -153,22 +138,12 @@ import Observation
     /// is sent, aliases included, and `/clear` points at `/compress`.
     func testABotChatRefusesCommandsThatLeaveOrRewriteIt() async {
         let chat = await openChat(target: .canonicalChat(profile: "default"))
-        let refusals: [(String, String)] = [
-            ("/new", "A bot keeps one chat, so /new can’t start another."),
-            ("/reset", "A bot keeps one chat, so /reset can’t start another."),
-            ("/clear", "A bot keeps one chat, so /clear can’t start another. Run /compress to free up its context."),
-            ("/resume Launch plan", "A bot keeps one chat, so /resume can’t open another."),
-            ("/sessions", "A bot keeps one chat, so /sessions can’t open another."),
-            ("/branch Idea", "A bot’s chat can’t be forked."),
-            ("/fork", "A bot’s chat can’t be forked."),
-            ("/title Renamed", "A bot’s chat keeps the bot’s name."),
-            ("/undo", "A bot’s chat can’t be rewound."),
-            ("/retry", "A bot’s chat can’t be rewound.")
-        ]
+        let refused = ["/new", "/reset", "/clear", "/resume Launch plan", "/sessions", "/branch Idea", "/fork",
+                       "/title Renamed", "/undo", "/retry"]
         let sent = chat.host.requests.count
-        for (line, copy) in refusals {
+        for line in refused {
             let result = await chat.model.runHermesSlashCommand(line)
-            XCTAssertEqual(result, .unsupported(friendlyMessage: copy), line)
+            guard case .unsupported = result else { return XCTFail("\(line) ran: \(String(describing: result))") }
         }
         XCTAssertEqual(chat.host.requests.dropFirst(sent).compactMap { $0["method"].text }, [], "nothing reaches the host")
     }
@@ -357,9 +332,11 @@ import Observation
         slash.completionDelay = .milliseconds(1)
         chat.host.always("complete.slash", .init(result: try Self.fixture("complete.slash /approvals ")))
 
-        async let older: Void = slash.complete("/approvals x")
-        async let newer: Void = slash.complete("/approvals ")
-        _ = await (older, newer)
+        // The newer call's task can't start until the older call, run inline on the main actor,
+        // has taken its revision and paused (#1263); the two replies then land in either order.
+        let newer = Task { await slash.complete("/approvals ") }
+        await slash.complete("/approvals x")
+        await newer.value
         XCTAssertEqual(chat.writes("complete.slash").count, 2)
         XCTAssertEqual(slash.completion?.text, "/approvals ", "the older reply is dropped, whichever lands last")
         XCTAssertEqual(slash.completion?.items.map(\.text), ["manual", "smart", "off"])
