@@ -67,6 +67,12 @@ struct SettingsView: View {
                 } label: {
                     SettingsLabel(title: String(localized: "Composer"), systemImage: "keyboard")
                 }
+                if authManager.kind(of: server) == .hermes {
+                    NavigationLink { VoiceSettingsView(server: server) } label: {
+                        Label("Voice", systemImage: "waveform")
+                    }
+                }
+
 
                 NavigationLink {
                     SettingsChatPage()

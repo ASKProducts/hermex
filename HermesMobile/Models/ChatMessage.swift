@@ -33,6 +33,18 @@ struct ChatMessage: Decodable, Equatable, Identifiable {
     let rowID: Int?
     /// A Hermes session's settled row that compaction archived (the REST row's `active` is 0,
     /// #1049). It shows above the compaction card, and the host can no longer cut there.
+    var wakeupMeta: [String: JSONValue]? = nil
+    var serverID: Int? = nil
+    var messageUID: String? = nil
+    var absorbedMessageUIDs: [String] = []
+    var toolCallUIDs: [String: [String]] = [:]
+    var toolCallUID: String? = nil
+    var reasoningContent: String? = nil
+    var reasoningDetailsText: String? = nil
+    var isPartial: Bool = false
+    var isError: Bool = false
+    var isRecovered: Bool = false
+    var isActiveTurnUser: Bool = false
     let isCompacted: Bool
 
     init(
@@ -90,6 +102,31 @@ struct ChatMessage: Decodable, Equatable, Identifiable {
         case turnDuration = "_turnDuration"
         case displayKindSnake = "display_kind"
         case underscoredTimestamp = "_ts"
+        case serverID = "id"
+        case messageUID = "messageUid"
+        case messageUIDSnake = "message_uid"
+        case messageUIDCamel = "messageUID"
+        case absorbedMessageUIDs = "absorbedMessageUids"
+        case absorbedMessageUIDsSnake = "absorbed_message_uids"
+        case absorbedMessageUIDsCamel = "absorbedMessageUIDs"
+        case toolCallUIDs = "toolCallUids"
+        case toolCallUIDsSnake = "tool_call_uids"
+        case toolCallUIDsCamel = "toolCallUIDs"
+        case toolCallUID = "toolCallUid"
+        case toolCallUIDSnake = "tool_call_uid"
+        case toolCallUIDCamel = "toolCallUID"
+        // Both spellings, as for `display_kind`: REST decodes snake_case,
+        // other paths use a plain decoder.
+        case reasoningContent
+        case reasoningContentSnake = "reasoning_content"
+        case reasoningDetails
+        case reasoningDetailsSnake = "reasoning_details"
+        case partial = "_partial"
+        case error = "_error"
+        case recovered = "_recovered"
+        // `_active_turn_user` under both decoders (see `wakeupMeta`).
+        case activeTurnUser = "_activeTurnUser"
+        case activeTurnUserSnake = "_active_turn_user"
     }
 
     init(from decoder: Decoder) throws {
@@ -116,8 +153,111 @@ struct ChatMessage: Decodable, Equatable, Identifiable {
         turnTps = container.decodeLossyDoubleIfPresent(forKey: .turnTps)
         turnDuration = container.decodeLossyDoubleIfPresent(forKey: .turnDuration)
         rowID = nil
+        serverID = try? container.decodeIfPresent(Int.self, forKey: .serverID)
+        messageUID = container.decodeLossyStringIfPresent(forKey: .messageUID)
+            ?? container.decodeLossyStringIfPresent(forKey: .messageUIDSnake)
+            ?? container.decodeLossyStringIfPresent(forKey: .messageUIDCamel)
+        absorbedMessageUIDs = Self.identityJSON(container, keys: [.absorbedMessageUIDs, .absorbedMessageUIDsSnake, .absorbedMessageUIDsCamel])?.arrayStrings ?? []
+        let calls = Self.identityJSON(container, keys: [.toolCallUIDs, .toolCallUIDsSnake, .toolCallUIDsCamel])
+        let declarations = toolCalls ?? []
+        if case .object(let values) = calls {
+            toolCallUIDs = Dictionary(uniqueKeysWithValues: values.map { providerID, value in
+                if case .string(let uid) = value {
+                    let count = declarations.filter { call in
+                        if case .object(let object) = call { return object["id"]?.stringValue == providerID }
+                        return false
+                    }.count
+                    return (providerID, Array(repeating: uid, count: max(1, count)))
+                }
+                return (providerID, value.arrayStrings ?? [])
+            })
+        }
+        toolCallUID = container.decodeLossyStringIfPresent(forKey: .toolCallUID)
+            ?? container.decodeLossyStringIfPresent(forKey: .toolCallUIDSnake)
+            ?? container.decodeLossyStringIfPresent(forKey: .toolCallUIDCamel)
+        reasoningContent = container.decodeLossyStringIfPresent(forKey: .reasoningContent)
+            ?? container.decodeLossyStringIfPresent(forKey: .reasoningContentSnake)
+        let details = (try? container.decodeIfPresent([JSONValue].self, forKey: .reasoningDetails))
+            ?? (try? container.decodeIfPresent([JSONValue].self, forKey: .reasoningDetailsSnake))
+        reasoningDetailsText = details.flatMap(Self.reasoningDetailsText(from:))
+        isPartial = container.decodeLossyBoolIfPresent(forKey: .partial) ?? false
+        isError = container.decodeLossyBoolIfPresent(forKey: .error) ?? false
+        isRecovered = container.decodeLossyBoolIfPresent(forKey: .recovered) ?? false
+        isActiveTurnUser = container.decodeLossyBoolIfPresent(forKey: .activeTurnUser)
+            ?? container.decodeLossyBoolIfPresent(forKey: .activeTurnUserSnake) ?? false
         isCompacted = false
     }
+
+    func with(
+        role: String?? = nil,
+        content: String?? = nil,
+        messageId: String?? = nil,
+        name: String?? = nil,
+        attachments: [MessageAttachment]?? = nil,
+        displayKind: String?? = nil,
+        displayMetadata: [String: JSONValue]?? = nil,
+        turnTps: Double?? = nil,
+        rowID: Int?? = nil,
+        isCompacted: Bool? = nil,
+        reasoningContent: String?? = nil
+    ) -> ChatMessage {
+        var copy = ChatMessage(
+            role: role ?? self.role,
+            content: content ?? self.content,
+            timestamp: timestamp,
+            messageId: messageId ?? self.messageId,
+            name: name ?? self.name,
+            toolCallId: toolCallId,
+            toolUseId: toolUseId,
+            toolCalls: toolCalls,
+            contentParts: contentParts,
+            reasoning: reasoning,
+            attachments: attachments ?? self.attachments,
+            displayKind: displayKind ?? self.displayKind,
+            displayMetadata: displayMetadata ?? self.displayMetadata,
+            turnTps: turnTps ?? self.turnTps,
+            turnDuration: turnDuration,
+            rowID: rowID ?? self.rowID,
+            isCompacted: isCompacted ?? self.isCompacted
+        )
+        copy.wakeupMeta = wakeupMeta
+        copy.serverID = serverID
+        copy.messageUID = messageUID
+        copy.absorbedMessageUIDs = absorbedMessageUIDs
+        copy.toolCallUIDs = toolCallUIDs
+        copy.toolCallUID = toolCallUID
+        copy.reasoningContent = reasoningContent ?? self.reasoningContent
+        copy.reasoningDetailsText = reasoningDetailsText
+        copy.isPartial = isPartial
+        copy.isError = isError
+        copy.isRecovered = isRecovered
+        copy.isActiveTurnUser = isActiveTurnUser
+        return copy
+    }
+
+
+    private static func reasoningDetailsText(from details: [JSONValue]) -> String? {
+        let parts = details.compactMap { detail -> String? in
+            guard case .object(let object) = detail else { return nil }
+            for key in ["thinking", "text"] {
+                if case .string(let value)? = object[key] { return value }
+            }
+            return nil
+        }
+        return parts.isEmpty ? nil : parts.joined()
+    }
+
+    /// REST SQLite JSON columns may be strings; RPC projections carry decoded values.
+    private static func identityJSON(_ container: KeyedDecodingContainer<CodingKeys>, keys: [CodingKeys]) -> JSONValue? {
+        for key in keys {
+            guard let value = try? container.decodeIfPresent(JSONValue.self, forKey: key) else { continue }
+            if case .string(let json) = value,
+               let decoded = try? JSONDecoder().decode(JSONValue.self, from: Data(json.utf8)) { return decoded }
+            return value
+        }
+        return nil
+    }
+
 
     // MARK: - Steering hints
 
@@ -513,6 +653,11 @@ extension KeyedDecodingContainer {
 }
 
 private extension JSONValue {
+    var arrayStrings: [String]? {
+        guard case .array(let values) = self else { return nil }
+        return values.compactMap { if case .string(let value) = $0 { return value } else { return nil } }
+    }
+
     var stringValue: String? {
         switch self {
         case .string(let value):

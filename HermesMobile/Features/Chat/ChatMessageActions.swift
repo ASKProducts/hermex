@@ -66,6 +66,7 @@ struct ChatMessageActionMenu: View {
     let onEdit: (MessageActionContext) -> Void
     let onFork: (MessageActionContext) -> Void
     let onCopy: (MessageActionContext) -> Void
+    var voiceCalls: VoiceCallController = .shared
 
     var body: some View {
         ForEach(items) { item in
@@ -90,7 +91,7 @@ struct ChatMessageActionMenu: View {
                 kind: .listen,
                 title: isListening ? String(localized: "Stop Listening") : String(localized: "Listen"),
                 systemImage: isListening ? "speaker.slash" : "speaker.wave.2",
-                isEnabled: true,
+                isEnabled: isListening || !voiceCalls.isRunning,
                 perform: { onToggleListening(context) }
             ))
         }

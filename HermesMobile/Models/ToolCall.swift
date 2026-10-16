@@ -226,6 +226,14 @@ struct ToolCallGroup: Identifiable, Equatable {
         return groups
     }
 
+    static func fallbackToolResult(_ message: ChatMessage) -> ToolCall? {
+        guard message.role == "tool", let rowID = message.rowID else { return nil }
+        let id = nonEmpty(message.toolCallId) ?? nonEmpty(message.toolUseId)
+            ?? "hermes-result:\(rowID)"
+        return ToolCall(id: id, name: message.name, preview: message.content, args: nil,
+                        isError: message.isError, isCompleted: true, startedAt: message.timestamp ?? 0)
+    }
+
     private static func groupsFromMessageMetadata(_ messages: [ChatMessage], messageOffset: Int?) -> [ToolCallGroup] {
         let resultsByToolID = toolResultSnippetsByID(from: messages)
         var groups: [ToolCallGroup] = []

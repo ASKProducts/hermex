@@ -433,6 +433,15 @@ import OSLog
     /// Whether `saved` is still this connection: the same UUID, address, account, password,
     /// headers and browser sign-in account, and no conflicting install id. A newly
     /// backfilled install id is taken.
+    func openSocket(_ request: URLRequest) -> any BotSocket {
+        let request = prepared(request)
+        if let socketFactory = gatewayOptions.socketFactory { return socketFactory(request) }
+        let task = session.webSocketTask(with: request)
+        task.maximumMessageSize = 16 * 1024 * 1024
+        task.resume()
+        return NativeBotSocket(task: task, label: "c\(serial) speak-stream")
+    }
+
     func adopt(_ saved: BotConnection) -> Bool {
         guard !isRetired, saved.id == connection.id, saved.address == connection.address,
               saved.username == connection.username, saved.password == connection.password,

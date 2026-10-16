@@ -83,6 +83,39 @@ import Foundation
     /// The hermex-push routes the dashboard has mounted (#1235). Any 404 is
     /// `HermexCompanionRoutes.closed`, whatever its body says: an older plugin, an unloaded one
     /// and no plugin at all each mean the feature isn't there. Other refusals throw.
+    struct SessionMessagesPage {
+        var messages: [ChatMessage]
+        /// True when the server returned a full page, so older rows may exist.
+        var hasOlder: Bool
+    }
+
+    func sessionMessages(sessionID: String, profile: String?, limit: Int = 200, offset: Int = 0) async throws -> SessionMessagesPage {
+        let selected: String
+        if let profile { selected = profile } else {
+            let active = try JSONDecoder().decode(BotJSON.self, from: try await http.data(.profilesActive))
+            guard let current = active["current"].text else { throw BotFailure.unsupported }
+            selected = current
+        }
+        let data = try await http.data(.sessionMessages(key: sessionID, profile: selected, offset: offset),
+                                       accepting: 200..<300)
+        return try Self.decodeSessionMessages(data, limit: limit)
+    }
+
+    /// The route's body: `{session_id, profile, messages[], pagination{limit, offset, order, returned}}`.
+    nonisolated static func decodeSessionMessages(_ data: Data, limit: Int) throws -> SessionMessagesPage {
+        struct Body: Decodable {
+            struct Pagination: Decodable { let returned: Int? }
+            let messages: [ChatMessage]
+            let pagination: Pagination?
+        }
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let body = try decoder.decode(Body.self, from: data)
+        let returned = body.pagination?.returned ?? body.messages.count
+        return SessionMessagesPage(messages: body.messages, hasOlder: returned >= limit && limit > 0)
+    }
+
+
     func companionRoutes() async throws -> HermexCompanionRoutes {
         let (data, status) = try await http.reply(.pluginCapabilities)
         if status == 404 { return .closed }

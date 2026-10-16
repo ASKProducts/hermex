@@ -182,6 +182,10 @@ enum HermesCall: Equatable, Sendable {
     case groupsDisband(roomID: String)
 
     /// The socket handshake's opt-in to server→client requests. `BotClient` sends it itself.
+    case voiceSessionCreate
+    case voiceSessionResume(sessionID: String, profile: String?)
+    case voicePromptSubmit(sessionID: String, text: String, interrupted: Bool)
+    case voiceLivePromptSubmit(sessionID: String, text: String, voiceContext: String)
     case clientCapabilities
 
     /// A new avatar as a base64 data URL, or its removal.
@@ -332,6 +336,9 @@ enum HermesCall: Equatable, Sendable {
         case .groupsCreate: return "groups.create"
         case .groupsRename: return "groups.rename"
         case .groupsDisband: return "groups.disband"
+        case .voiceSessionCreate: return "session.create"
+        case .voiceSessionResume: return "session.resume"
+        case .voicePromptSubmit, .voiceLivePromptSubmit: return "prompt.submit"
         case .clientCapabilities: return "client.capabilities"
         }
     }
@@ -485,6 +492,17 @@ enum HermesCall: Equatable, Sendable {
             return ["room_id": .string(room.roomID), "name": .string(room.name), "members": .array(room.members.map(\.json))]
         case .groupsRename(let roomID, let eventID, let name):
             return ["room_id": .string(roomID), "event_id": .string(eventID), "name": .string(name)]
+        case .voiceSessionCreate: return ["hidden": .bool(false)]
+        case .voiceSessionResume(let sessionID, let profile):
+            var params: [String: BotJSON] = ["session_id": .string(sessionID), "close_on_disconnect": .bool(false),
+                                             "omit_messages": .bool(true)]
+            if let profile { params["profile"] = .string(profile) }
+            return params
+        case .voicePromptSubmit(let sessionID, let text, let interrupted):
+            return ["session_id": .string(sessionID), "text": .string(text), "interrupted": .bool(interrupted)]
+        case .voiceLivePromptSubmit(let sessionID, let text, let voiceContext):
+            return ["session_id": .string(sessionID), "text": .string(text), "surface": .string("voice-live"),
+                    "voice_context": .string(voiceContext)]
         case .clientCapabilities: return ["server_requests": .bool(true)]
         }
     }
@@ -593,6 +611,11 @@ enum HermesCall: Equatable, Sendable {
         case .groupsCreate(let room): valid = room.isAdmissible
         case .groupsRename(let roomID, let eventID, let name):
             valid = BotRoomRPC.validID(roomID) && BotRoomRPC.validID(eventID) && BotRoomRPC.validName(name)
+        case .voiceSessionResume(let sessionID, let profile): valid = !sessionID.isEmpty && profile?.isEmpty != true
+        case .voicePromptSubmit(let sessionID, let text, _): valid = !sessionID.isEmpty && !text.isEmpty
+        case .voiceLivePromptSubmit(let sessionID, let text, let voiceContext):
+            valid = !sessionID.isEmpty && !text.isEmpty && voiceContext.count <= 6_000
+        case .voiceSessionCreate: valid = true
         case .profilesList, .profilesGetAsset, .sessionList, .sessionResume, .sessionEventsSince, .sessionActiveList,
              .promptSubmit, .sessionSteer, .sessionRedirect, .sessionInterrupt, .fileAttach, .approvalRespond,
              .requestAnswer, .clarifyLock, .modelOptions, .configuredModelOptions, .sessionCwdSet, .sessionControlRead,

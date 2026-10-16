@@ -1,6 +1,53 @@
 import Foundation
 import SwiftUI
 
+struct ComposerVoiceCallControl {
+    let availability: VoicePreferences.ContinueByVoice
+    let modes: VoiceStartAvailability
+    let scope: VoiceStartScope
+    let start: (VoiceMode) -> Void
+}
+
+enum ComposerVoiceCallState: Equatable {
+    case hidden, disabled, enabled
+    init(availability: VoicePreferences.ContinueByVoice, callIsRunning: Bool) {
+        switch availability {
+        case .hidden: self = .hidden
+        case .busy: self = .disabled
+        case .available: self = callIsRunning ? .disabled : .enabled
+        }
+    }
+}
+
+struct ComposerVoiceCallButton: View {
+    let control: ComposerVoiceCallControl
+    let callIsRunning: Bool
+    let color: Color
+
+    @ViewBuilder var body: some View {
+        let state = ComposerVoiceCallState(availability: control.availability, callIsRunning: callIsRunning)
+        if state != .hidden, control.modes.offersVoice(for: control.scope) {
+            Menu {
+                VoiceStartMenu(availability: control.modes, scope: control.scope, start: control.start)
+            } label: {
+                Image(systemName: "waveform")
+                    .font(.system(size: 18, weight: .regular))
+                    .frame(width: 44, height: 44)
+                    .foregroundStyle(color)
+            } primaryAction: {
+                control.start(VoicePreferences.defaultMode)
+            }
+            .buttonStyle(.plain)
+            .disabled(state == .disabled)
+            .opacity(state == .disabled ? 0.4 : 1)
+            .accessibilityLabel("Continue by voice")
+            .accessibilityValue(state == .disabled ? "Busy — try when it's done" : "")
+            .accessibilityIdentifier("chat-voice")
+        }
+    }
+}
+
+
 struct ComposerVoiceStatus: Equatable {
     let text: String
     let systemImage: String

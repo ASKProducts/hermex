@@ -104,6 +104,11 @@ enum HermesREST: Equatable, Sendable {
     static let sessionSearchMaximum = 100
 
     /// Public, so it reads the host before any credential is sent.
+    case voiceChoices
+    case saveVoiceChoice(mode: String, voice: String)
+    case voiceLiveStatus
+    case voiceLiveSession(sdp: String, history: [BotJSON], profile: String?)
+    case voiceSpeak(text: String)
     case status
     case login(username: String, password: String)
     /// Trades a browser sign-in's refresh token for a new access token and a rotated refresh
@@ -330,6 +335,14 @@ enum HermesREST: Equatable, Sendable {
 
     func request(base: URL) throws -> URLRequest {
         switch self {
+        case .voiceChoices: return Self.get(base.appendingPathComponent("api/plugins/hermex-push/voice/voices"))
+        case .saveVoiceChoice(let mode, let voice):
+            return try Self.send("PUT", base.appendingPathComponent("api/plugins/hermex-push/voice/voices"), ["mode": .string(mode), "voice": .string(voice)])
+        case .voiceLiveStatus: return Self.get(base.appendingPathComponent("api/audio/voice-live/status"))
+        case .voiceLiveSession(let sdp, let history, let profile):
+            return try Self.send("POST", try Self.url(base, "api/audio/voice-live/session", profile: profile),
+                                 ["sdp": .string(sdp), "history": .array(history)])
+        case .voiceSpeak(let text): return try Self.send("POST", BotVoiceRPC.speakURL(base: base), ["text": .string(text)])
         case .status: return Self.get(base.appendingPathComponent("api/status"))
         case .health: return Self.get(base.appendingPathComponent("api/health"))
         case .updateCheck(let force):

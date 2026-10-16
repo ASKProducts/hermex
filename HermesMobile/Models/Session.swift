@@ -577,6 +577,13 @@ extension SessionSummary {
     /// Delegated children are runner-owned and view-only. Upstream has also
     /// emitted both read-only spellings across row sources, so either explicit
     /// true value preserves that safety for other imported sessions.
+    var isMessagingPlatformSession: Bool {
+        if Self.normalizedSourceMarker(sessionSource) == "messaging" { return true }
+        return [rawSource, sourceTag, sourceLabel]
+            .compactMap(Self.normalizedSourceMarker)
+            .contains(where: Self.messagingSourceMarkers.contains)
+    }
+
     var isSessionReadOnly: Bool {
         isDelegatedSubagentSession || readOnly == true || isReadOnly == true
     }

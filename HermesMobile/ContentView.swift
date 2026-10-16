@@ -4,6 +4,7 @@ struct ContentView: View {
     @Bindable var authManager: AuthManager
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage(ResponseCompletionNotifications.isEnabledKey) private var isResponseCompletionNotificationsEnabled = false
+    @State private var voiceCalls = VoiceCallController.shared
     @State private var shares = SharedImportQueue()
     @State private var pendingLinks = PendingLinks()
     @State private var didCheckInitialPendingShare = false
@@ -12,6 +13,7 @@ struct ContentView: View {
 
     var body: some View {
         content
+            .voiceCallHost(voiceCalls)
             .moveToHermesNotices(authManager)
             .onOpenURL(perform: handleOpenURL)
             .task {
@@ -27,6 +29,9 @@ struct ContentView: View {
                 drainPendingIntentDeepLink()
             }
             .onChange(of: authManager.state) {
+                if case let .loggedIn(server) = authManager.state, authManager.kind(of: server) == .hermes {
+                    voiceCalls.activeServerChanged(to: server)
+                } else { voiceCalls.activeServerChanged(to: nil) }
                 // A held conversation link resolves again once sign-in or a server switch
                 // changes what it can reach.
                 switchServer(pendingLinks.reroute(state: authManager.state, servers: authManager.servers,
@@ -539,6 +544,8 @@ struct HermesServerHome: View {
     let didDeclineShare: (SharedImportReservation) -> Void
     let didAbandonShare: (SharedImportReservation) -> Void
     @SceneStorage("hermesHome.tab") private var tab = HermesHomeTab.sessions
+    @State private var voiceChat: ConversationTarget?
+    @State private var voiceCalls = VoiceCallController.shared
     @State private var inbox: BotInbox
     /// The Sessions side's list on the saved Bot connection, read again each time a side shows,
     /// so a sign-in changed in Settings or the inbox gets a fresh list.
@@ -568,7 +575,7 @@ struct HermesServerHome: View {
 
     var body: some View {
         let identity = HermesServerIdentity(account: authManager.activeServer, server: server)
-        let home = HermesHome(title: identity.title, avatar: avatar(identity), tab: $tab)
+        let home = HermesHome(title: identity.title, avatar: avatar(identity), tab: $tab, server: server, voiceChat: $voiceChat)
         NavigationStack {
             Group {
                 // Without a saved connection the inbox's welcome sets one up.
@@ -593,6 +600,15 @@ struct HermesServerHome: View {
         .modifier(HermesUpdateSignInModifier { authManager.hermesSignInRejected(server: server) })
         // A connection the inbox's sheet saved or changed closes no screen, so the switch reads too.
         .onChange(of: tab, readConnection)
+        .task {
+            voiceCalls.chatOpener = { ended in
+                guard ended.server == server, let key = ended.chatKey, let target = ended.hermesTarget else { return }
+                await voiceCalls.openChatAndAwaitReady(key) {
+                    tab = .sessions
+                    voiceChat = target
+                }
+            }
+        }
         // A bot route lands on the inbox, so Settings (and an Archived screen pushed from it, #1146)
         // closes first, as a Sessions list's pushed screens do when its tab goes.
         .onChange(of: pendingBotDestination, initial: true) {
