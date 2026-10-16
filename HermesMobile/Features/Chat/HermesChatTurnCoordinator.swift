@@ -544,6 +544,13 @@ struct HermesChatTranscript: Equatable {
         engine.connectionState == .connected && engine.storedKey != nil ? engine.generation : nil
     }
 
+    var terminalTarget: TerminalTarget? {
+        guard case .session = engine.target, engine.connectionState == .connected,
+              let key = engine.storedKey else { return nil }
+        return TerminalTarget(http: HermesConnections.shared.connection(for: engine.connection, server: engine.server),
+                              sessionID: key, profile: engine.target.profile)
+    }
+
     /// This chat's working folder on its host (#1112), once the session has a stored key and
     /// `session.info` has named its folder; nil before.
     var workspace: HermesWorkspaceContext? {
