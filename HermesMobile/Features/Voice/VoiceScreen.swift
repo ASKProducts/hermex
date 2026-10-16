@@ -1,3 +1,4 @@
+import WebRTC
 import AVFoundation
 import SwiftUI
 
@@ -534,9 +535,6 @@ enum VoiceStatusText {
         attentionAt = engineSession?.hermesStatus
     }
 
-    /// Makes `session` this call's engine and follows it from here, with or without a screen:
-    /// telemetry per phase, approvals for `needsAttention`, and, when it ends by itself,
-    /// `onEndedByItself`.
     func attach(_ session: any VoiceEngine) {
         engineSession = session
         lastPhase = nil
@@ -577,6 +575,7 @@ enum VoiceStatusText {
         followEngine(session)
     }
 
+
     private var useMicrophone: Bool { true }
 
     /// Opens the screen: checks GPT-Live, then starts the captured mode (Normal when GPT-Live
@@ -591,8 +590,6 @@ enum VoiceStatusText {
             await live
             transcript.isLoadingHistory = false
             if let page { transcript.loadHistory(page.messages, hasOlder: page.hasOlder) }
-            // The appends earlier calls in this chat sent, from its voice archive (saved on
-            // Hermes; pending uploads too): drawn in the saved turns where they were sent.
         } else {
             await checkLive()
         }
@@ -683,7 +680,8 @@ enum VoiceStatusText {
     private func startEngine(_ mode: VoiceMode, seed: [(role: String, text: String)]) async {
         muted = false
         switch mode {
-        case .normal, .live: await startNormal()
+        case .normal: await startNormal()
+        case .live: await startLive(seed: seed)
         }
         if endedByUser { await stopEngine(); return }
         let interval = engineSession?.tickInterval ?? .seconds(1)
@@ -696,6 +694,21 @@ enum VoiceStatusText {
             }
         }
 
+        if let live = engineSession as? VoiceLiveConversation {
+            // GPT-Live's levels come from WebRTC's stats, which have no callback: read them at
+            // the rate WebRTC refreshes them (measured 10-07: a new audioLevel every ~110 ms).
+            levelReader = Task { [weak self] in
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: Self.liveLevelInterval)
+                    // WebRTC's media-source / inbound-rtp audioLevel is linear 0…1 (≈ RMS of full scale).
+                    let input = await live.inputLevel()
+                    let output = await live.outputLevel()
+                    guard let self, !Task.isCancelled else { return }
+                    if let input { self.noteInputLevel(Float(input)) }
+                    if let output { self.noteOutputLevel(Float(output)) }
+                }
+            }
+        }
     }
 
     /// How often GPT-Live's levels are read from WebRTC's stats.
@@ -750,8 +763,28 @@ enum VoiceStatusText {
     /// GPT-Live: WebRTC owns the mic and the speaker; Hermes runs the delegated turns in this chat.
 
 
-
     /// Asks for the mic and starts the engine; any failure becomes `micProblem` and a `voice-error`.
+    private func startLive(seed: [(role: String, text: String)]) async {
+        let client = BotClient(saved: connection, server: server, holdsSocketInBackground: true)
+        if !(await AVAudioApplication.requestRecordPermission()) {
+            micProblem = String(localized: "Microphone access is off for Hermex. Turn it on in Settings, then tap to retry.")
+        }
+        let conversation = VoiceLiveConversation(backend: client, makeTransport: {
+            let session = VoiceLiveSession(backend: client)
+            return session
+        }, resumeSessionKey: resumeSessionKey, resumeProfile: resumeProfile, seedHistory: seed)
+        let server = self.server
+
+        conversation.onSessionCreated = { key in VoicePreferences.rememberVoiceSession(key, server: server) }
+        conversation.onNeedsApp = { [weak self] line in self?.needsApp(line) }
+        conversation.transcript = transcript
+        micActive = true
+        threshold = nil
+        attach(conversation)
+        await conversation.start()
+    }
+
+
     private func startMicrophone(recognition: String) async {
         if useMicrophone {
             let granted = await AVAudioApplication.requestRecordPermission()
@@ -780,10 +813,13 @@ enum VoiceStatusText {
     }
 
 
-
     func toggleMute() {
         muted.toggle()
-        engine.muted = muted
+        if let live = engineSession as? VoiceLiveConversation {
+            if live.muted != muted { live.toggleMute() }
+        } else {
+            engine.muted = muted
+        }
     }
 
 
@@ -827,7 +863,6 @@ enum VoiceStatusText {
         return await ending?.chatForOpening()
     }
 
-    /// Reads the chat's voice archive and hands its append records to the transcript. An archive
 
 }
 
@@ -940,8 +975,6 @@ struct VoiceSettingsView: View {
         try await client.connect()
         return try await body(client)
     }
-
-
 
 
 }

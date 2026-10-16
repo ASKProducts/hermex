@@ -378,3 +378,184 @@ extension VoiceLive {
 
 /// Parses `oai-events` frames and builds client events; the WebRTC session wraps it.
 /// `send` returns false when the data channel isn't open.
+@MainActor final class VoiceLiveEvents {
+    private(set) var started = false
+    private(set) var sessionID: String?
+    private(set) var transcript: [VoiceLive.Fragment] = []
+    private(set) var activeDelegationID: String?
+    private(set) var finalized = false
+    private var counter = 0
+    /// Per speaker, the previous delta's `end_ms` (segment boundaries, see `Fragment.startsSegment`).
+    private var lastEndMs: [VoiceLive.Fragment.Speaker: Double] = [:]
+    /// Fragments received before the previous request's context ended, counted from session start.
+    private(set) var cutPoint = 0
+    /// Fragments removed from the front of `transcript` by the memory bound.
+    private(set) var trimmedFragments = 0
+    private let send: (String) -> Bool
+
+    /// Where the `ContextMode` setting is read, at each request.
+    var defaults: UserDefaults = .standard
+    /// `voice-live-context {mode, fragments, chars, trimmed}` per request (mode 0 = since the last
+    /// request, else minutes; trimmed = characters cut by `contextCharLimit`). Set by the screen.
+
+    /// Own the receiver until real transport finalization, even after UI dismissal.
+
+    func appendSent(_ observation: VoiceAppendObservation, to transcript: VoiceTranscriptModel) {
+        transcript.recordAppend(observation)
+    }
+
+    var onAppend: ((VoiceAppendObservation) -> Void)?
+    private var appendCallID: String { callID }
+    private let callID = UUID().uuidString
+    private var appendOrdinal = 0
+
+    var onStarted: (() -> Void)?
+    var onTranscript: ((VoiceLive.Fragment) -> Void)?
+    var onDelegation: ((String, [VoiceLive.Fragment]) -> Void)?
+    var onError: ((String) -> Void)?
+    /// Exactly once: `session.closed`, a lost transport, or our own close timing out.
+    var onClosed: ((String, Double?) -> Void)?
+    var transportOutput: (() -> Void)?
+    var transportFinished: (() -> Void)?
+
+    init(send: @escaping (String) -> Bool) { self.send = send }
+
+    func nextEventID(_ prefix: String) -> String { counter += 1; return "\(prefix)_\(counter)" }
+
+    /// Recent conversation for the next request, oldest first, by `ContextMode`: everything after
+    /// the previous request's cut point, or the last N minutes (by the newest fragment's `end_ms`).
+    func contextWindow(_ mode: VoiceLive.ContextMode) -> [VoiceLive.Fragment] {
+        switch mode {
+        case .sinceLastRequest:
+            return Array(transcript[max(0, cutPoint - trimmedFragments)...])
+        case .lastMinutes(let minutes):
+            guard let last = transcript.last else { return [] }
+            let floor = last.endMs - Double(minutes * 60_000)
+            return transcript.filter { $0.endMs >= floor }
+        }
+    }
+
+    /// Absolute receipt boundary, captured before submitting a request to Hermes.
+    var receivedFragments: Int { trimmedFragments + transcript.count }
+
+    /// Only an accepted Hermes request consumes its captured transcript boundary. Fragments
+    /// received while its acknowledgement was in flight remain in the next request's tail.
+    func acceptContext(through boundary: Int) {
+        precondition(boundary <= receivedFragments)
+        cutPoint = max(cutPoint, boundary)
+    }
+
+    /// Snapshot for a request. Receiving a vendor delegation alone does not consume the tail.
+    func takeContext() -> [VoiceLive.Fragment] {
+        let mode = VoiceLive.ContextMode.current(defaults)
+        let context = contextWindow(mode)
+
+        return context
+    }
+
+    /// Bounds the in-memory transcript (2,000 → 1,500) without dropping anything a later request
+    /// can still ask for: only fragments before the cut point AND older than the longest minutes window.
+    private func trimTranscript() {
+        guard transcript.count > 2_000, let last = transcript.last else { return }
+        let beforeCut = cutPoint - trimmedFragments
+        let floor = last.endMs - VoiceLive.ContextMode.longestWindowMs
+        let outsideWindow = transcript.firstIndex { $0.endMs >= floor } ?? transcript.count
+        let drop = min(transcript.count - 1_500, beforeCut, outsideWindow)
+        guard drop > 0 else { return }
+        transcript.removeFirst(drop)
+        trimmedFragments += drop
+    }
+
+    func handle(_ raw: String) {
+        guard !finalized else { return }
+        guard let event = VoiceLive.ServerEvent.parse(raw) else { return }
+        switch event {
+        case .started(let id):
+            started = true
+            sessionID = id ?? sessionID
+            onStarted?()
+        case .transcript(var fragment):
+            if let end = lastEndMs[fragment.speaker] { fragment.startsSegment = fragment.startMs > end }
+            else { fragment.startsSegment = true }
+            lastEndMs[fragment.speaker] = fragment.endMs
+            transcript.append(fragment)
+            trimTranscript()
+            if fragment.speaker == .assistant { transportOutput?() }
+            onTranscript?(fragment)
+        case .delegation(let id):
+            activeDelegationID = id
+            onDelegation?(id, takeContext())
+        case .error(let code, let message):
+            // Late appends after our own close are expected noise.
+            if code == "context_injection_incomplete" { return }
+            onError?(message)
+        case .closed(let reason, let seconds):
+            finish(reason, seconds)
+        case .other:
+            break
+        }
+    }
+
+    @discardableResult private func emit(_ fields: [String: BotJSON]) -> Bool {
+        guard let data = try? JSONEncoder().encode(BotJSON.object(fields)) else { return false }
+        let raw = String(decoding: data, as: UTF8.self)
+        let kind = fields["type"]?.text.flatMap(VoiceAppendObservation.Kind.init(rawValue:))
+        if kind != nil { appendOrdinal += 1 }
+        let ordinal = appendOrdinal
+        let ok = send(raw)
+        if let kind {
+            onAppend?(VoiceAppendObservation(callID: appendCallID, ordinal: ordinal, kind: kind,
+                                             eventID: Self.appendIdentifier(fields["event_id"]),
+                                             delegationID: Self.appendIdentifier(fields["delegation_id"]),
+                                             content: fields["content"]?.text ?? "", rawJSON: raw, locallySent: ok))
+        }
+        return ok
+    }
+
+    private static func appendIdentifier(_ value: BotJSON?) -> VoiceAppendObservation.Identifier {
+        guard let value else { return .absent }
+        if let text = value.text { return .value(text) }
+        return .null
+    }
+
+    private func delegation(_ id: String?) -> BotJSON { id.map(BotJSON.string) ?? .null }
+
+    /// Quiet progress for the live model ("Hermes is running the tests…").
+    func think(_ delegationID: String?, _ content: String) {
+        let text = String(VoiceLive.collapse(content).prefix(VoiceLive.appendCharLimit))
+        guard !text.isEmpty else { return }
+        emit(["type": .string("session.thinking.append"), "content": .string(text),
+              "delegation_id": delegation(delegationID), "event_id": .string(nextEventID("think"))])
+    }
+
+    /// A result the voice should say aloud (paraphrased), in ≤1,400-char sentence chunks.
+    func speak(_ delegationID: String?, _ content: String) {
+        for chunk in VoiceLive.chunkForCommentary(content) {
+            emit(["type": .string("session.commentary.append"), "content": .string(chunk),
+                  "delegation_id": delegation(delegationID), "event_id": .string(nextEventID("say"))])
+        }
+    }
+
+    /// Steer the live persona mid-conversation (session-wide).
+    func instruct(_ content: String) {
+        let text = String(content.trimmingCharacters(in: .whitespacesAndNewlines).prefix(VoiceLive.appendCharLimit))
+        guard !text.isEmpty else { return }
+        emit(["type": .string("session.instructions.append"), "content": .string(text),
+              "delegation_id": .null, "event_id": .string(nextEventID("instr"))])
+    }
+
+    func mute(_ muted: Bool) {
+        emit(["type": .string(muted ? "session.input_audio.mute" : "session.input_audio.unmute"),
+              "event_id": .string(nextEventID(muted ? "mute" : "unmute"))])
+    }
+
+    /// Asks for `session.closed`; false when the channel is already gone (caller finishes at once).
+    func requestClose() -> Bool { emit(["type": .string("session.close")]) }
+
+    func finish(_ reason: String, _ seconds: Double?) {
+        guard !finalized else { return }
+        finalized = true
+        transportFinished?()
+        onClosed?(reason, seconds)
+    }
+}

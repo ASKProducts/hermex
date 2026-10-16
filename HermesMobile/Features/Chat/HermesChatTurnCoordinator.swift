@@ -164,6 +164,7 @@ struct HermesChatTranscript: Equatable {
     /// first turn after an attach is sure to get one, so a turn consumes it.
     @ObservationIgnored private var hostTurnStartedAt: Double?
     @ObservationIgnored private var hostRunning = false
+    var isRunningForVoice: Bool { hostRunning }
     /// The last title `session.info` reported, so a repeat leaves the header alone.
     @ObservationIgnored private var infoTitle: String?
     /// The session's working folder, as the latest `session.info` or attach reports it.

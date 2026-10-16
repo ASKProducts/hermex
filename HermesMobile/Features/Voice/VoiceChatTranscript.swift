@@ -19,11 +19,11 @@ struct VoiceChatTranscript: View {
     var body: some View {
         let shown = model.display(mode)
         let streaming = model.activeRunID != nil
-        let liveRows = VoiceTranscriptModel.localRows(user: model.liveUserMessage, turn: model.liveTurn,
-            runID: model.activeRunID ?? "voice", at: model.liveUserMessage?.timestamp ?? 0)
-        let rows = shown.messages + liveRows
-        let reasoning = ChatViewModel.reasoningDisplayGroups(messages: shown.messages, messageOffset: shown.offset, archivedGroups: [])
-        let tools = ToolCallGroup.groups(persistedToolCalls: [], messages: shown.messages, messageOffset: shown.offset)
+        let projected = VoiceTranscriptProjection.rows(model, mode: mode, filter: filter)
+        let liveRows = projected.live
+        let rows = projected.all
+        let reasoning = ChatViewModel.reasoningDisplayGroups(messages: projected.settled, messageOffset: shown.offset, archivedGroups: [])
+        let tools = ToolCallGroup.groups(persistedToolCalls: [], messages: projected.settled, messageOffset: shown.offset)
 
         let liveTools = model.liveTurn?.segments.compactMap { segment -> ToolCall? in
             if case .tool(let tool) = segment.kind { return tool.presentation(saved: nil) }

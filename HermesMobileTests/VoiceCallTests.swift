@@ -708,3 +708,85 @@ import UserNotifications
     func end() async { phase = .ended(nil); await endGate?() }
     func awaitChatWorkSettled() async {}
 }
+
+extension VoiceCallTests {
+    func testEndOfUndelegatedLiveCallDoesNotOpenItsReservedChatBeforeNoteAdmission() async throws {
+        let controller = VoiceCallController()
+        let backend = FakeVoiceBackend()
+        let transport = FakeLiveTransport()
+        let presentation = VoiceCallPresentation(server: server, requestedMode: .live)
+        let model = VoiceScreenModel(server: server, connection: try connection(), resumeSessionKey: nil, requestedMode: .live)
+        let live = VoiceLiveConversation(backend: backend, makeTransport: { transport })
+        let started = expectation(description: "engine started")
+        XCTAssertTrue(controller.start(presentation, model: model, begin: { model in
+            model.attach(live)
+            await live.start()
+            started.fulfill()
+        }))
+        await fulfillment(of: [started], timeout: 2)
+        transport.events.handle(#"{"type":"session.input_transcript.delta","delta":"Just saying hello.","start_ms":0,"end_ms":500}"#)
+        var accepted = false
+        var admission: CheckedContinuation<BotJSON, Never>?
+        backend.callHook = { method, _ in
+            guard method == "prompt.submit" else { return nil }
+            return await withCheckedContinuation { admission = $0 }
+        }
+        var opened = false
+        controller.chatOpener = { ended in
+            opened = true
+            XCTAssertTrue(accepted, "The reserved key is not a saved chat before the final note's acceptance")
+            XCTAssertEqual(ended.chatKey, "key-1")
+        }
+        let ending = Task { await controller.end() }
+        await waitUntil { admission != nil }
+        XCTAssertFalse(opened, "Ending must stay up while the first message is unaccepted")
+        accepted = true
+        admission?.resume(returning: .object(["status": .string("streaming")]))
+        _ = await ending.value
+        XCTAssertTrue(opened)
+        backend.emit("message.start")
+        backend.emit("message.complete")
+        await waitUntil { backend.closed }
+    }
+
+    func testLastSettledFollowsTheEndOfCallTurnToItsCompletion() async throws {
+        let controller = VoiceCallController()
+        let backend = FakeVoiceBackend()
+        let transport = FakeLiveTransport()
+        let presentation = VoiceCallPresentation(server: server, requestedMode: .live, resumeSessionKey: "chat-1")
+        let model = VoiceScreenModel(server: server, connection: try connection(), resumeSessionKey: "chat-1",
+                                     requestedMode: .live)
+        let live = VoiceLiveConversation(backend: backend, makeTransport: { transport }, resumeSessionKey: "chat-1")
+        let started = expectation(description: "engine started")
+        XCTAssertTrue(controller.start(presentation, model: model, begin: { model in
+            model.attach(live)
+            await live.start()
+            started.fulfill()
+        }))
+        await fulfillment(of: [started], timeout: 2)
+        transport.events.handle(#"{"type":"session.started","session":{"id":"s"}}"#)
+        transport.events.handle(#"{"type":"session.input_transcript.delta","delta":"Remember Friday.","start_ms":0,"end_ms":500}"#)
+        transport.events.handle(#"{"type":"session.output_transcript.delta","delta":"Okay.","start_ms":600,"end_ms":900}"#)
+
+        let ending = Task { await controller.end() }
+        await waitUntil { live.isEnded }
+        transport.events.finish("client_closed", nil)
+        _ = await ending.value
+        await waitUntil { backend.calls.contains { $0.0 == "prompt.submit" } }
+        let ended = try XCTUnwrap(controller.lastEnded)
+        XCTAssertEqual(ended.chatKey, "chat-1")
+        for _ in 0..<5 { await Task.yield() }
+        XCTAssertNil(controller.lastSettled, "the end-of-call turn is still running: nothing to reload yet")
+
+        // A resumed chat's runtime is "rt-resumed" (the fake's resume reply).
+        func hermes(_ type: String, _ payload: [String: BotJSON] = [:]) {
+            backend.onEvent?(.object(["type": .string(type), "session_id": .string("rt-resumed"), "payload": .object(payload)]))
+        }
+        hermes("message.start")
+        for _ in 0..<5 { await Task.yield() }
+        XCTAssertNil(controller.lastSettled, "started is not finished")
+        hermes("message.complete", ["text": .string("Noted.")])
+        await waitUntil { controller.lastSettled != nil }
+        XCTAssertEqual(controller.lastSettled, ended, "the chat reloads for the same end once its last turn finished")
+    }
+}

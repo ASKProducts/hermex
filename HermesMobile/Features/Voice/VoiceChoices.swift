@@ -2,9 +2,6 @@ import Foundation
 import Observation
 import SwiftUI
 
-/// replies, kept in the Hermes host's config by the ariex-voice plugin
-/// (`GET|PUT /api/plugins/hermex-push/voice/voices?profile=`). The host is the only copy: the app
-/// shows what the host answered, and a call reads the host's value when it starts.
 struct VoiceChoices: Equatable, Sendable {
     enum Unavailable: Error { case routeNotAdvertised }
     enum Mode: String, CaseIterable, Sendable { case live, cascade }

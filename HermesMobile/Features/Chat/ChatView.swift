@@ -728,6 +728,7 @@ struct ChatView: View {
         // The composer flips wholesale with the transcript under the RTL
         // toggle (#259): input, placeholder, and chrome mirror together.
         .voiceBubbleClearance()
+        .task(id: viewModel.hermesVoiceLookupScope) { await viewModel.prepareHermesVoice() }
         .task(id: VoiceStartScope.current(server: server)) {
             guard isHermesSession else { return }
             let scope = VoiceStartScope.current(server: server)
@@ -743,8 +744,7 @@ struct ChatView: View {
 
     private var voiceCallControl: ComposerVoiceCallControl? {
         guard isHermesSession, let link = viewModel.hermesSessionLink else { return nil }
-        let availability: VoicePreferences.ContinueByVoice = viewModel.showsOfflineCache || session.isSessionReadOnly
-            ? .hidden : viewModel.activeStreamID != nil ? .busy : .available(profile: link.profile)
+        let availability: VoicePreferences.ContinueByVoice = session.isSessionReadOnly ? .hidden : viewModel.hermesContinueByVoice
         return ComposerVoiceCallControl(availability: availability, modes: voiceAvailability,
             scope: VoiceStartScope.current(server: server)) { mode in
                 VoiceCallController.shared.start(VoiceCallPresentation(server: server, requestedMode: mode,

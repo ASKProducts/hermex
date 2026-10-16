@@ -57,7 +57,6 @@ struct VoiceEndpointer {
     private var startedOverReply = false
     /// The utterance in progress started inside the echo window and hasn't proved itself yet.
     private(set) var echoCheck = false
-    /// The last `.discarded` was an echo-check discard (telemetry).
     private(set) var lastDiscardWasEcho = false
     private(set) var inSpeech = false
     private(set) var floor: Float?
@@ -182,7 +181,6 @@ enum VoiceCallAudio {
     static let mode = AVAudioSession.Mode.voiceChat
     static let options: AVAudioSession.CategoryOptions = [.defaultToSpeaker, .allowBluetoothHFP]
 
-    /// Current route and options as telemetry fields (port types and raw codes only).
     static func routeFields(_ session: AVAudioSession = .sharedInstance()) -> [String: Any] {
         ["route_out": session.currentRoute.outputs.map(\.portType.rawValue).joined(separator: ","),
          "route_in": session.currentRoute.inputs.map(\.portType.rawValue).joined(separator: ","),
@@ -233,18 +231,6 @@ enum VoiceMicEvent: Equatable {
     }
 }
 
-/// One `AVAudioEngine` for the whole voice session: the mic (voice processing on,
-/// so the mic stays open while the reply plays), the endpointer, the AAC
-/// recorder for upload, and a player node for the reply PCM.
-///
-/// The mic never stops silently: a configuration change or a route change
-/// restarts the input, an interruption pauses it until the system says resume,
-/// and a mic that delivers nothing for `stallTimeout` is restarted. Anything that
-/// can't be fixed that way lands in `onProblem` (shown on the voice screen, tap to
-/// restart) and in telemetry.
-///
-/// DEBUG only: `feedFile(_:)` pushes an audio file through the same endpointer
-/// and recorder in real time instead of the mic (the simulator has no usable mic).
 @MainActor final class VoiceAudioEngine: VoicePlayback {
     var onSpeechStarted: (() -> Void)?
     /// Speech that ended shorter than `minimumSpeech` (a click or cough).
@@ -288,7 +274,6 @@ enum VoiceMicEvent: Equatable {
     private var nextBufferID = 0
     /// The odd byte left over from the last reply frame (see `enqueue`).
     private var carry: UInt8?
-    /// Counts replies (`beginSpeech`), for the DEBUG output capture file names.
     private var replyIndex = 0
     private var playGeneration = 0
     private var suppressUntil: Date?
@@ -299,7 +284,6 @@ enum VoiceMicEvent: Equatable {
     private var outBytes = 0
     private var buffersScheduled = 0
     private var buffersPlayed = 0
-    /// Seconds of reply audio whose buffers finished playing in this telemetry window.
     private var playedSeconds: Double = 0
     private var outputWasActive = false
     private var mixerTapInstalled = false
@@ -510,7 +494,6 @@ enum VoiceMicEvent: Equatable {
         try engine.start()
     }
 
-    /// Once a second while the screen is open: level telemetry and the stall check.
     func tick() {
         let t = now()
         let w = levelWindow
@@ -790,7 +773,6 @@ enum VoiceMicEvent: Equatable {
 
     /// True while reply playback is held for the user's speech (`pauseSpeech`).
     private(set) var speechPaused = false
-    /// When the current hold began (telemetry: how long the reply was paused).
     private(set) var pausedAt: Date?
     /// Seconds the current reply (or line) has been audible (wall clock while it plays unpaused),
     /// for the endpointer's echo check; `.infinity` before the first reply.
@@ -946,8 +928,6 @@ enum VoiceMicEvent: Equatable {
         }
         mixerTapInstalled = true
     }
-
-    // MARK: QA output capture
 
 
     private final class ClipDelegate: NSObject, AVAudioPlayerDelegate {

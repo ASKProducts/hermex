@@ -1,24 +1,7 @@
 import Foundation
 
-/// Voice mode's rules and routes on the Hermes layer. The voice RPCs are typed
-/// `HermesCall` cases (`voiceSessionCreate`, `voiceSessionResume`,
-/// `voicePromptSubmit`, `voiceLivePromptSubmit`; steer, interrupt, approvals and answers use
-/// the shared cases) and the HTTP routes are `HermesREST` cases sent over the connection's
-/// signed-in session. Voice chats are ordinary visible Hermes chats, so they get their own
-/// narrow shapes instead of widening the Bot Chat ones:
-///
-/// - `session.create` exactly `{hidden: false}`: no title (Hermes derives one) and no
-///   profile, so the dashboard's own launch profile (its voice config, key and the
-///   ariex-voice plugin) owns the chat.
-/// - `prompt.submit` with `interrupted` only as `{session_id, text, interrupted}`, a Bool.
-/// - never `session.close`: End leaves the socket, so the chat's turn, subagents and
-///
-/// The companion plugin's voice module marks a
-/// session as spoken, transcribes with the session's vocabulary, and keeps the
-/// glossary. Speech out is `/api/audio/speak-stream` (fresh `?ticket=` per socket).
 enum BotVoiceRPC {
 
-    /// Session keys the plugin accepts (`ariex_voice.valid_session_key`).
     static func isValidSessionKey(_ key: String) -> Bool {
         !key.isEmpty && key.count <= 128 && key.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || "_.-".contains($0)) }
     }
@@ -39,7 +22,6 @@ enum BotVoiceRPC {
         return url
     }
 
-    /// Glossary terms as the plugin stores them: trimmed, non-empty, deduplicated, ≤200.
 
 }
 

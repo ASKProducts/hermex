@@ -1,20 +1,5 @@
 import Foundation
 
-/// Every outgoing GPT-Live append, in send (callback) order, including failed attempts and
-/// attempts captured while hidden. Owned by the voice-screen model.
-///
-/// Where each one is drawn comes from the turn's own segment sequence: an append sent while an
-/// exchange was on screen is an entry of that exchange's fold (`ChatTurnLiveFold.appendSent`),
-/// and the journal keeps the ids of the segments it followed (`preceding`). Its `home` is the
-/// drawn turn that holds it: the exchange itself while its rows (live or local) are drawn, and
-/// once a refetch replaced them, the saved turn of the delegation it belongs to (paired by the
-/// saved user row id Hermes reported for that delegation's turn). `weave` puts it right after
-/// the last of its preceding segments that turn still has. Appends with no home (sent with no
-/// exchange on screen, or whose exchange left no saved turn) are local rows between turns.
-///
-/// Each entry is also a voice archive record (`archived`, kind `append`), so a voice screen
-/// opened later, after a relaunch too, reads them back (`init(restoring:)`) and places them
-/// the same way.
 struct VoiceAppendJournal {
     struct Entry: Equatable {
         let observation: VoiceAppendObservation
@@ -51,20 +36,6 @@ struct VoiceAppendJournal {
     private(set) var userRows: [String: Int] = [:]
 
     init() {}
-
-    /// The appends a chat's voice archive holds (`VoiceArchiveRecord.Kind.append`), in send
-    /// order: calls by their first record, each call by its sequence. They were sent from an
-    /// earlier voice screen, whose exchanges are never drawn again, so each one is found by its
-    /// delegation's saved turn (or, between exchanges, after its saved turn). A delegation's
-    /// user row comes from any of its appends that carried it (the commentary sent after
-    /// Hermes's receipt), so its earlier thinking append is placed in the same turn.
-
-
-    /// The archive fields of `entry` (what was sent, and where).
-
-
-    /// The observation an archived append was recorded from: the same call id and ordinal (so
-    /// the same row id), the exact JSON string sent, its content read back from that string.
 
 
     /// Hermes saved a delegation's turn: the row ids of its `message.complete` receipt.
@@ -156,11 +127,6 @@ struct VoiceAppendJournal {
         return woven
     }
 
-    /// Local rows between turns, for the appends no drawn turn holds (`home` nil).
-    /// Resolve onto the complete displayed history before selecting the current exchange.
-    /// Lost anchors inherit the preceding resolved boundary; backwards anchors are clamped
-    /// to that same boundary. Thus the local-row insertion path cannot reverse attempts.
-    /// An append read back from the archive is after the saved turn its `afterUserRow` opens.
     func project(turnKeys: [String], visibleTurnKeys: [String]? = nil, showsAppends: Bool,
                  aliases: [String: String] = [:], currentExchange: ExchangeWindow = .all,
                  home: (Entry) -> String? = { _ in nil },

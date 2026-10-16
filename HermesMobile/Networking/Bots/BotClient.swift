@@ -100,6 +100,8 @@ import Foundation
         guard (try? JSONDecoder().decode(BotJSON.self, from: data))?["ok"].flag == true else { throw BotFailure.unsupported }
     }
 
+    var isConnected: Bool { gateway.isAttached(consumerID) }
+
     func currentProfile() async throws -> String {
         guard gateway.isAttached(consumerID) else { throw BotFailure.stale }
         let attempt = self.attempt

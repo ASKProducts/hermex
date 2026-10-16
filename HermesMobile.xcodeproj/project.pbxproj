@@ -675,6 +675,24 @@
 		C41960DED5981E6839BDDC7E /* VoiceModeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32B3051F9CDCA7543DF6C73B /* VoiceModeTests.swift */; };
 		371F20B98B54524E8D5261C7 /* VoiceReceiptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1A904990A3507874BB5F502 /* VoiceReceiptTests.swift */; };
 		711AD6FF2685EA1256CAEC62 /* VoiceCallTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 631F388CD2BD9A8A83A37750 /* VoiceCallTests.swift */; };
+		7E1D00000000000000000015 /* WebRTC in Frameworks */ = {isa = PBXBuildFile; productRef = 7E1D00000000000000000014 /* WebRTC */; };
+		5D1C0D75D6634A673C6023A0 /* VoiceLiveConversation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E97135376E46A9524DA31D8 /* VoiceLiveConversation.swift */; };
+		54A4E0997EB163047005B99D /* VoiceLiveSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E7052BE0A57D2519B484AAF /* VoiceLiveSession.swift */; };
+		318DEFF77A57B04FAB2A67E5 /* VoiceEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70D44B59D3B33BB0B2C762E9 /* VoiceEngineTests.swift */; };
+		530F5E4C47E38624336B3C26 /* VoiceLiveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBE155E0624D2A8BB8E2C982 /* VoiceLiveTests.swift */; };
+		4338C67D515908C0D29CC85C /* VoiceWorkStepsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0924591BA049A3DBC9181F /* VoiceWorkStepsTests.swift */; };
+		4C5219A08CB25F8B8595D843 /* VoiceAppendRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5993426480BABEA1EDA482 /* VoiceAppendRow.swift */; };
+		6622112F2358B1C75B0DA73D /* VoiceTranscriptProjection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 585D27A9879E1AB037CF820E /* VoiceTranscriptProjection.swift */; };
+		6AEE4BC4B16981AA1876E13D /* VoiceProjectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 605D83D7802193C6320E4DF7 /* VoiceProjectionTests.swift */; };
+		CFB746F763C5B12526588027 /* VoiceAppendCaptureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87D6C8688955208AE07D91C4 /* VoiceAppendCaptureTests.swift */; };
+		6A69B10F94ADA8330B4320CC /* VoiceAppendJournalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77AB315FB6B3A5B2D8E683A2 /* VoiceAppendJournalTests.swift */; };
+		72358CAD14AD96CAD9F5D755 /* VoiceAppendLogRowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53A296B2BA6894134D4B2D3D /* VoiceAppendLogRowTests.swift */; };
+		E6B05C5834BBD2B4A00BDE81 /* VoiceAppendModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CFDB596B0377438BDE1F3FF /* VoiceAppendModelTests.swift */; };
+		04F9EDE737ECB6F29D623AB4 /* VoiceCallLinkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29A5D17D240F5C6AACE5022B /* VoiceCallLinkTests.swift */; };
+		968189D6A38CE4614F99EFFA /* VoiceEchoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FDDA75402FA9BD2746E6A9F /* VoiceEchoTests.swift */; };
+		4871A725949BF70DCAD73CB8 /* VoiceLookTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7527A0F87F1E74B8E3321557 /* VoiceLookTests.swift */; };
+		B30F558E910674060D2CFF83 /* VoiceOrbTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 587FD5AD5810D6B029FFAFAB /* VoiceOrbTests.swift */; };
+		3B91ADAAC4093B7B7F00ACEB /* VoiceTranscriptModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7CB49EE264550156321C2E /* VoiceTranscriptModelTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -1390,6 +1408,23 @@
 		32B3051F9CDCA7543DF6C73B /* VoiceModeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobileTests/VoiceModeTests.swift"; sourceTree = SOURCE_ROOT; };
 		C1A904990A3507874BB5F502 /* VoiceReceiptTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobileTests/VoiceReceiptTests.swift"; sourceTree = SOURCE_ROOT; };
 		631F388CD2BD9A8A83A37750 /* VoiceCallTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobileTests/VoiceCallTests.swift"; sourceTree = SOURCE_ROOT; };
+		6E97135376E46A9524DA31D8 /* VoiceLiveConversation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobile/Features/Voice/VoiceLiveConversation.swift"; sourceTree = SOURCE_ROOT; };
+		2E7052BE0A57D2519B484AAF /* VoiceLiveSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobile/Features/Voice/VoiceLiveSession.swift"; sourceTree = SOURCE_ROOT; };
+		70D44B59D3B33BB0B2C762E9 /* VoiceEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobileTests/VoiceEngineTests.swift"; sourceTree = SOURCE_ROOT; };
+		FBE155E0624D2A8BB8E2C982 /* VoiceLiveTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobileTests/VoiceLiveTests.swift"; sourceTree = SOURCE_ROOT; };
+		0C0924591BA049A3DBC9181F /* VoiceWorkStepsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobileTests/VoiceWorkStepsTests.swift"; sourceTree = SOURCE_ROOT; };
+		DD5993426480BABEA1EDA482 /* VoiceAppendRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobile/Features/Voice/VoiceAppendRow.swift"; sourceTree = SOURCE_ROOT; };
+		585D27A9879E1AB037CF820E /* VoiceTranscriptProjection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobile/Features/Voice/VoiceTranscriptProjection.swift"; sourceTree = SOURCE_ROOT; };
+		605D83D7802193C6320E4DF7 /* VoiceProjectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobileTests/VoiceProjectionTests.swift"; sourceTree = SOURCE_ROOT; };
+		87D6C8688955208AE07D91C4 /* VoiceAppendCaptureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobileTests/VoiceAppendCaptureTests.swift"; sourceTree = SOURCE_ROOT; };
+		77AB315FB6B3A5B2D8E683A2 /* VoiceAppendJournalTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobileTests/VoiceAppendJournalTests.swift"; sourceTree = SOURCE_ROOT; };
+		53A296B2BA6894134D4B2D3D /* VoiceAppendLogRowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobileTests/VoiceAppendLogRowTests.swift"; sourceTree = SOURCE_ROOT; };
+		0CFDB596B0377438BDE1F3FF /* VoiceAppendModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobileTests/VoiceAppendModelTests.swift"; sourceTree = SOURCE_ROOT; };
+		29A5D17D240F5C6AACE5022B /* VoiceCallLinkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobileTests/VoiceCallLinkTests.swift"; sourceTree = SOURCE_ROOT; };
+		2FDDA75402FA9BD2746E6A9F /* VoiceEchoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobileTests/VoiceEchoTests.swift"; sourceTree = SOURCE_ROOT; };
+		7527A0F87F1E74B8E3321557 /* VoiceLookTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobileTests/VoiceLookTests.swift"; sourceTree = SOURCE_ROOT; };
+		587FD5AD5810D6B029FFAFAB /* VoiceOrbTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobileTests/VoiceOrbTests.swift"; sourceTree = SOURCE_ROOT; };
+		CF7CB49EE264550156321C2E /* VoiceTranscriptModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobileTests/VoiceTranscriptModelTests.swift"; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1397,6 +1432,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7E1D00000000000000000015 /* WebRTC in Frameworks */,
 				1A2B3C4D5E6F700000000004 /* LDSwiftEventSource in Frameworks */,
 				1A2B3C4D5E6F700000000005 /* MarkdownUI in Frameworks */,
 				1A2B3C4D5E6F700000000006 /* Splash in Frameworks */,
@@ -1454,6 +1490,10 @@
 		1A2B3C4D5E6F700000000031 /* HermesMobile */ = {
 			isa = PBXGroup;
 			children = (
+				585D27A9879E1AB037CF820E /* VoiceTranscriptProjection.swift */,
+				DD5993426480BABEA1EDA482 /* VoiceAppendRow.swift */,
+				2E7052BE0A57D2519B484AAF /* VoiceLiveSession.swift */,
+				6E97135376E46A9524DA31D8 /* VoiceLiveConversation.swift */,
 				FCE3FF4BF4919C7874FC49B9 /* BotVoiceRPC.swift */,
 				DCF44F225F6E60EDCD82F498 /* ChatTurnLiveFold.swift */,
 				BBBDEF2F8C73B9EF9CDC09ED /* ChatTurnModel.swift */,
@@ -1530,6 +1570,19 @@
 		1A2B3C4D5E6F700000000034 /* HermesMobileTests */ = {
 			isa = PBXGroup;
 			children = (
+				CF7CB49EE264550156321C2E /* VoiceTranscriptModelTests.swift */,
+				587FD5AD5810D6B029FFAFAB /* VoiceOrbTests.swift */,
+				7527A0F87F1E74B8E3321557 /* VoiceLookTests.swift */,
+				2FDDA75402FA9BD2746E6A9F /* VoiceEchoTests.swift */,
+				29A5D17D240F5C6AACE5022B /* VoiceCallLinkTests.swift */,
+				0CFDB596B0377438BDE1F3FF /* VoiceAppendModelTests.swift */,
+				53A296B2BA6894134D4B2D3D /* VoiceAppendLogRowTests.swift */,
+				77AB315FB6B3A5B2D8E683A2 /* VoiceAppendJournalTests.swift */,
+				87D6C8688955208AE07D91C4 /* VoiceAppendCaptureTests.swift */,
+				605D83D7802193C6320E4DF7 /* VoiceProjectionTests.swift */,
+				0C0924591BA049A3DBC9181F /* VoiceWorkStepsTests.swift */,
+				FBE155E0624D2A8BB8E2C982 /* VoiceLiveTests.swift */,
+				70D44B59D3B33BB0B2C762E9 /* VoiceEngineTests.swift */,
 				631F388CD2BD9A8A83A37750 /* VoiceCallTests.swift */,
 				C1A904990A3507874BB5F502 /* VoiceReceiptTests.swift */,
 				32B3051F9CDCA7543DF6C73B /* VoiceModeTests.swift */,
@@ -2394,6 +2447,7 @@
 			);
 			name = HermesMobile;
 			packageProductDependencies = (
+				7E1D00000000000000000014 /* WebRTC */,
 				1A2B3C4D5E6F700000000094 /* LDSwiftEventSource */,
 				1A2B3C4D5E6F700000000095 /* MarkdownUI */,
 				1A2B3C4D5E6F700000000096 /* Splash */,
@@ -2531,6 +2585,7 @@
 			);
 			mainGroup = 1A2B3C4D5E6F700000000030;
 			packageReferences = (
+				7E1D00000000000000000013 /* XCRemoteSwiftPackageReference "WebRTC" */,
 				1A2B3C4D5E6F700000000090 /* XCRemoteSwiftPackageReference "swift-eventsource" */,
 				1A2B3C4D5E6F700000000091 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */,
 				1A2B3C4D5E6F700000000092 /* XCRemoteSwiftPackageReference "Splash" */,
@@ -2596,6 +2651,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6622112F2358B1C75B0DA73D /* VoiceTranscriptProjection.swift in Sources */,
+				4C5219A08CB25F8B8595D843 /* VoiceAppendRow.swift in Sources */,
+				54A4E0997EB163047005B99D /* VoiceLiveSession.swift in Sources */,
+				5D1C0D75D6634A673C6023A0 /* VoiceLiveConversation.swift in Sources */,
 				F7F76BC9D90954A5F8C221C3 /* BotVoiceRPC.swift in Sources */,
 				7D31DAEAC8C8BDE93333CDBD /* ChatTurnLiveFold.swift in Sources */,
 				EA419D4CACC1CC6D501F9CAC /* ChatTurnModel.swift in Sources */,
@@ -3022,6 +3081,19 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3B91ADAAC4093B7B7F00ACEB /* VoiceTranscriptModelTests.swift in Sources */,
+				B30F558E910674060D2CFF83 /* VoiceOrbTests.swift in Sources */,
+				4871A725949BF70DCAD73CB8 /* VoiceLookTests.swift in Sources */,
+				968189D6A38CE4614F99EFFA /* VoiceEchoTests.swift in Sources */,
+				04F9EDE737ECB6F29D623AB4 /* VoiceCallLinkTests.swift in Sources */,
+				E6B05C5834BBD2B4A00BDE81 /* VoiceAppendModelTests.swift in Sources */,
+				72358CAD14AD96CAD9F5D755 /* VoiceAppendLogRowTests.swift in Sources */,
+				6A69B10F94ADA8330B4320CC /* VoiceAppendJournalTests.swift in Sources */,
+				CFB746F763C5B12526588027 /* VoiceAppendCaptureTests.swift in Sources */,
+				6AEE4BC4B16981AA1876E13D /* VoiceProjectionTests.swift in Sources */,
+				4338C67D515908C0D29CC85C /* VoiceWorkStepsTests.swift in Sources */,
+				530F5E4C47E38624336B3C26 /* VoiceLiveTests.swift in Sources */,
+				318DEFF77A57B04FAB2A67E5 /* VoiceEngineTests.swift in Sources */,
 				711AD6FF2685EA1256CAEC62 /* VoiceCallTests.swift in Sources */,
 				371F20B98B54524E8D5261C7 /* VoiceReceiptTests.swift in Sources */,
 				C41960DED5981E6839BDDC7E /* VoiceModeTests.swift in Sources */,
@@ -3817,6 +3889,11 @@
 				minimumVersion = 1.7.3;
 			};
 		};
+		7E1D00000000000000000013 /* XCRemoteSwiftPackageReference "WebRTC" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/stasel/WebRTC";
+			requirement = { kind = exactVersion; version = 155.0.0; };
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -3855,6 +3932,7 @@
 			package = 5417A7400000000000000090 /* XCRemoteSwiftPackageReference "SwiftMath" */;
 			productName = SwiftMath;
 		};
+		7E1D00000000000000000014 /* WebRTC */ = {isa = XCSwiftPackageProductDependency; package = 7E1D00000000000000000013 /* XCRemoteSwiftPackageReference "WebRTC" */; productName = WebRTC; };
 /* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 1A2B3C4D5E6F700000000070 /* Project object */;

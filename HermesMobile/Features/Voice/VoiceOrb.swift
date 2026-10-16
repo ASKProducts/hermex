@@ -35,12 +35,6 @@ enum VoiceOrbState: Equatable {
     }
 }
 
-/// A level reading (RMS or WebRTC's audioLevel, linear 0…1) mapped onto the orb's 0…1 range on a
-/// dB scale. Each meter gets its own window, from the levels measured on the voice-QA dashboard
-/// (10-07, `voice-orb` round): the two modes measure differently (Cascade: RMS of the mixer and
-/// mic buffers; GPT-Live: WebRTC's audioLevel, about 7–10 dB hotter for the same speech).
-/// `floorDB` sits under the quietest speech readings and `ceilingDB` at about the 90th
-/// percentile, so ordinary syllables span most of the range.
 struct VoiceOrbLevelScale: Equatable {
     let floorDB: Double
     let ceilingDB: Double
@@ -104,8 +98,6 @@ enum VoiceOrbMetrics {
     static let drawingScale: CGFloat = 1.6
 }
 
-/// Mockup J's look as numbers (`qa/orb-j/mockup/index.html?v=J`), in the mockup's units: the
-/// disc has radius 50, so a unit is the disc's diameter / 100.
 enum VoiceOrbLook {
     static let discRadius: CGFloat = 50
     /// The dot grid: 13-unit pitch centred on the middle, dots whose centre is inside radius 46.

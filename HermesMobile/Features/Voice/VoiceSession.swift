@@ -9,7 +9,6 @@ import Foundation
     /// Seconds of reply audio received and not yet played (0 = the player ran dry).
     var queuedSpeechSeconds: TimeInterval { get }
     func playClip(_ data: Data, onDrained: @escaping () -> Void)
-    /// Stops at once and drops queued audio; `reason` goes to telemetry.
     func stopSpeech(reason: String)
     /// Holds playback where it is (queue kept); anything that starts meanwhile is held too.
     func pauseSpeech()
@@ -24,30 +23,12 @@ extension VoicePlayback {
     func softTone() { earcon() }
 }
 
-/// One voice conversation in Normal mode: Hermes answers, the server speaks it.
-///
-/// A new visible chat per session (`session.create {hidden:false}`: the dashboard's
-/// own launch profile, where its voice config and the ariex-voice plugin live),
-/// marked as spoken through the `ariex-voice` plugin so Hermes gets its voice
-/// note. Each utterance becomes `prompt.submit {session_id, text, interrupted}`;
-/// while a turn runs, words go as `session.steer`; the final answer's
-/// `message.delta` text feeds a speak-stream socket whose PCM goes to `player`.
 @MainActor @Observable final class VoiceSession {
     enum Phase: Equatable {
         case connecting, listening, hearing, sending, working(String?), speaking, ended(String?)
 
         /// The case's name only (its strings are spoken or shown text; they stay out of records).
-        var flightName: String {
-            switch self {
-            case .connecting: return "connecting"
-            case .listening: return "listening"
-            case .hearing: return "hearing"
-            case .sending: return "sending"
-            case .working: return "working"
-            case .speaking: return "speaking"
-            case .ended: return "ended"
-            }
-        }
+
     }
 
     struct Settings: Equatable {
@@ -73,7 +54,6 @@ extension VoicePlayback {
     private(set) var runtime: String?
     private(set) var pendingApproval: BotApprovalRequest?
     private(set) var pendingQuestion: BotQuestionRequest?
-    /// Diagnostics shown in DEBUG builds and asserted by tests.
     private(set) var pcmBytesReceived = 0
     private(set) var turnsSubmitted = 0
     private(set) var lastSubmitInterrupted = false
@@ -272,10 +252,6 @@ extension VoicePlayback {
         transcript.hearing(text)
     }
 
-    /// A finished utterance's speech is over. Every producer (the mic, the DEBUG feeds) calls this
-    /// when the utterance ends, before handing over its audio or text; it is the only place
-    /// `speechOpen` closes for an utterance (`speechDiscarded` closes it for noise). Speech that
-    /// starts after this is new speech with its own hold.
     func speechEnded() { speechOpen = false }
 
     /// Too-short speech: nothing is sent, so leave "Hearing you".
@@ -741,7 +717,6 @@ extension VoicePlayback {
     private var replyDoneSent = false
     var hasQueuedReply: Bool { queuedReply != nil }
 
-    // `voice-tts` telemetry for the stream being spoken.
     var onTTS: ((String, [String: Any]) -> Void)?
     private var streamIndex = 0
     private var streamOpened = Date()
@@ -841,15 +816,6 @@ extension VoicePlayback {
         }
     }
 
-    /// A stream whose text is all sent (`done`) but that has produced no audio for
-    /// `stallTimeout` is reopened once with the same text; a second stall gives up
-    /// (logged) so the session never sits silent in "speaking".
-    /// Mid-stream the server synthesises one sentence per request, so the gap before the
-    /// next sentence can be long while earlier audio still plays: that only counts once
-    /// the player has run dry and nothing has arrived for `stallTimeout` since.
-    /// The server always ends a stream with `end` or a closed socket; these timers are the
-    /// last resort, long enough that a slow server (first audio at 32 s, 6.9 s between
-    /// sentences on the QA dashboard) isn't mistaken for a dead one.
     static let stallTimeout: TimeInterval = 20
     /// After this long without first audio the screen says the voice is slow.
     static let slowNoticeAfter: TimeInterval = 5

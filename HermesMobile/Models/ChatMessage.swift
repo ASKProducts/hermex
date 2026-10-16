@@ -33,6 +33,7 @@ struct ChatMessage: Decodable, Equatable, Identifiable {
     let rowID: Int?
     /// A Hermes session's settled row that compaction archived (the REST row's `active` is 0,
     /// #1049). It shows above the compaction card, and the host can no longer cut there.
+    var voiceAppend: VoiceAppendObservation? = nil
     var wakeupMeta: [String: JSONValue]? = nil
     var serverID: Int? = nil
     var messageUID: String? = nil
@@ -220,6 +221,7 @@ struct ChatMessage: Decodable, Equatable, Identifiable {
             rowID: rowID ?? self.rowID,
             isCompacted: isCompacted ?? self.isCompacted
         )
+        copy.voiceAppend = voiceAppend
         copy.wakeupMeta = wakeupMeta
         copy.serverID = serverID
         copy.messageUID = messageUID

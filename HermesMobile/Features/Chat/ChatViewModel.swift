@@ -583,6 +583,40 @@ final class ChatViewModel {
 
     /// The session pushes report under: a webui session's own ID, or a Hermes session's
     /// current stored key, the `session_id` every hook sends.
+    private var voiceLookupScope: [String]?
+    private var voiceLookupSession: SessionSummary?
+
+    var hermesVoiceLookupScope: [String]? {
+        guard let engine = hermesTurn?.engine, case .session = engine.target,
+              let link = hermesSessionLink, let profile = link.profile else { return nil }
+        return [String(describing: ObjectIdentifier(engine)), profile, link.key, String(engine.generation)]
+    }
+
+    var hermesContinueByVoice: VoicePreferences.ContinueByVoice {
+        guard let engine = hermesTurn?.engine, engine.connectionState == .connected,
+              !isViewingCachedData, voiceLookupScope == hermesVoiceLookupScope,
+              let row = voiceLookupSession, row.rawSource?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() != "messaging" else { return .hidden }
+        return VoicePreferences.canContinueByVoice(row, isViewingCachedData: false,
+            isBusy: hermesTurn?.isRunningForVoice == true || activeStreamID != nil || isStartingChat || isHermesSubmissionUncertain)
+    }
+
+    func prepareHermesVoice() async {
+        guard let engine = hermesTurn?.engine, engine.connectionState == .connected,
+              !isViewingCachedData, let key = engine.storedKey, let scope = hermesVoiceLookupScope else { return }
+        voiceLookupSession = nil; voiceLookupScope = nil
+        do {
+            guard let reply = try await engine.wire.sessionRow(key: key, profile: engine.target.profile) else { return }
+            guard !Task.isCancelled, hermesVoiceLookupScope == scope, engine.connectionState == .connected,
+                  let data = try? JSONEncoder().encode(reply),
+                  let row = try? JSONDecoder().decode(HermesSessionRow.self, from: data), row.id == key,
+                  let source = reply["source"].text, !source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                  row.profile == nil || row.profile == engine.target.profile else { return }
+            // Voice eligibility consumes this exact saved reply, not list/search source adaptation.
+            voiceLookupSession = SessionSummary(sessionId: row.id, profile: engine.target.profile, rawSource: source)
+            voiceLookupScope = scope
+        } catch { return }
+    }
+
     var pushPresence: PushPresence.Viewer? {
         (hermesSessionLink?.key ?? sessionID).map { PushPresence.Viewer(server: server, sessionID: $0) }
     }

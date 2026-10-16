@@ -109,16 +109,10 @@ import Observation
         return Display(messages: Array(messages[start...]), offset: rows.lowerBound, turns: [last])
     }
 
-    /// Outgoing GPT-Live appends, kept apart from messages, speech folds and the archive.
     private(set) var appendJournal = VoiceAppendJournal()
 
     // MARK: Outgoing GPT-Live appends
 
-    /// One append the app handed to the transport. Sent during an exchange on screen, it is the
-    /// next entry of that exchange's fold, after whatever the fold holds now (speech, the
-    /// delegation card, Hermes's rows), and keeps that place once the exchange settles.
-    /// Sent with no exchange on screen, it is drawn between turns, after the last one.
-    /// Returns the journal entry (what the archive records).
     @discardableResult
     func recordAppend(_ observation: VoiceAppendObservation) -> VoiceAppendJournal.Entry {
         let entry: VoiceAppendJournal.Entry
@@ -156,9 +150,6 @@ import Observation
     func delegationSaved(id: String, userRowID: Int?, rowIDs: [Int]) {
         appendJournal.saved(delegation: id, userRowID: userRowID, rowIDs: rowIDs)
     }
-
-    /// A voice screen opened on a chat: the appends its voice archive holds from earlier calls
-    /// (`VoiceAppendJournal(restoring:)`), before anything of this screen's.
 
 
     /// Which drawn turn holds each append (`VoiceAppendJournal.home`): its exchange while that

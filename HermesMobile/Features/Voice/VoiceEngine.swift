@@ -53,7 +53,6 @@ struct VoiceStartScope: Equatable {
 
     private(set) var state: State = .checking
     private(set) var scope: VoiceStartScope?
-    private(set) var routes: HermexCompanionRoutes = .closed
     private var requestID: UUID?
 
     func offersVoice(for scope: VoiceStartScope) -> Bool {
@@ -66,17 +65,13 @@ struct VoiceStartScope: Equatable {
     /// completion from enabling GPT-Live on a different server or after credentials change.
     func refresh(scope: VoiceStartScope,
                  load: (VoiceStartScope) async throws -> VoiceLive.Status? = VoiceStartAvailability.fetch,
-                 loadRoutes: (VoiceStartScope) async throws -> HermexCompanionRoutes = VoiceStartAvailability.fetchRoutes,
                  currentScope: () -> VoiceStartScope) async {
         let requestID = UUID()
         self.requestID = requestID
         self.scope = scope
         state = .checking
-        routes = .closed
         do {
-            let mounted = try await loadRoutes(scope)
             guard !Task.isCancelled, self.requestID == requestID, currentScope() == scope else { return }
-            routes = mounted
             guard offersVoice(for: scope) else { state = .unavailable(String(localized: "This Hermes has no GPT-Live.")); return }
             let status = try await load(scope)
             guard !Task.isCancelled, self.requestID == requestID, currentScope() == scope else { return }
@@ -92,14 +87,10 @@ struct VoiceStartScope: Equatable {
         let client = BotClient(saved: connection, server: scope.server)
         defer { client.close() }
         try await client.connect()
-        return nil
+        return try await client.voiceLiveStatus()
     }
 
-    static func fetchRoutes(_ scope: VoiceStartScope) async throws -> HermexCompanionRoutes {
-        guard let connection = scope.connection else { return .closed }
-        let http = HermesConnections.shared.connection(for: connection, server: scope.server)
-        return try await BotDashboardClient(http: http).companionRoutes()
-    }
+
 }
 
 /// The voice screen's one engine interface. `VoiceSession` (Normal: on-device endpointing,
@@ -124,7 +115,6 @@ struct VoiceStartScope: Equatable {
     var pendingApproval: BotApprovalRequest? { get }
     /// What Hermes is doing for this chat, from its own gateway events (the status line).
     var hermesStatus: VoiceHermesStatus { get }
-    /// DEBUG diagnostics line under the transcript.
     var debugLine: String { get }
     func tapToInterrupt()
     /// The screen's clock (Normal: every second; GPT-Live: every 200 ms, see `tickInterval`).
@@ -183,14 +173,7 @@ struct VoiceHermesStatus: Equatable {
     mutating func turnEndedWithoutReply() { move(.stopped, at: nil) }
 
     /// The state's name for the flight recorder (the tool's gateway name, no arguments).
-    var flightName: String {
-        switch state {
-        case .idle: return "idle"
-        case .thinking: return "thinking"
-        case let .working(tool): return "working:" + tool
-        case .stopped: return "stopped"
-        }
-    }
+
 
     private mutating func move(_ next: State, at now: Date?) {
         state = next
@@ -257,7 +240,6 @@ extension VoiceSession: VoiceEngine {
 }
 
 
-
 /// Switching modes mid-session, or Continue by voice: the next engine continues in the same chat;
 /// GPT-Live gets what was said so far as seed history (from the transcript's rows).
 struct VoiceHandoff: Equatable {
@@ -287,5 +269,13 @@ struct VoiceHandoff: Equatable {
     /// GPT-Live's seed (whole-message limits apply in `VoiceLive.history`).
     var seedTurns: [(role: String, text: String)] {
         earlier.map { ($0.fromUser ? "user" : "assistant", $0.text) }
+    }
+}
+extension VoiceLiveConversation: VoiceEngine {
+    var mode: VoiceMode { .live }
+    var tickInterval: Duration { .milliseconds(200) }
+    var speechSlow: Bool { false }
+    var debugLine: String {
+        "live · delegations \(delegations) · turns \(turnsSubmitted) · interrupts \(interruptsSent) · cuts \(playoutCuts)"
     }
 }
