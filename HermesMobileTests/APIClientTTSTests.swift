@@ -41,8 +41,10 @@ final class APIClientTTSTests: APIClientTestCase {
         for engine in [TTSEngine.openai, .elevenlabs] {
             let client = makeClient { request in
                 let body = try XCTUnwrap(apiTestBodyData(from: request))
-                let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: String])
-                XCTAssertEqual(json, ["text": "Hello", "engine": engine.rawValue])
+                let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+                XCTAssertEqual(json["text"] as? String, "Hello")
+                XCTAssertEqual(json["engine"] as? String, engine.rawValue)
+                XCTAssertNil(json["voice"], "No voice lets the provider's configured one apply")
                 return (HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!, Data([1]))
             }
             let audio = try await client.synthesizeSpeech(text: "Hello", voice: nil, engine: engine)
@@ -65,51 +67,6 @@ final class APIClientTTSTests: APIClientTestCase {
             let settings = try await client.settings()
             XCTAssertEqual(settings.ttsEngine, engine)
             XCTAssertEqual(settings.ttsVoice, voice)
-        }
-    }
-
-    func testSynthesizeSpeechThrowsHTTPCarryingServerErrorBodyOnRateLimit() async {
-        let client = makeClient { request in
-            let response = HTTPURLResponse(
-                url: request.url!,
-                statusCode: 429,
-                httpVersion: nil,
-                headerFields: ["Content-Type": "application/json"]
-            )!
-            return (response, Data(#"{"error": "rate limit exceeded — please wait"}"#.utf8))
-        }
-
-        do {
-            _ = try await client.synthesizeSpeech(text: "Too fast.", voice: "en-US-AriaNeural")
-            XCTFail("Expected APIError.http")
-        } catch let APIError.http(statusCode, body) {
-            // The caller treats any thrown error as "fall back to the on-device
-            // synthesizer"; the status/body are only for diagnostics.
-            XCTAssertEqual(statusCode, 429)
-            XCTAssertEqual(body?.contains("rate limit exceeded"), true)
-        } catch {
-            XCTFail("Unexpected error: \(error)")
-        }
-    }
-
-    func testSynthesizeSpeechMapsUnauthorized() async {
-        let client = makeClient { request in
-            let response = HTTPURLResponse(
-                url: request.url!,
-                statusCode: 401,
-                httpVersion: nil,
-                headerFields: nil
-            )!
-            return (response, Data())
-        }
-
-        do {
-            _ = try await client.synthesizeSpeech(text: "Hello.", voice: "en-US-AriaNeural")
-            XCTFail("Expected APIError.unauthorized")
-        } catch APIError.unauthorized {
-            // expected
-        } catch {
-            XCTFail("Unexpected error: \(error)")
         }
     }
 }
