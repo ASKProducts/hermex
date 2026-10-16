@@ -185,10 +185,13 @@ struct ProfileSwitchOutcome: Equatable {
     let session: SessionSummary?
 }
 
-struct ChatPollingIntervals: Equatable {
+struct ChatPollingIntervals {
     let approvalNanoseconds: UInt64
     let clarificationNanoseconds: UInt64
     let backgroundNanoseconds: UInt64
+    /// Waits out one interval between polls. A test passes its own, so it sees each poll go
+    /// back to sleep, and a cancelled one stop, instead of timing them.
+    var sleep: @Sendable (UInt64) async -> Void = { try? await Task.sleep(nanoseconds: $0) }
 
     static let standard = ChatPollingIntervals(
         approvalNanoseconds: 1_500_000_000,
@@ -1796,8 +1799,7 @@ final class ChatViewModel {
     func transcriptMediaThumbnailData(for reference: TranscriptMediaReference) async -> Data? {
         guard let hermesTurn else { return await attachmentCoordinator.transcriptMediaThumbnailData(for: reference) }
         guard reference.isRasterImageCandidate,
-              let data = await hermesTranscriptMediaData(for: reference, from: hermesTurn,
-                                                         limit: BotArtifactBuffer.maximumBytes) else { return nil }
+              let data = await hermesTranscriptMediaData(for: reference, from: hermesTurn, whole: false) else { return nil }
         return await ImagePreviewDownsampler.previewDataAsync(
             from: data,
             maxPixelSize: ImagePreviewDownsampler.attachmentMaxPixelSize
@@ -1810,13 +1812,13 @@ final class ChatViewModel {
     /// Nil when it can't load.
     func transcriptMediaData(for reference: TranscriptMediaReference) async -> Data? {
         guard let hermesTurn else { return await attachmentCoordinator.transcriptMediaData(for: reference) }
-        return await hermesTranscriptMediaData(for: reference, from: hermesTurn, limit: nil)
+        return await hermesTranscriptMediaData(for: reference, from: hermesTurn, whole: true)
     }
 
     private func hermesTranscriptMediaData(for reference: TranscriptMediaReference, from turn: HermesChatTurnCoordinator,
-                                           limit: Int?) async -> Data? {
+                                           whole: Bool) async -> Data? {
         switch reference.source {
-        case let .localPath(path): return try? await turn.attachmentData(path: path, limit: limit)
+        case let .localPath(path): return try? await turn.attachmentData(path: path, whole: whole)
         case let .remoteURL(url): return try? await client.remoteTranscriptMediaData(from: url)
         }
     }
@@ -6486,7 +6488,7 @@ final class ChatViewModel {
     private func startBackgroundPollingIfNeeded(parentSessionID: String) {
         guard backgroundPollTask == nil else { return }
 
-        let pollingInterval = pollingIntervals.backgroundNanoseconds
+        let pollingInterval = pollingIntervals.backgroundNanoseconds, waitInterval = pollingIntervals.sleep
         backgroundPollTask = Task { @MainActor [weak self] in
             pollingLoop: while !Task.isCancelled {
                 do {
@@ -6506,7 +6508,7 @@ final class ChatViewModel {
                     }
                 }
 
-                try? await Task.sleep(nanoseconds: pollingInterval)
+                await waitInterval(pollingInterval)
             }
 
             if !Task.isCancelled {
