@@ -1,8 +1,6 @@
 import XCTest
 @testable import HermesMobile
 
-/// The voice screen's turn model (Ariex #6): dashboard frames into the chat's live fold,
-/// GPT-Live exchanges as local rows, settle onto saved rows, current-exchange slicing.
 @MainActor final class VoiceTranscriptModelTests: XCTestCase {
     private func texts(_ turn: ChatTurn?) -> [String] {
         (turn?.segments ?? []).map {

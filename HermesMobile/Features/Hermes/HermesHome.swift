@@ -66,7 +66,7 @@ struct HermesHomeVoiceButton: View {
             Label("Talk to Hermes", systemImage: "waveform")
         } primaryAction: {
             HapticButtonHaptics.tap(style: .medium, isEnabled: isHapticsEnabled)
-            voiceCalls.start(VoiceCallPresentation(server: server, requestedMode: VoicePreferences.defaultMode))
+            voiceCalls.start(VoiceCallPresentation(server: server))
         }
         .disabled(isDisabled)
         .accessibilityIdentifier("voice-start")

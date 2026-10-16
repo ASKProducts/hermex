@@ -5,7 +5,7 @@ struct ComposerVoiceCallControl {
     let availability: VoicePreferences.ContinueByVoice
     let modes: VoiceStartAvailability
     let scope: VoiceStartScope
-    let start: (VoiceMode) -> Void
+    let start: (VoiceMode?) -> Void
 }
 
 enum ComposerVoiceCallState: Equatable {
@@ -28,14 +28,14 @@ struct ComposerVoiceCallButton: View {
         let state = ComposerVoiceCallState(availability: control.availability, callIsRunning: callIsRunning)
         if state != .hidden, control.modes.offersVoice(for: control.scope) {
             Menu {
-                VoiceStartMenu(availability: control.modes, scope: control.scope, start: control.start)
+                VoiceStartMenu(availability: control.modes, scope: control.scope, start: { control.start($0) })
             } label: {
                 Image(systemName: "waveform")
                     .font(.system(size: 18, weight: .regular))
                     .frame(width: 44, height: 44)
                     .foregroundStyle(color)
             } primaryAction: {
-                control.start(VoicePreferences.defaultMode)
+                control.start(nil)
             }
             .buttonStyle(.plain)
             .disabled(state == .disabled)

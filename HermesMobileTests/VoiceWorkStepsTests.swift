@@ -1,8 +1,6 @@
 import XCTest
 @testable import HermesMobile
 
-/// #115: spoken progress from the real work. Steps come from Hermes's gateway events with the
-/// detail the tool cards already show; updates are paced on an injected clock.
 @MainActor final class VoiceWorkStepsTests: XCTestCase {
     private func tool(_ name: String, _ args: [String: BotJSON] = [:]) -> BotJSON {
         .object(["tool_id": .string(UUID().uuidString), "name": .string(name), "args": .object(args)])
@@ -64,10 +62,6 @@ import XCTest
 
     // MARK: Timing (injected clock)
 
-
-
-
-
     // MARK: Through the GPT-Live call
 
     var clock = Date(timeIntervalSince1970: 1_000)
@@ -97,9 +91,6 @@ import XCTest
         transport.sent(type: "session.thinking.append").compactMap { $0["content"].text }
     }
 
-    /// Switch off: nothing unprompted is said, and no step is pushed at GPT-Live on its own;
-    /// when the user speaks while Hermes works, the step list reaches GPT-Live as silent context
-    /// before it answers, so "what are you doing?" is answered from it.
     func testOnDemandContextIsPresentWithTheSwitchOff() async {
         let (conversation, backend, transport) = await call(progress: false)
         defer { withExtendedLifetime(conversation) {} }

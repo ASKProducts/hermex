@@ -2,8 +2,6 @@ import SwiftUI
 import XCTest
 @testable import HermesMobile
 
-/// L4: the voice screen's one engine interface (Normal and GPT-Live), per-call selection,
-/// GPT-Live's transcript rows, tap-to-interrupt's local playout cut, and the Continue-by-voice seed.
 @MainActor final class VoiceEngineTests: XCTestCase {
     private let live = VoiceLiveTests()
 
@@ -93,9 +91,6 @@ import XCTest
         let transcript = conversation.transcript
         XCTAssertEqual(transcript.liveUserMessage?.content, "What time is it?")
         XCTAssertEqual(Array(segments(transcript.liveTurn).prefix(2)), ["text:Checking now.", "tool:delegation:del_9:Hermes:running"])
-        // Hermes's tool inside the exchange, then the one append sent after it: the approval's
-        // spoken request. A tool step alone sends no thinking append (#115: GPT-Live answers
-        // each append aloud; the step list goes out when the user speaks).
         let rows = segments(transcript.liveTurn)
         XCTAssertEqual(rows.count, 4)
         XCTAssertTrue(rows[2].hasPrefix("tool:terminal#"), "Hermes's tool inside the exchange")
@@ -108,9 +103,6 @@ import XCTest
         XCTAssertEqual(Array(segments(conversation.transcript.liveTurn).prefix(2)), ["text:Checking now.", "tool:delegation:del_9:Hermes:done"])
     }
 
-    /// The delegation's `message.complete` carries Hermes's receipt (`persisted_turn`, shape from
-    /// the work capture in `VoiceLiveConversation`): its saved row ids anchor the reply's
-    /// commentary, so after a refetch it sits under the saved reply in the turn of `user_row_id`.
     func testDelegationReceiptAnchorsItsCommentaryInTheRefetchedTurn() async throws {
         let (conversation, backend, transport) = await liveConversation()
         transport.events.handle(#"{"type":"session.input_transcript.delta","delta":"What time is it?","start_ms":0,"end_ms":400}"#)
@@ -207,37 +199,38 @@ import XCTest
     // MARK: Screen model
 
     func testCallSelectionDoesNotRereadSettingsAfterCapture() throws {
-        let saved = UserDefaults.standard.object(forKey: VoicePreferences.defaultModeKey)
+        let saved = UserDefaults.standard.object(forKey: "voice.defaultMode")
         defer {
-            if let saved { UserDefaults.standard.set(saved, forKey: VoicePreferences.defaultModeKey) }
-            else { UserDefaults.standard.removeObject(forKey: VoicePreferences.defaultModeKey) }
+            if let saved { UserDefaults.standard.set(saved, forKey: "voice.defaultMode") }
+            else { UserDefaults.standard.removeObject(forKey: "voice.defaultMode") }
         }
-        UserDefaults.standard.set(VoiceMode.normal.rawValue, forKey: VoicePreferences.defaultModeKey)
+        UserDefaults.standard.set(VoiceMode.normal.rawValue, forKey: "voice.defaultMode")
         let connection = BotConnection(id: UUID(), name: "t", address: try BotConnection.address("http://127.0.0.1:9"),
                                        username: "u", password: "p")
-        let model = VoiceScreenModel(server: URL(string: "https://example.invalid")!, connection: connection, resumeSessionKey: nil)
-        UserDefaults.standard.set(VoiceMode.live.rawValue, forKey: VoicePreferences.defaultModeKey)
+        let model = VoiceScreenModel(server: URL(string: "https://example.invalid")!, connection: connection, resumeSessionKey: nil, requestedMode: .normal)
+        UserDefaults.standard.set(VoiceMode.live.rawValue, forKey: "voice.defaultMode")
         XCTAssertEqual(model.mode, .normal, "call mode must be captured, not reread during presentation or startup")
-        XCTAssertEqual(VoicePreferences.defaultMode, .live, "launch selection never writes Settings")
+        XCTAssertEqual(UserDefaults.standard.string(forKey: "voice.defaultMode"), VoiceMode.live.rawValue, "launch selection never writes the legacy preference")
     }
 
     func testExplicitModeOverridesOnlyThisCallAndNextLaunchUsesSettings() throws {
-        let saved = UserDefaults.standard.object(forKey: VoicePreferences.defaultModeKey)
+        let saved = UserDefaults.standard.object(forKey: "voice.defaultMode")
         defer {
-            if let saved { UserDefaults.standard.set(saved, forKey: VoicePreferences.defaultModeKey) }
-            else { UserDefaults.standard.removeObject(forKey: VoicePreferences.defaultModeKey) }
+            if let saved { UserDefaults.standard.set(saved, forKey: "voice.defaultMode") }
+            else { UserDefaults.standard.removeObject(forKey: "voice.defaultMode") }
         }
         let connection = BotConnection(id: UUID(), name: "t", address: try BotConnection.address("http://127.0.0.1:9"),
                                        username: "u", password: "p")
         for preferred in VoiceMode.allCases {
-            UserDefaults.standard.set(preferred.rawValue, forKey: VoicePreferences.defaultModeKey)
+            UserDefaults.standard.set(preferred.rawValue, forKey: "voice.defaultMode")
             for override in VoiceMode.allCases {
                 let model = VoiceScreenModel(server: URL(string: "https://example.invalid")!, connection: connection,
                                              resumeSessionKey: "chat-1", requestedMode: override)
                 XCTAssertEqual(model.mode, override)
-                XCTAssertEqual(VoicePreferences.defaultMode, preferred)
+                XCTAssertEqual(UserDefaults.standard.string(forKey: "voice.defaultMode"), preferred.rawValue)
                 let next = VoiceScreenModel(server: URL(string: "https://example.invalid")!, connection: connection,
                                             resumeSessionKey: nil)
+                next.applyLiveStatus(.init(mode: preferred.hostValue, available: true, reason: nil, model: nil, voice: nil))
                 XCTAssertEqual(next.mode, preferred)
             }
         }
@@ -253,7 +246,6 @@ import XCTest
         XCTAssertEqual(model.mode, .normal)
     }
 
-    /// #59: the dock has exactly Mute and End; there is no separate "Open chat".
     func testDockHasOneEndAndNoOpenChat() throws {
         let host = UIHostingController(rootView: VoiceDock(muted: false, toggleMute: {}, end: {}))
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
@@ -276,8 +268,6 @@ import XCTest
         XCTAssertEqual(VoiceDock.buttonIdentifiers, ["voice-mute", "voice-end"])
     }
 
-    /// #59: End returns the chat the call worked in (so the screen opens it), and nil when
-    /// the call never made one (the screen just closes).
     func testEndReturnsTheCallsChatOrNilWhenNoneWasMade() async throws {
         let connection = BotConnection(id: UUID(), name: "t", address: try BotConnection.address("http://127.0.0.1:9"),
                                        username: "u", password: "p")
@@ -293,8 +283,6 @@ import XCTest
             XCTAssertNil(freshChat, "\(mode): no request was made, so there is no chat to open")
         }
     }
-
-
 
     func testAvailabilityRejectsOldServerCompletion() async {
         let first = VoiceStartScope(server: URL(string: "https://first.invalid")!, connection: testConnection())
@@ -366,12 +354,6 @@ import XCTest
         XCTAssertNil(availability.state.reason)
     }
 
-
-
-    // MARK: Transcript segments (L5)
-
-    /// The real frames of live probe 01:27:44 (live-l5/probe-events.log): "Okay." is one output item,
-    /// "Lighth"+"ouses use a…" the next, 1,000 ms later with no leading space. Was "Okay.Lighthouses".
     func testOutputItemsJoinWithASpaceButWordPiecesDoNot() async {
         let (conversation, _, transport) = await liveConversation()
         transport.onSpeakingChange?(true)
@@ -383,11 +365,8 @@ import XCTest
         XCTAssertEqual(segments(conversation.transcript.liveTurn), ["text:Okay. Lighthouses use a powerful light,"])
     }
 
-    /// The input side: a pause inside one utterance ("…Do not ask Hermes" / ". Just" in L4) arrives
-    /// with its own spacing; a new segment without one gets a space, a contiguous piece never does.
     func testInputSegmentsJoinWithASpace() async {
         let (conversation, _, transport) = await liveConversation()
-        // The real input frames of live check 01:42 (live-l5/events.log): gaps between words, own spacing.
         for (start, delta) in [(3400, "Say"), (3600, " the"), (3800, " word"), (4400, " okay"), (5000, ", then"), (5400, ", as a"),
                                (7800, " two"), (8400, "-sentence"), (10400, ". Don't")] {
             transport.events.handle(#"{"type":"session.input_transcript.delta","start_ms":\#(start),"end_ms":\#(start + 200),"delta":"\#(delta)"}"#)

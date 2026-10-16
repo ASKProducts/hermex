@@ -119,7 +119,6 @@ extension VoicePlayback {
     /// The status line: Hermes's own gateway events for this chat.
     private(set) var hermesStatus = VoiceHermesStatus()
 
-
     func start() async {
         backend.onEvent = { [weak self] frame in self?.handle(frame) }
         backend.onDisconnect = { [weak self] error in

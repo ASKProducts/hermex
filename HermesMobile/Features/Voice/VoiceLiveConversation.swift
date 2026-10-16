@@ -53,7 +53,6 @@ import Foundation
     /// The status line: Hermes's own gateway events for this chat.
     private(set) var hermesStatus = VoiceHermesStatus()
 
-
     /// The mic's level for the meter (WebRTC stats), nil when the transport doesn't know.
     func inputLevel() async -> Double? { await transport?.inputLevel() }
     func outputLevel() async -> Double? { await transport?.outputLevel() }
@@ -667,7 +666,6 @@ import Foundation
         _ = try? await backend.call(.approvalRespond(sessionID: runtime, requestID: approval.requestID, choice: choice))
     }
 
-
     /// Hermes's own remark between steps (`message.interim`) in the active delegation's turn: a
     /// step like any tool. With streaming on, its words already arrived as `message.delta`s
     /// into `response`; the interim marks them as a remark, not the reply, so unspoken they
@@ -689,11 +687,9 @@ import Foundation
         transport.events.think(delegationID, context)
     }
 
-
     /// The commentary GPT-Live is handed for an update: the steps with their specific
     /// detail, to be said as such (measured: asked for only "a few plain words", GPT-Live
     /// said "still going through the sequence" for a run of terminal-command steps).
-
 
     // MARK: Drive (the hook's 200 ms reply effect)
 

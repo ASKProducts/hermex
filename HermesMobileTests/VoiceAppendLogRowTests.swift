@@ -13,7 +13,6 @@ import XCTest
                                delegationID: .null, content: content, rawJSON: raw, locallySent: sent)
     }
 
-
     func testLabelsNameTheKindAndNeverClaimReceipt() {
         XCTAssertEqual(VoiceAppendLogRowContent(observation: observation(.thinking)).summary, "Thinking append")
         XCTAssertEqual(VoiceAppendLogRowContent(observation: observation(.commentary)).summary, "Commentary append")
@@ -31,8 +30,6 @@ import XCTest
         }
     }
 
-    /// #58: the opened body and Copy are the sent JSON pretty-printed (the user: Copy gives the
-    /// pretty version); same values, one key per line.
     func testCopyAndOpenBodyAreTheSentJSONPrettyPrinted() throws {
         let raw = #"{"content":"  quoted \"🌍\" \\ path\nnext  ","delegation_id":null,"event_id":"say_7","type":"session.commentary.append"}"#
         let row = VoiceAppendLogRowContent(observation: observation(.commentary, raw: raw))
@@ -88,12 +85,7 @@ import XCTest
     /// (one line, the log row's height), and its open state comes from the transcript's one
     /// disclosure state under `append:<row id>`; open, the cell holds the JSON body under it.
 
-
     /// The same row as a segment of its exchange: open state is the disclosure state's entry
     /// for the segment id, as for every other segment the item function emits.
-
-
-    /// Appends sent during an exchange are segments of it, never messages (not speech). #74: they
-    /// are members of the turn's activity group, in send order, shown when it is expanded.
 
 }

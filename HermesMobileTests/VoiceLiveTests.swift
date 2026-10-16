@@ -390,7 +390,6 @@ import XCTest
 
     func testEmptyTailDoesNothingAndClosesLocally() async {
         let (conversation, backend, _) = await makeConversation()
-        // #51: a new call creates its chat at start, before any speech; ending sends nothing more.
         XCTAssertEqual(backend.calls.map(\.0), ["session.create"])
         await conversation.end()
         await conversation.end()
@@ -601,8 +600,6 @@ import XCTest
         XCTAssertTrue(transport.sent(type: "session.commentary.append").allSatisfy { $0["delegation_id"].text == "del_1" })
     }
 
-    /// Live run L2: after a tool call the reply streamed "\n\nI ran it…", and message.complete carried
-    /// the trimmed text; the voice got ". I ran it…" then "t says…" (offset shifted by 2).
     func testReplyAfterToolStreamsCleanChunksWhenCompleteTextIsTrimmed() async {
         let (conversation, backend, transport) = await makeConversation()
         defer { withExtendedLifetime(conversation) {} }
@@ -672,11 +669,6 @@ import XCTest
         XCTAssertEqual(duplicateIDs(model), [])
     }
 
-    /// Hermes thought during the GPT-Live call but the voice screen showed only
-    /// tool rows. A delegation's `reasoning.delta` / `message.interim` reach the transcript as in
-    /// Normal mode (the `thinking.delta` spinner frame between them draws nothing); the exchange's
-    /// local rows then carry exactly one Thinking
-    /// row per step, under the live ids, and the user speaking again mid-run makes no duplicate.
     func testDelegatedThinkingIsDrawnAndSettlesToOneRowPerStep() async {
         let (conversation, backend, transport) = await makeConversation()
         delegate(transport, "Check the running chats", id: "del_T")
@@ -709,9 +701,6 @@ import XCTest
         XCTAssertEqual(duplicateIDs(model), [])
     }
 
-    /// request A ran, the user asked B, A was interrupted. A's `message.complete`
-    /// (status interrupted) settled B, so B's reply was never handed to GPT-Live. Frames as the
-    /// gateway sends them: no turn id, so B's turn is the `message.start` after B's submit.
     func testInterruptedTurnsCompleteDoesNotSettleTheNewerDelegationAndItsReplyIsSpoken() async {
         let (conversation, backend, transport) = await makeConversation()
         defer { withExtendedLifetime(conversation) {} }
@@ -904,8 +893,6 @@ import XCTest
         XCTAssertNil(VoiceLive.Status(.object(["ok": .bool(false)])))
     }
 
-    // MARK: Call audio routing (#6: GPT-Live played from the earpiece)
-
     /// WebRTC re-applies its own configuration when the audio unit starts; that configuration must
     /// carry the call options, or `.playAndRecord` falls back to the earpiece.
     func testGPTLiveAudioConfigurationWebRTCAppliesRoutesLikeACall() {
@@ -930,13 +917,6 @@ import XCTest
     /// Every route change during a live call becomes `voice-route` with the reason code and the
     /// new output port type (numbers and codes only), and stops once the call is torn down.
 
-
-    // MARK: #69 — a follow-up while Hermes works is answered by a fresh turn
-
-    /// Scripted Hermes for #69, from `_handle_busy_submit` / `interrupt_control.redirect()`
-    /// (hermes-agent 4ed093cb6b): while a turn runs, a submit during a tool call is steered into
-    /// that turn even with a stop pending; during a model call a pending stop makes it queue.
-    /// After the stopped turn's `message.complete`, a submit starts a fresh turn ("streaming").
     final class ScriptedHermes {
         enum Step { case idle, model, tool }
         var step = Step.idle
@@ -985,8 +965,6 @@ import XCTest
         await waitUntil { conversation.holdingFollowUp || self.submits(hermes).count >= count }
     }
 
-    /// (a) The #69 failure: words during a tool call. Main sent them right after the interrupt,
-    /// Hermes steered them into the dying turn, and nothing answered them.
     func testFollowUpDuringAToolCallIsSubmittedFreshAfterTheStoppedTurnCompletes() async {
         let (conversation, backend, transport) = await makeConversation()
         defer { withExtendedLifetime(conversation) {} }
@@ -1068,8 +1046,6 @@ import XCTest
         XCTAssertEqual(submits(hermes).count, 2)
     }
 
-    /// The connection drops during the hold and can't be restored (#110: the chat is gone):
-    /// the call ends with the reason, and the held words are never sent.
     func testConnectionLostDuringTheHoldEndsTheCallAndSendsNothing() async {
         let (conversation, backend, transport) = await makeConversation()
         defer { withExtendedLifetime(conversation) {} }
@@ -1107,7 +1083,6 @@ import XCTest
         XCTAssertEqual(conversation.hermesStatus.label(now: clock), "Idle")
     }
 
-    /// A Hermes turn ended without a reply while the delegation was open: the #69 failure, shown.
     func testStatusLineSaysStoppedWhenAnOpenRequestsTurnEndsWithoutAReply() async {
         let (conversation, backend, transport) = await makeConversation()
         defer { withExtendedLifetime(conversation) {} }
@@ -1120,8 +1095,6 @@ import XCTest
         backend.emit("message.start")
         XCTAssertEqual(conversation.hermesStatus.state, .thinking, "the next turn clears it")
     }
-
-    // MARK: #52/#115 spoken progress (Settings › Voice, "Speak progress during long tasks")
 
     /// A delegation whose turn has started, with the progress switch set as given.
     private func progressCall(_ on: Bool) async -> (VoiceLiveConversation, FakeVoiceBackend, FakeLiveTransport) {
@@ -1143,17 +1116,8 @@ import XCTest
         transport.commentary.filter { $0.hasPrefix("Progress update") }
     }
 
-    /// #115: a remark is a step like any tool. Quiet and past the first delay, the steps since
-    /// the request go out once as one update; the step list is the thinking append.
-
-
-    /// the user is talking: nothing goes out; when the user's utterance settles the steps go together.
-    /// While GPT-Live says it, newer steps wait for its speech to end and the interval.
-
-
     /// An update handed over but not yet voiced holds the next, even past the interval, until
     /// GPT-Live has spoken.
-
 
     /// Switch off: nothing unprompted, and the reply is spoken as before.
     func testSwitchOffSendsNoProgress() async {
@@ -1170,10 +1134,6 @@ import XCTest
         XCTAssertEqual(progressNotes(transport), [])
         XCTAssertEqual(transport.commentary.joined(separator: " "), "Done. Freed 4 GB.")
     }
-
-    /// The call's settings sheet (#86) flips the switch mid-call: the running call reads the
-    /// stored value at each check, so turning it on applies to the steps not yet told.
-
 
     /// Once the final reply has started, nothing unprompted is said, and the reply is spoken as before.
     func testNoProgressAfterTheFinalReplyStarts() async {
@@ -1238,8 +1198,6 @@ extension FakeVoiceBackend: VoiceLiveBackend {
     func voiceLiveSession(sdp: String, history: [BotJSON], profile: String?) async throws -> (answer: String, sessionID: String?) { ("v=0\r\n", "s") }
 }
 
-/// How much of the spoken conversation each request carries (issue #6), through the real
-/// `VoiceLiveEvents` → `onDelegation` → `delegationPrompt` path, one fragment per word.
 @MainActor final class VoiceLiveContextTests: XCTestCase {
     private var defaults: UserDefaults!
     private var events: VoiceLiveEvents!
@@ -1280,7 +1238,6 @@ extension FakeVoiceBackend: VoiceLiveBackend {
         events.handle(#"{"type":"session.delegation.created","delegation":{"id":"del_\#(delegationCount)"}}"#)
     }
 
-    /// #37: receiving a vendor delegation is not evidence Hermes accepted the words.
     func testUnacceptedDelegationKeepsTheReceivedTailForTheNextRequest() {
         events.onDelegation = { [unowned self] _, fragments in contexts.append(VoiceLive.delegationPrompt(fragments).context) }
         say(.user, ["Remember", "Friday."])
@@ -1339,8 +1296,6 @@ extension FakeVoiceBackend: VoiceLiveBackend {
         XCTAssertEqual(receivedContexts.map(\.count), [310, 12, 3])
     }
 
-    /// the user's case: a ground rule, ~300 words of talk, then a request. The old 80-fragment
-    /// cap dropped the rule from the request's context.
     func testGroundRuleSaidThreeHundredWordsEarlierIsInTheContext() {
         say(.user, ["From", "now", "on", "only", "note", "decisions,", "don't", "act", "on", "them."])
         say(.assistant, ["Got", "it."])

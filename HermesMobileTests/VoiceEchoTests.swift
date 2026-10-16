@@ -2,9 +2,6 @@ import AVFoundation
 import XCTest
 @testable import HermesMobile
 
-/// Echo and interruption signal vectors with neutral labels and utterances.
-/// Each case feeds 0.1-second PCM buffers through `VoiceAudioEngine` and `VoiceSession`;
-/// transcription and prompt submission use a fake backend.
 @MainActor final class VoiceEchoTests: XCTestCase {
     struct SignalCase {
         let name: String

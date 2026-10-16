@@ -3,7 +3,6 @@ import UIKit
 import XCTest
 @testable import HermesMobile
 
-/// The voice screen's look (#85, #86) and the voice archive's removal from the app (#87).
 final class VoiceLookTests: XCTestCase {
     /// App source read from the checkout (`#filePath`), as `BotConnectionVersionTests` reads its pin.
     private func source(_ path: String) throws -> String {
@@ -17,8 +16,6 @@ final class VoiceLookTests: XCTestCase {
         return text
     }
 
-    // MARK: #86 Speech-to-text + Hermes voice, settings gear and sheet
-
     @MainActor func testModeNamesShowCascadeVoiceAndGPTLive() {
         XCTAssertEqual(VoiceMode.normal.title, "Speech-to-text + Hermes voice")
         XCTAssertEqual(VoiceMode.live.title, "GPT-Live")
@@ -29,7 +26,7 @@ final class VoiceLookTests: XCTestCase {
                        "Using Speech-to-text + Hermes voice. This Hermes has no GPT-Live.")
         XCTAssertEqual(VoiceScreenModel.fallbackLine(reason: nil), "Using Speech-to-text + Hermes voice. Couldn't check GPT-Live.")
         XCTAssertEqual(VoiceSettingsView.modeFooter,
-                       "GPT-Live is used when your Hermes offers it; otherwise voice starts in Speech-to-text + Hermes voice.")
+                       "Saved on this Hermes Profile. Applies to the next call. GPT-Live falls back to Speech-to-text + Hermes voice if unavailable.")
     }
 
     /// No user-visible "Normal" is left in the voice screen's source (start menu, sheet, picker,
@@ -90,8 +87,6 @@ final class VoiceLookTests: XCTestCase {
         [view] + view.subviews.flatMap { descendants(of: $0) }
     }
 
-    // MARK: #85/#94 header buttons; #111 the orb alone at the top left
-
     /// At 402 pt (iPhone 17 Pro, the simulator's width) the header is the orb's 32 pt slot at the
     /// leading edge and the two buttons at the trailing edge, nothing between; the row is as
     /// tall as the buttons.
@@ -127,10 +122,6 @@ final class VoiceLookTests: XCTestCase {
         XCTAssertTrue(chrome.contains("VoiceHeaderButton(systemImage: \"gearshape.fill\""))
     }
 
-    // MARK: #87 Voice archive out of the app
-
-    /// No entry point opens the archive: not the chat menu, not the voice screen. Storing stays
-    /// (`VoiceArchiveTests`, `VoiceArchiveHTTPTests` cover the outbox, client, store and wire).
     func testVoiceArchiveHasNoEntryPointInTheApp() throws {
         let chat = try source("HermesMobile/Features/Chat/ChatView.swift")
         XCTAssertFalse(chat.contains("chat-voice-archive"))

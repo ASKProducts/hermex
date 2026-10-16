@@ -101,16 +101,6 @@ import XCTest
 
     // MARK: Text rules
 
-    func testVoiceSessionKeysPersistAsPropertyList() {
-        let server = URL(string: "https://voice-keys-test.example")!
-        UserDefaults.standard.removeObject(forKey: "voice.sessionKeys." + server.absoluteString)
-        VoicePreferences.rememberVoiceSession("20260930_000045_1884c1", server: server)
-        VoicePreferences.rememberVoiceSession("b", server: server)
-        XCTAssertEqual(VoicePreferences.voiceSessionKeys(server: server), ["20260930_000045_1884c1", "b"])
-        XCTAssertTrue(VoicePreferences.voiceSessionKeys(server: URL(string: "https://other.example")!).isEmpty)
-        UserDefaults.standard.removeObject(forKey: "voice.sessionKeys." + server.absoluteString)
-    }
-
     func testStopPhrasesMatchWholeUtterancesOnly() {
         for phrase in ["stop", "Stop.", "Hey Hermes, stop!", "okay that's all", "never mind", "Goodbye", "hermes cancel", "please stop"] {
             XCTAssertTrue(VoiceText.isStopCommand(phrase), phrase)
@@ -224,8 +214,6 @@ import XCTest
 
     // MARK: Playback speech detection
 
-    /// One second as 1024-frame buffers: `n` frames at `peak`, the rest at a
-    /// level that keeps the second's mean, like the phone's `voice-level` max/mean.
     private func phoneSecond(max peak: Float, mean: Float, peakFrames n: Int = 1) -> [Float] {
         let frames = Int((1 / Self.frame).rounded())
         let rest = Swift.max(0, (mean * Float(frames) - peak * Float(n)) / Float(frames - n))
@@ -367,8 +355,6 @@ import XCTest
         XCTAssertEqual(player.stops, 0)
     }
 
-
-
     func testLoudNoiseDuringSpeechCannotHoldAnUtteranceOpenForever() {
         var vad = VoiceEndpointer()
         _ = run(&vad, level: 0.001, seconds: 1)
@@ -491,8 +477,6 @@ import XCTest
         XCTAssertEqual(h.restarts, 5, "at most 5 automatic restarts in 10 s")
         XCTAssertEqual(engine.problem, VoiceAudioEngine.micStoppedLine)
     }
-
-
 
     private static func silentBuffer(level: Float = 0) -> AVAudioPCMBuffer {
         let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 48000, channels: 1, interleaved: false)!
@@ -710,8 +694,6 @@ import XCTest
         XCTAssertEqual(session.phase, .listening)
     }
 
-    // MARK: Round 9 (QA dashboard probe runs 3 and 4)
-
     /// Probe run 3: 4.3 s of audio, then a 6.9 s receive gap, more audio at 11.3 s.
     func testProbeRun3InterSentenceGapPlaysEverything() async throws {
         let backend = FakeVoiceBackend(), player = FakePlayer()
@@ -927,7 +909,6 @@ import XCTest
         XCTAssertEqual(texts, ["hello", "I, I. couldn't hear a word you just said."])
     }
 
-    // Per-second max/mean from the user's voice-level telemetry (1024-frame buffers at 48 kHz).
     private func playbackSeconds(_ seconds: [(Float, Float)]) -> [Float] {
         seconds.flatMap { phoneSecond(max: $0.0, mean: $0.1, peakFrames: 3) }
     }
@@ -1031,7 +1012,6 @@ import XCTest
         XCTAssertEqual(backend.calls.last?.0, "session.interrupt")
         XCTAssertFalse(session.isEnded)
 
-        // Idle "stop" ends: unmark and leave the socket, never session.close (#59).
         backend.transcript = "Goodbye."
         session.speechEnded()
         await session.utterance(audio: Data([9]), mimeType: "audio/m4a", caption: "")
@@ -1261,8 +1241,6 @@ import XCTest
     }
 
     func testSpeechStartingBeforeThePreviousUtteranceIsDeliveredKeepsItsHold() async throws {
-        // QA r10: the user asked, paused, went on talking; the question's words arrived after the new
-        // speech started and released its hold, so the answer played over the user.
         let backend = FakeVoiceBackend(), player = FakePlayer()
         let session = VoiceSession(backend: backend, player: player)
         await session.start()
@@ -1456,8 +1434,6 @@ import XCTest
         XCTAssertTrue(backend.closed)
     }
 
-    /// #59: End while the chat's turn is still running (a subagent or background process the
-    /// voice turn started) leaves that work to the server: no session.close, no interrupt.
     func testEndDuringARunningTurnNeitherClosesNorInterrupts() async throws {
         let backend = FakeVoiceBackend()
         let session = VoiceSession(backend: backend, player: FakePlayer())
@@ -1539,17 +1515,6 @@ import XCTest
     func testVoiceResumeLeavesTheRuntimeToTheServerOnDisconnect() throws {
         XCTAssertEqual(try HermesCall.voiceSessionResume(sessionID: "k1", profile: nil).params(),
                        ["session_id": .string("k1"), "close_on_disconnect": .bool(false), "omit_messages": .bool(true)])
-    }
-
-    func testMicGlyphRowsAreTheVoiceKeysOfThisServer() {
-        let server = URL(string: "https://glyph-test.example")!
-        UserDefaults.standard.removeObject(forKey: "voice.sessionKeys." + server.absoluteString)
-        defer { UserDefaults.standard.removeObject(forKey: "voice.sessionKeys." + server.absoluteString) }
-        VoicePreferences.rememberVoiceSession("voice-1", server: server)
-        XCTAssertTrue(VoicePreferences.isVoiceChat("voice-1", server: server))
-        XCTAssertFalse(VoicePreferences.isVoiceChat("typed-1", server: server))
-        XCTAssertFalse(VoicePreferences.isVoiceChat(nil, server: server))
-        XCTAssertFalse(VoicePreferences.isVoiceChat("voice-1", server: URL(string: "https://other.example")!))
     }
 
     // MARK: Round 3: the rejected turn never completes

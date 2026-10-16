@@ -5,12 +5,12 @@ import Foundation
 struct VoiceCallPresentation: Identifiable {
     let id = UUID()
     let server: URL
-    let requestedMode: VoiceMode
+    let requestedMode: VoiceMode?
     let resumeSessionKey: String?
     let resumeProfile: String?
     let connection: BotConnection?
 
-    init(server: URL, requestedMode: VoiceMode, resumeSessionKey: String? = nil, resumeProfile: String? = nil, connection: BotConnection? = nil) {
+    init(server: URL, requestedMode: VoiceMode? = nil, resumeSessionKey: String? = nil, resumeProfile: String? = nil, connection: BotConnection? = nil) {
         self.server = server
         self.requestedMode = requestedMode
         self.resumeSessionKey = resumeSessionKey
@@ -23,13 +23,18 @@ struct VoiceCallPresentation: Identifiable {
 struct VoiceStartScope: Equatable {
     let server: URL
     let connection: BotConnection?
+    let profile: String?
 
-    @MainActor static func current(server: URL) -> Self {
-        current(server: server, store: BotConnectionStore())
+    init(server: URL, connection: BotConnection?, profile: String? = nil) {
+        self.server = server; self.connection = connection; self.profile = profile
     }
 
-    @MainActor static func current(server: URL, store: BotConnectionStore) -> Self {
-        Self(server: server, connection: try? store.load(server: server))
+    @MainActor static func current(server: URL, profile: String? = nil) -> Self {
+        current(server: server, store: BotConnectionStore(), profile: profile)
+    }
+
+    @MainActor static func current(server: URL, store: BotConnectionStore, profile: String? = nil) -> Self {
+        Self(server: server, connection: try? store.load(server: server), profile: profile)
     }
 }
 
@@ -87,9 +92,8 @@ struct VoiceStartScope: Equatable {
         let client = BotClient(saved: connection, server: scope.server)
         defer { client.close() }
         try await client.connect()
-        return try await client.voiceLiveStatus()
+        return try await client.voiceLiveStatus(profile: scope.profile)
     }
-
 
 }
 
@@ -174,7 +178,6 @@ struct VoiceHermesStatus: Equatable {
 
     /// The state's name for the flight recorder (the tool's gateway name, no arguments).
 
-
     private mutating func move(_ next: State, at now: Date?) {
         state = next
         since = now
@@ -202,7 +205,7 @@ struct VoiceHermesStatus: Equatable {
     }
 }
 
-enum VoiceMode: String, CaseIterable {
+enum VoiceMode: String, CaseIterable, Sendable {
     case normal, live
 
     var title: String {
@@ -238,7 +241,6 @@ extension VoiceSession: VoiceEngine {
         "PCM \(pcmBytesReceived) B · turns \(turnsSubmitted) · steers \(steersSent) · fallback \(usedServerFallback) · interrupted \(lastSubmitInterrupted ? "yes" : "no")"
     }
 }
-
 
 /// Switching modes mid-session, or Continue by voice: the next engine continues in the same chat;
 /// GPT-Live gets what was said so far as seed history (from the transcript's rows).
@@ -278,4 +280,9 @@ extension VoiceLiveConversation: VoiceEngine {
     var debugLine: String {
         "live · delegations \(delegations) · turns \(turnsSubmitted) · interrupts \(interruptsSent) · cuts \(playoutCuts)"
     }
+}
+
+extension VoiceMode {
+    init(hostValue: String?) { self = hostValue == "gpt-live" ? .live : .normal }
+    var hostValue: String { self == .live ? "gpt-live" : "chained" }
 }

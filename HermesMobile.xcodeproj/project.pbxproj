@@ -693,6 +693,8 @@
 		4871A725949BF70DCAD73CB8 /* VoiceLookTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7527A0F87F1E74B8E3321557 /* VoiceLookTests.swift */; };
 		B30F558E910674060D2CFF83 /* VoiceOrbTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 587FD5AD5810D6B029FFAFAB /* VoiceOrbTests.swift */; };
 		3B91ADAAC4093B7B7F00ACEB /* VoiceTranscriptModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7CB49EE264550156321C2E /* VoiceTranscriptModelTests.swift */; };
+		D2A4335B34750A387C6BF752 /* VoiceModePreference.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60006D4BC38E31494AB07AFC /* VoiceModePreference.swift */; };
+		7F3D5D37ADD4213434F46A18 /* VoiceModePreferenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF15FE1E01794EFDBAC1A307 /* VoiceModePreferenceTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -1425,6 +1427,8 @@
 		7527A0F87F1E74B8E3321557 /* VoiceLookTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobileTests/VoiceLookTests.swift"; sourceTree = SOURCE_ROOT; };
 		587FD5AD5810D6B029FFAFAB /* VoiceOrbTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobileTests/VoiceOrbTests.swift"; sourceTree = SOURCE_ROOT; };
 		CF7CB49EE264550156321C2E /* VoiceTranscriptModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobileTests/VoiceTranscriptModelTests.swift"; sourceTree = SOURCE_ROOT; };
+		60006D4BC38E31494AB07AFC /* VoiceModePreference.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobile/Features/Voice/VoiceModePreference.swift"; sourceTree = SOURCE_ROOT; };
+		CF15FE1E01794EFDBAC1A307 /* VoiceModePreferenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobileTests/VoiceModePreferenceTests.swift"; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1490,6 +1494,7 @@
 		1A2B3C4D5E6F700000000031 /* HermesMobile */ = {
 			isa = PBXGroup;
 			children = (
+				60006D4BC38E31494AB07AFC /* VoiceModePreference.swift */,
 				585D27A9879E1AB037CF820E /* VoiceTranscriptProjection.swift */,
 				DD5993426480BABEA1EDA482 /* VoiceAppendRow.swift */,
 				2E7052BE0A57D2519B484AAF /* VoiceLiveSession.swift */,
@@ -1570,6 +1575,7 @@
 		1A2B3C4D5E6F700000000034 /* HermesMobileTests */ = {
 			isa = PBXGroup;
 			children = (
+				CF15FE1E01794EFDBAC1A307 /* VoiceModePreferenceTests.swift */,
 				CF7CB49EE264550156321C2E /* VoiceTranscriptModelTests.swift */,
 				587FD5AD5810D6B029FFAFAB /* VoiceOrbTests.swift */,
 				7527A0F87F1E74B8E3321557 /* VoiceLookTests.swift */,
@@ -2651,6 +2657,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D2A4335B34750A387C6BF752 /* VoiceModePreference.swift in Sources */,
 				6622112F2358B1C75B0DA73D /* VoiceTranscriptProjection.swift in Sources */,
 				4C5219A08CB25F8B8595D843 /* VoiceAppendRow.swift in Sources */,
 				54A4E0997EB163047005B99D /* VoiceLiveSession.swift in Sources */,
@@ -3081,6 +3088,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7F3D5D37ADD4213434F46A18 /* VoiceModePreferenceTests.swift in Sources */,
 				3B91ADAAC4093B7B7F00ACEB /* VoiceTranscriptModelTests.swift in Sources */,
 				B30F558E910674060D2CFF83 /* VoiceOrbTests.swift in Sources */,
 				4871A725949BF70DCAD73CB8 /* VoiceLookTests.swift in Sources */,

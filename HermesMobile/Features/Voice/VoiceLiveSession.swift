@@ -116,9 +116,6 @@ enum VoiceLiveError: Error { case alreadyStarted, peerConnection, missingOffer, 
         }
         armSpeakingProbe()
         // The audio unit is running now (WebRTC applied its configuration): log the route it got.
-        var fields = VoiceCallAudio.routeFields()
-        fields["mode"] = "live"
-        fields["start"] = "ok"
 
     }
 
@@ -150,7 +147,6 @@ enum VoiceLiveError: Error { case alreadyStarted, peerConnection, missingOffer, 
     }
 
     /// `voice-route` on every route change while the call runs (reason + new output port).
-
 
     private func waitForIceGathering(_ peer: RTCPeerConnection) async {
         if peer.iceGatheringState == .complete { return }

@@ -37,7 +37,6 @@ struct VoiceAppendJournal {
 
     init() {}
 
-
     /// Hermes saved a delegation's turn: the row ids of its `message.complete` receipt.
     mutating func saved(delegation: String, userRowID: Int?, rowIDs: [Int]) {
         if let userRowID { userRows[delegation] = userRowID }
@@ -45,7 +44,6 @@ struct VoiceAppendJournal {
     }
 
     /// This journal's appends, then `later`'s (this screen's own, sent after them).
-
 
     /// The id prefix of a delegation's card segment (`VoiceTranscriptModel.delegationStarted`).
     static let delegationCardPrefix = "tool:delegation:"

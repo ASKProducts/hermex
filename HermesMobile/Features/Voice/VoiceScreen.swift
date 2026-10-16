@@ -2,7 +2,7 @@ import WebRTC
 import AVFoundation
 import SwiftUI
 
-/// Voice preferences (not credentials) and the per-server list of voice chat keys.
+/// Display and audio preferences. The engine choice belongs to the Hermes Profile.
 enum VoicePreferences {
     static let silenceKey = "voice.pauseBeforeSending"
     static let interruptKey = "voice.interruptByTalking"
@@ -35,10 +35,6 @@ enum VoicePreferences {
         defaults.removeObject(forKey: legacyShowActivityKey)
     }
     /// Settings → Voice → Default mode: `VoiceMode` raw value.
-    static let defaultModeKey = "voice.defaultMode"
-    static var defaultMode: VoiceMode {
-        UserDefaults.standard.string(forKey: defaultModeKey).flatMap(VoiceMode.init(rawValue:)) ?? .normal
-    }
 
     static var settings: VoiceSession.Settings {
         let d = UserDefaults.standard
@@ -65,16 +61,8 @@ enum VoicePreferences {
         UserDefaults.standard.set(try? JSONEncoder().encode(list), forKey: pronunciationsKey)
     }
 
-    private static func keysKey(_ server: URL) -> String { "voice.sessionKeys." + server.absoluteString }
-    static func voiceSessionKeys(server: URL) -> Set<String> {
-        var keys = Set(UserDefaults.standard.stringArray(forKey: keysKey(server)) ?? [])
-        return keys
-    }
     /// A chat list row gets the mic glyph and "Continue by voice" when true.
-    static func isVoiceChat(_ sessionKey: String?, server: URL) -> Bool {
-        guard let sessionKey, !sessionKey.isEmpty else { return false }
-        return voiceSessionKeys(server: server).contains(sessionKey)
-    }
+
     /// What "Continue by voice" offers for a chat in its toolbar menu.
     enum ContinueByVoice: Equatable {
         /// Not offered: cached data, read-only/subagent views, messaging-platform chats
@@ -102,11 +90,6 @@ enum VoicePreferences {
         return .available(profile: profile)
     }
 
-    static func rememberVoiceSession(_ key: String, server: URL) {
-        var keys = Set(UserDefaults.standard.stringArray(forKey: keysKey(server)) ?? [])
-        keys.insert(key)
-        UserDefaults.standard.set(Array(Array(keys).sorted().suffix(500)), forKey: keysKey(server))
-    }
 }
 
 /// Native menu actions shared by the new-call button and the chat toolbar.
@@ -177,7 +160,7 @@ struct VoiceScreen: View {
     private var model: VoiceScreenModel? { call.model }
     private var connectionMissing: Bool { call.model == nil }
     private var server: URL { call.server }
-    private var requestedMode: VoiceMode { call.presentation.requestedMode }
+    private var requestedMode: VoiceMode { call.presentation.requestedMode ?? .normal }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -264,7 +247,6 @@ struct VoiceScreen: View {
     private var accent: Color {
         tintsPrimaryActions ? HeaderLogoColor.color(for: themeHex) : .accentColor
     }
-
 
     // MARK: Top
 
@@ -487,10 +469,11 @@ enum VoiceStatusText {
     private let resumeProfile: String?
     private var ticker: Task<Void, Never>?
 
-    private let requestedMode: VoiceMode
+    private let requestedMode: VoiceMode?
+    private(set) var hostPreferredMode = VoiceMode.normal
 
     init(server: URL, connection: BotConnection, resumeSessionKey: String?, resumeProfile: String? = nil,
-         requestedMode: VoiceMode = VoicePreferences.defaultMode) {
+         requestedMode: VoiceMode? = nil) {
         self.requestedMode = requestedMode
         self.server = server
         self.connection = connection
@@ -498,7 +481,7 @@ enum VoiceStatusText {
         self.resumeProfile = resumeProfile
     }
 
-    var mode: VoiceMode { engineSession?.mode ?? requestedMode }
+    var mode: VoiceMode { engineSession?.mode ?? requestedMode ?? hostPreferredMode }
     var liveAvailable: Bool { liveUnavailableReason == .some(nil) }
     /// The engine ended by itself (stop phrase, lost connection): the call is released.
     var closesOnEngineEnd: Bool { !endedByUser }
@@ -575,7 +558,6 @@ enum VoiceStatusText {
         followEngine(session)
     }
 
-
     private var useMicrophone: Bool { true }
 
     /// Opens the screen: checks GPT-Live, then starts the captured mode (Normal when GPT-Live
@@ -594,8 +576,9 @@ enum VoiceStatusText {
             await checkLive()
         }
         guard !Task.isCancelled, !endedByUser else { return }
-        let mode = VoiceScreenModel.startMode(preferred: requestedMode, liveAvailable: liveAvailable)
-        if requestedMode == .live, mode == .normal {
+        let preferred = requestedMode ?? hostPreferredMode
+        let mode = VoiceScreenModel.startMode(preferred: preferred, liveAvailable: liveAvailable)
+        if preferred == .live, mode == .normal {
             fallbackReason = Self.fallbackLine(reason: liveUnavailableReason ?? nil)
         }
 
@@ -668,13 +651,18 @@ enum VoiceStatusText {
 
     func checkLive() async {
         do {
-            let status = try await VoiceStartAvailability.fetch(VoiceStartScope(server: server, connection: connection))
+            let status = try await VoiceStartAvailability.fetch(VoiceStartScope(server: server, connection: connection, profile: resumeProfile))
             guard !Task.isCancelled, !endedByUser else { return }
-            liveUnavailableReason = .some(status.map { $0.unavailableReason } ?? String(localized: "This Hermes has no GPT-Live."))
+            applyLiveStatus(status)
         } catch {
             guard !Task.isCancelled, !endedByUser else { return }
             liveUnavailableReason = .some(String(localized: "Couldn't check GPT-Live."))
         }
+    }
+
+    func applyLiveStatus(_ status: VoiceLive.Status?) {
+        hostPreferredMode = VoiceMode(hostValue: status?.mode)
+        liveUnavailableReason = .some(status.map { $0.unavailableReason } ?? String(localized: "This Hermes has no GPT-Live."))
     }
 
     private func startEngine(_ mode: VoiceMode, seed: [(role: String, text: String)]) async {
@@ -729,8 +717,6 @@ enum VoiceStatusText {
         }
         let session = VoiceSession(backend: client, player: engine, settings: settings, resumeSessionKey: resumeSessionKey,
                                    resumeProfile: resumeProfile)
-        let server = self.server
-        session.onSessionCreated = { key in VoicePreferences.rememberVoiceSession(key, server: server) }
 
         session.transcript = transcript
         session.onNeedsApp = { [weak self] line in self?.needsApp(line) }
@@ -756,12 +742,11 @@ enum VoiceStatusText {
             self?.threshold = threshold
         }
         engine.onOutputLevel = { [weak self] level in self?.noteOutputLevel(level) }
-        await startMicrophone(recognition: recognition == .ready ? (serverMode ? "server" : "on-device") : "server-forced")
+        await startMicrophone()
         await session.start()
     }
 
     /// GPT-Live: WebRTC owns the mic and the speaker; Hermes runs the delegated turns in this chat.
-
 
     /// Asks for the mic and starts the engine; any failure becomes `micProblem` and a `voice-error`.
     private func startLive(seed: [(role: String, text: String)]) async {
@@ -773,9 +758,7 @@ enum VoiceStatusText {
             let session = VoiceLiveSession(backend: client)
             return session
         }, resumeSessionKey: resumeSessionKey, resumeProfile: resumeProfile, seedHistory: seed)
-        let server = self.server
 
-        conversation.onSessionCreated = { key in VoicePreferences.rememberVoiceSession(key, server: server) }
         conversation.onNeedsApp = { [weak self] line in self?.needsApp(line) }
         conversation.transcript = transcript
         micActive = true
@@ -784,8 +767,7 @@ enum VoiceStatusText {
         await conversation.start()
     }
 
-
-    private func startMicrophone(recognition: String) async {
+    private func startMicrophone() async {
         if useMicrophone {
             let granted = await AVAudioApplication.requestRecordPermission()
             guard granted else {
@@ -794,7 +776,6 @@ enum VoiceStatusText {
                 return
             }
         }
-        engine.startContext = ["recognition": recognition]
         do {
             try engine.configure(useMicrophone: useMicrophone)
             micActive = useMicrophone
@@ -809,9 +790,8 @@ enum VoiceStatusText {
     func restartMic() {
         guard mode == .normal else { return }
         if micActive { engine.restart(); return }
-        Task { await startMicrophone(recognition: "retry") }
+        Task { await startMicrophone() }
     }
-
 
     func toggleMute() {
         muted.toggle()
@@ -821,7 +801,6 @@ enum VoiceStatusText {
             engine.muted = muted
         }
     }
-
 
     /// Ends this call's engine and releases its audio resources.
     private func stopEngine() async {
@@ -863,7 +842,6 @@ enum VoiceStatusText {
         return await ending?.chatForOpening()
     }
 
-
 }
 
 struct VoiceSettingsView: View {
@@ -877,30 +855,25 @@ struct VoiceSettingsView: View {
     @AppStorage(VoicePreferences.transcriptModeKey) private var transcriptMode = VoiceTranscriptModel.Mode.full.rawValue
     @AppStorage(VoicePreferences.showsThinkingAndToolsKey) private var showsThinkingAndTools = true
     @AppStorage(VoicePreferences.showsAppendsKey) private var showsAppends = true
-    @AppStorage(VoicePreferences.defaultModeKey) private var defaultMode = VoiceMode.normal.rawValue
     @AppStorage(VoiceLive.ContextMode.defaultsKey) private var liveContext = VoiceLive.ContextMode.sinceLastRequest.stored
     @State private var voices: VoiceChoicesModel
+    @State private var modePreference: VoiceModePreferenceModel
 
-    init(server: URL) {
+    init(server: URL, profile: String? = nil, connection: BotConnection? = nil) {
         self.server = server
+        _modePreference = State(initialValue: VoiceModePreferenceModel(
+            fetch: { try await Self.withClient(server: server, connection: connection) { try await $0.voiceMode(profile: profile) } },
+            save: { mode in try await Self.withClient(server: server, connection: connection) { try await $0.saveVoiceMode(mode, profile: profile) } }))
         _voices = State(initialValue: VoiceChoicesModel(
-            fetch: { try await Self.withClient(server: server) { try await $0.voiceChoices() } },
-            save: { mode, voice in try await Self.withClient(server: server) { try await $0.saveVoiceChoice(mode: mode, voice: voice) } }))
+            fetch: { try await Self.withClient(server: server, connection: connection) { try await $0.voiceChoices(profile: profile) } },
+            save: { mode, voice in try await Self.withClient(server: server, connection: connection) { try await $0.saveVoiceChoice(mode: mode, voice: voice, profile: profile) } }))
     }
 
-    static let modeFooter = String(localized: "GPT-Live is used when your Hermes offers it; otherwise voice starts in Speech-to-text + Hermes voice.")
+    static let modeFooter = String(localized: "Saved on this Hermes Profile. Applies to the next call. GPT-Live falls back to Speech-to-text + Hermes voice if unavailable.")
 
     var body: some View {
         Form {
-            Section {
-                Picker(String(localized: "Default mode"), selection: $defaultMode) {
-                    Text(VoiceMode.normal.title).tag(VoiceMode.normal.rawValue)
-                    Text(VoiceMode.live.title).tag(VoiceMode.live.rawValue)
-                }
-                .accessibilityIdentifier("voice-default-mode")
-            } header: { Text("Mode") } footer: {
-                Text(VoiceSettingsView.modeFooter)
-            }
+            VoiceModePreferenceSection(model: modePreference)
             VoiceChoicesSection(model: voices)
             Section {
                 Picker(String(localized: "Conversation sent with each request"), selection: $liveContext) {
@@ -961,21 +934,24 @@ struct VoiceSettingsView: View {
 
         }
         .navigationTitle(String(localized: "Voice"))
-        .task { await voices.load() }
+        .task {
+            async let modes: Void = modePreference.load()
+            async let choices: Void = voices.load()
+            _ = await (modes, choices)
+        }
     }
 
     private func withClient<T>(_ body: (BotClient) async throws -> T) async throws -> T {
         try await Self.withClient(server: server, body)
     }
 
-    private static func withClient<T>(server: URL, _ body: (BotClient) async throws -> T) async throws -> T {
-        guard let connection = try BotConnectionStore().load(server: server) else { throw BotFailure.missingChat }
+    private static func withClient<T>(server: URL, connection: BotConnection? = nil, _ body: (BotClient) async throws -> T) async throws -> T {
+        guard let connection = try connection ?? BotConnectionStore().load(server: server) else { throw BotFailure.missingChat }
         let client = BotClient(saved: connection, server: server)
         defer { client.close() }
         try await client.connect()
         return try await body(client)
     }
-
 
 }
 

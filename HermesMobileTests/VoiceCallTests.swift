@@ -3,8 +3,6 @@ import XCTest
 import UserNotifications
 @testable import HermesMobile
 
-/// #50: one app-level owner of the voice call; the full screen and the floating bubble are
-/// views of it. Each test uses its own controller (never `.shared`) and a fake backend.
 @MainActor final class VoiceCallTests: XCTestCase {
     private let server = URL(string: "https://call.invalid")!
     private let otherServer = URL(string: "https://other.invalid")!
@@ -73,12 +71,6 @@ import UserNotifications
         XCTAssertEqual(chat.target, .session(profile: "voice-owner", key: "key-1"))
     }
 
-    // MARK: #111 where a failed call's reason shows
-
-    /// A call whose engine can't reach Hermes ends by itself with "Couldn't connect to Hermes.".
-    /// The controller releases such a call at once (#50: `onEndedByItself` → `release`), so the
-    /// full screen closes and the reason is on screen in the ended banner, hosted here at 402 pt.
-    /// (The notices line on the full screen carries the same sentence while that screen is up.)
     func testFailedStartShowsTheReasonInTheBanner() async throws {
         let controller = VoiceCallController()
         let backend = FakeVoiceBackend()
@@ -137,7 +129,6 @@ import UserNotifications
         window.isHidden = true
     }
 
-
     func testRunningTranscriptStartsBelowTheNativeHeader() async throws {
         let controller = VoiceCallController()
         let (call, session) = try await startCall(controller, backend: FakeVoiceBackend(), chat: nil)
@@ -154,7 +145,6 @@ import UserNotifications
                                     "The first question must clear the native header and status bar")
         _ = await controller.end(opensChat: false)
     }
-
 
     private func hostAt402(_ controller: VoiceCallController) throws -> UIWindow {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
@@ -209,8 +199,6 @@ import UserNotifications
         XCTAssertTrue(controller.isExpanded, "a new call opens its full screen")
         XCTAssertEqual(session.phase, .listening)
 
-        // The call layer on screen with the full screen up, then minimized (#93: the screen leaves
-        // the one root layer; nothing is torn down by a cover).
         let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
         var host: UIHostingController<AnyView>? = UIHostingController(rootView: AnyView(Color.clear.voiceCallHost(controller)))
         window.rootViewController = host
@@ -235,17 +223,6 @@ import UserNotifications
         XCTAssertTrue(controller.call?.model?.engineSession === session, "reopen draws the same engine instance")
     }
 
-    /// #97: GPT-Live's end-of-call turn ("Voice call ended…" → "Noted.") finishes on the dashboard
-    /// after End released the call and the chat reloaded on `lastEnded`. `lastSettled` follows
-    /// that turn: it changes only when the turn's `message.complete` arrives, so the chat
-    /// reloads once more and shows the reply without being reopened.
-
-
-
-
-    /// #97, the call ending on its own (dropped connection): `release` ends the engine and only
-    /// then follows its chat work, in one task. An engine whose `end()` suspends before its
-    /// end-of-call work starts must not get `lastSettled` before that work completes.
     func testCallEndingOnItsOwnSettlesOnlyAfterTheEndOfCallTurnCompletes() async throws {
         let controller = VoiceCallController()
         let engine = SettlingFakeEngine()
@@ -295,9 +272,6 @@ import UserNotifications
                        "#59: End never cancels the chat's work")
     }
 
-    /// #70: End keeps the voice screen up in its ending state while the engine's `end()` runs;
-    /// the chat opens only after `end()` completed, and the call is released (the screen
-    /// closes) only after the chat is open.
     func testEndShowsEndingUntilEndCompletesThenOpensTheChat() async throws {
         let controller = VoiceCallController()
         let session = EndingGateEngine()
@@ -345,9 +319,6 @@ import UserNotifications
         XCTAssertEqual(controller.lastEnded?.chatKey, "chat-1")
     }
 
-    /// End (#70): the voice screen closes only after the opened chat reports it can show its
-    /// messages; until then the call is held, expanded and "Ending…". Another chat's report
-    /// doesn't count.
     func testCoverClosesOnlyAfterTheChatReportsItsMessages() async throws {
         let controller = VoiceCallController()
         let (call, _) = try await startCall(controller, backend: FakeVoiceBackend())
@@ -448,8 +419,6 @@ import UserNotifications
 
     // MARK: Ending on its own, attention
 
-    /// A connection that drops and can't be restored (#110: the chat is gone) releases the
-    /// call and shows the ended reason; End isn't needed.
     func testCallEndingOnItsOwnReleasesItWithItsReason() async throws {
         let controller = VoiceCallController()
         let backend = FakeVoiceBackend()
@@ -573,14 +542,8 @@ import UserNotifications
         XCTAssertNil(controller.composerTop)
     }
 
-    // MARK: Push presence (#83)
-
     /// A minimized call's replies don't banner; its approvals do, and after End its replies do.
 
-
-    // MARK: "New voice chat" (#79)
-
-    /// With a call running, "New voice chat in Ariex" opens it; it never starts a second one.
     func testNewVoiceChatOpensTheRunningCallInsteadOfASecond() async throws {
         let controller = VoiceCallController()
         let (call, _) = try await startCall(controller, backend: FakeVoiceBackend())
@@ -606,8 +569,6 @@ import UserNotifications
 
     // MARK: Bubble placement
 
-    /// Released anywhere with no speed, the bubble rests on the nearest side at the release
-    /// height, kept on screen (#96 adds the coast: `VoiceOrbTests`).
     func testBubbleSnapsToTheNearestSide() {
         let bounds = CGSize(width: 390, height: 700)
         func released(at point: CGPoint) -> VoiceCallBubblePlacement {
@@ -630,9 +591,6 @@ import UserNotifications
         XCTAssertEqual(start.center(in: bounds).x, bounds.width - VoiceCallBubblePlacement.inset)
     }
 
-    /// #84: the bubble's drawn position and its resting place are one value, so the release
-    /// animates from the release point: at the moment of release the drawn position is where
-    /// the finger let go, and the settled value has no drag left in it.
     func testReleaseAnimatesFromTheReleasePoint() {
         let bounds = CGSize(width: 390, height: 700)
         let clearance: CGFloat = 80
@@ -651,8 +609,6 @@ import UserNotifications
     }
 }
 
-/// #97: an engine whose `end()` suspends before it starts its end-of-call work, and whose work
-/// completes only when the test says so.
 @MainActor private final class SettlingFakeEngine: VoiceEngine {
     let mode: VoiceMode = .live
     private(set) var phase: VoiceSession.Phase = .listening

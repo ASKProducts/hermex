@@ -3,10 +3,7 @@ import UIKit
 import XCTest
 @testable import HermesMobile
 
-/// The voice orb (#92, redrawn as J in #103), its flight (#93), the header's buttons (#94), the
-/// glass pill (#104) and the bubble's release (#96).
 final class VoiceOrbTests: XCTestCase {
-    // MARK: #92 level → orb
 
     /// Each mode's level maps onto 0…1 on its own measured dB window: the floor is still, the
     /// ceiling is full, halfway in dB is half.
@@ -44,8 +41,6 @@ final class VoiceOrbTests: XCTestCase {
         XCTAssertGreaterThan(VoiceOrbEnvelope.follow(0, toward: 1, over: 0.1), 0.85)
     }
 
-    /// The orb's state per phase (#108): the user's whole turn is one state; the session's
-    /// `.hearing` phase (its endpointer heard speech) draws the same orb as `.listening`.
     func testOrbStatePerPhase() {
         func state(_ phase: VoiceSession.Phase, working: Bool = false, attention: Bool = false, muted: Bool = false, ending: Bool = false) -> VoiceOrbState {
             VoiceOrbState.of(phase: phase, hermesWorking: working, attention: attention, muted: muted, ending: ending)
@@ -64,8 +59,6 @@ final class VoiceOrbTests: XCTestCase {
         XCTAssertEqual(state(.speaking, ending: true), .quiet)
         XCTAssertEqual(state(.ended(nil)), .quiet)
     }
-
-    // MARK: #103 the J orb
 
     /// State → flat colour: blue while listening and speaking; indigo working; orange
     /// when it needs you; grey while quiet.
@@ -87,8 +80,6 @@ final class VoiceOrbTests: XCTestCase {
         XCTAssertFalse(VoiceOrbLook.dots.contains(CGPoint(x: 39, y: 26)), "47 units out: cut")
     }
 
-    /// Level → wave amplitude, dot size and opacity (mockup M, #108): the user's turn follows the
-    /// mic from silence (0.05: nearly still and dim); Hermes speaking takes the louder voice.
     func testLevelToAmplitudeAndDots() {
         XCTAssertEqual(VoiceOrbLook.amplitude(.listening, output: 0, input: 0), 0.05, accuracy: 0.0001, "silent: near still")
         XCTAssertEqual(VoiceOrbLook.amplitude(.listening, output: 0, input: 0.5), 0.525, accuracy: 0.0001)
@@ -123,9 +114,6 @@ final class VoiceOrbTests: XCTestCase {
         XCTAssertEqual(VoiceOrbLook.waveSpeed(.quiet, output: 1, input: 1), 0)
     }
 
-    /// Hermes's halo with the played level; on the user's turn the halo breathes only while it's
-    /// quiet and fades with the mic (gone from a third of the mic's range); a ring only while
-    /// working (faint, under the arc) and needing you, never for a voice (#108).
     func testHaloAndRing() throws {
         let quietHalo = try XCTUnwrap(VoiceOrbLook.halo(.speaking, output: 0, input: 0, breath: 0))
         XCTAssertEqual(quietHalo.scale, 1.08, accuracy: 0.0001)
@@ -156,8 +144,6 @@ final class VoiceOrbTests: XCTestCase {
         XCTAssertEqual(VoiceOrbLook.breath(at: 0.8), 1, accuracy: 0.0001)
     }
 
-    /// The hearing-only pieces are gone from the orb and the header (#108): no hearing state, no
-    /// "Hearing you" word.
     func testNoHearingStateOrWord() throws {
         let orb = try source("HermesMobile/Features/Voice/VoiceOrb.swift")
         XCTAssertFalse(orb.contains("case hearing"), "no hearing orb state")
@@ -183,8 +169,6 @@ final class VoiceOrbTests: XCTestCase {
         XCTAssertEqual(VoiceOrbGlide().next(0.6, at: t0, interval: 0).value(at: t0), 0.6, "first reading: no interval")
     }
 
-    /// The deleted pieces of the old orb stay deleted (#103): no edge deformation, no swell,
-    /// no gradient fill, no highlight, no shadow.
     func testOrbIsFlat() throws {
         let orb = try source("HermesMobile/Features/Voice/VoiceOrb.swift")
         for gone in ["VoiceOrbShape", "scaleEffect", "Gradient", ".shadow(", "plusLighter", ".gradient"] {
@@ -215,17 +199,11 @@ final class VoiceOrbTests: XCTestCase {
         XCTAssertGreaterThan(model.outputGlide.to, 0.4)
     }
 
-    // MARK: #93/#112 orb slots
-
-    /// Expanded, the orb is in the header from the start (#112: no centre slot); minimized, the
-    /// bubble.
     func testOrbSlot() {
         XCTAssertEqual(VoiceOrbSlot.current(expanded: true), .header)
         XCTAssertEqual(VoiceOrbSlot.current(expanded: false), .bubble)
     }
 
-    /// The header orb is 30–32 pt, its drawing holds the full halo,
-    /// and its halo and ring fit the header row (as tall as the buttons beside it).
     func testHeaderOrbFitsTheRow() {
         XCTAssertTrue((30...32).contains(VoiceOrbMetrics.headerSize))
         let radius = VoiceOrbMetrics.headerSize / 2
@@ -234,7 +212,6 @@ final class VoiceOrbTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(VoiceOrbMetrics.drawingScale, 1.52, "the canvas holds the full halo")
     }
 
-    /// The header is the orb alone (#111): no pill, no glass panel, no status word, no meter.
     func testHeaderIsOnlyTheOrb() throws {
         let chrome = try source("HermesMobile/Features/Voice/VoiceScreenChrome.swift")
         let screen = try source("HermesMobile/Features/Voice/VoiceScreen.swift")
@@ -248,10 +225,6 @@ final class VoiceOrbTests: XCTestCase {
         XCTAssertFalse(orb.contains("centreSize"))
     }
 
-    // MARK: #111 the status without a word
-
-    /// The orb's VoiceOver label says the call's status (#111), including Ending (#70) and a
-    /// muted mic.
     func testOrbAccessibilityStatus() {
         var thinking = VoiceHermesStatus(); thinking.apply("message.start", .object([:]), at: Date())
         let idle = VoiceHermesStatus()
@@ -264,8 +237,6 @@ final class VoiceOrbTests: XCTestCase {
         XCTAssertEqual(VoiceStatusText.orb(phase: .ended("Connection lost."), status: idle, muted: false, ending: false), "Ended")
     }
 
-    /// An ended call's reason goes to the notices above the dock (#111); a plain end, a running
-    /// call and End (#70) show none.
     func testEndedReasonGoesToTheNotices() throws {
         XCTAssertEqual(VoiceStatusText.endedReason(phase: .ended("Connection lost."), ending: false), "Connection lost.")
         XCTAssertEqual(VoiceStatusText.endedReason(phase: .ended("Couldn't connect to Hermes."), ending: false),
@@ -281,10 +252,6 @@ final class VoiceOrbTests: XCTestCase {
         XCTAssertTrue(block.contains("\"voice-ended-reason\""))
     }
 
-    // MARK: #112 the opening
-
-    /// The pre-#92 hint: "Connecting to Hermes…" until the engine listens, then "Go ahead, I'm
-    /// listening."; shown while the call has nothing to draw.
     @MainActor func testEmptyHint() {
         XCTAssertEqual(VoiceScreen.emptyHintText(phase: nil), "Connecting to Hermes…")
         XCTAssertEqual(VoiceScreen.emptyHintText(phase: .connecting), "Connecting to Hermes…")
@@ -299,21 +266,16 @@ final class VoiceOrbTests: XCTestCase {
         XCTAssertFalse(VoiceScreen.showsEmptyHint(transcript, mode: .full, showsAppends: true), "the first message")
     }
 
-    // MARK: #94 header buttons
-
     func testHeaderButtonsAreGearThenCollapse() {
         XCTAssertEqual(VoiceTopBar<EmptyView>.buttonIdentifiers, ["voice-settings", "voice-minimize"])
     }
 
-    /// The row's code lists the gear's button before collapse, last in the HStack (#94).
     func testHeaderRowListsGearThenCollapse() throws {
         let chrome = try source("HermesMobile/Features/Voice/VoiceScreenChrome.swift")
         let gear = try XCTUnwrap(chrome.range(of: "VoiceHeaderButton(systemImage: \"gearshape.fill\""))
         let collapse = try XCTUnwrap(chrome.range(of: "VoiceHeaderButton(systemImage: \"chevron.down\""))
         XCTAssertLessThan(gear.lowerBound, collapse.lowerBound)
     }
-
-    // MARK: #96 bubble release
 
     func testDecelerationUsesTheFastRate() {
         XCTAssertEqual(VoiceBubbleDeceleration.rate, 0.99, accuracy: 0.0001)
@@ -349,7 +311,6 @@ final class VoiceOrbTests: XCTestCase {
 
     private let bounds = CGSize(width: 402, height: 800)
 
-    /// Released with no speed: the nearest side at the release height (as before #96).
     func testReleaseWithoutVelocityRestsAtTheReleaseHeight() {
         var placement = VoiceCallBubblePlacement()
         placement.drag = CGSize(width: -100, height: -300)
@@ -391,8 +352,6 @@ final class VoiceOrbTests: XCTestCase {
                        800 - 80 - VoiceCallBubblePlacement.inset, accuracy: 0.001)
     }
 
-    // MARK: #109 the bubble's halo stays on screen
-
     /// The placement reserves what the orb draws: the halo at full size reaches 1.52 × the
     /// 28 pt radius (42.56 pt) from the centre, and that whole extent rests `margin` inside the
     /// container on each side, after a plain release and after a fling either way.
@@ -433,16 +392,12 @@ final class VoiceOrbTests: XCTestCase {
         XCTAssertFalse(overlay.contains(".spring("), "no spring on release")
     }
 
-    // MARK: #93 one root layer
-
     func testCallScreenIsNoLongerAFullScreenCover() throws {
         let overlay = try source("HermesMobile/Features/Voice/VoiceCallOverlay.swift")
         XCTAssertFalse(overlay.contains(".fullScreenCover"))
         XCTAssertTrue(overlay.contains("matchedGeometryEffect(id: VoiceOrbSlot.matchID"))
         XCTAssertTrue(overlay.contains(".allowsHitTesting(!covered)"), "the app under the call takes no touches")
     }
-
-    // MARK: #105 the transcript runs under the header
 
     /// The header is the voice screen's top safe-area inset, not a row stacked above the
     /// transcript: the transcript fills the screen, lays its first row out below the header,
@@ -456,12 +411,6 @@ final class VoiceOrbTests: XCTestCase {
         XCTAssertFalse(firstRow.contains("            topBar\n"), "the header is no longer the stack's first row")
     }
 
-    // MARK: #106 the bubble clears the Chat button
-
-    /// The chat list's numbers measured on the simulator (402 × 874, #106): the bottom buttons'
-    /// top at y 760, the bubble layer's safe area ending at 840. The default spot keeps the whole
-    /// bubble above the buttons with the margin between. Since #109 "the whole bubble" is what
-    /// the orb draws there: the halo at full size.
     func testDefaultSpotClearsTheListButtons() {
         let layerMaxY: CGFloat = 840
         let buttonsTop: CGFloat = 760

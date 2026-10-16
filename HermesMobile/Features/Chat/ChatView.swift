@@ -729,10 +729,10 @@ struct ChatView: View {
         // toggle (#259): input, placeholder, and chrome mirror together.
         .voiceBubbleClearance()
         .task(id: viewModel.hermesVoiceLookupScope) { await viewModel.prepareHermesVoice() }
-        .task(id: VoiceStartScope.current(server: server)) {
+        .task(id: VoiceStartScope.current(server: server, profile: viewModel.hermesSessionLink?.profile)) {
             guard isHermesSession else { return }
-            let scope = VoiceStartScope.current(server: server)
-            await voiceAvailability.refresh(scope: scope, currentScope: { VoiceStartScope.current(server: server) })
+            let scope = VoiceStartScope.current(server: server, profile: viewModel.hermesSessionLink?.profile)
+            await voiceAvailability.refresh(scope: scope, currentScope: { VoiceStartScope.current(server: server, profile: viewModel.hermesSessionLink?.profile) })
         }
         .environment(\.layoutDirection, chatLayoutDirection)
         .background(
@@ -746,7 +746,7 @@ struct ChatView: View {
         guard isHermesSession, let link = viewModel.hermesSessionLink else { return nil }
         let availability: VoicePreferences.ContinueByVoice = session.isSessionReadOnly ? .hidden : viewModel.hermesContinueByVoice
         return ComposerVoiceCallControl(availability: availability, modes: voiceAvailability,
-            scope: VoiceStartScope.current(server: server)) { mode in
+            scope: VoiceStartScope.current(server: server, profile: viewModel.hermesSessionLink?.profile)) { mode in
                 VoiceCallController.shared.start(VoiceCallPresentation(server: server, requestedMode: mode,
                     resumeSessionKey: link.key, resumeProfile: link.profile))
             }

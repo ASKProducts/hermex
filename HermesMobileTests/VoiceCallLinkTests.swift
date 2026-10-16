@@ -1,8 +1,6 @@
 import XCTest
 @testable import HermesMobile
 
-/// #110: a voice call keeps its Hermes socket through `.background`, and recovers from a
-/// socket that really drops mid-call by reconnecting and re-attaching its chat.
 @MainActor final class VoiceCallLinkTests: XCTestCase {
     private let record = BotConnection(id: UUID(), name: "Host", address: URL(string: "https://hermes.example")!,
                                        username: "user", password: "secret")
@@ -44,8 +42,6 @@ import XCTest
         XCTAssertTrue(socket.isClosed, "The socket closes when the last consumer leaves")
     }
 
-    /// Without a call, the background close is as #967 made it: once, silently, and a call
-    /// that already ended holds nothing.
     func testBackgroundAfterTheCallEndedClosesTheSocketOnceAndSilently() async throws {
         let http = connection()
         let call = BotClient(http: http, holdsSocketInBackground: true), chat = BotClient(http: http)

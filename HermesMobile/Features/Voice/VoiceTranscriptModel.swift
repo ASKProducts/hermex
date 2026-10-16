@@ -151,7 +151,6 @@ import Observation
         appendJournal.saved(delegation: id, userRowID: userRowID, rowIDs: rowIDs)
     }
 
-
     /// Which drawn turn holds each append (`VoiceAppendJournal.home`): its exchange while that
     /// is drawn (settled `turns` or the live one), else the saved turn of its delegation.
     private func appendHome(turns: [ChatTurn]) -> (VoiceAppendJournal.Entry) -> String? {

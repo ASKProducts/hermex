@@ -127,7 +127,6 @@ struct VoiceChatTranscript: View {
                                 wasNearBottom: was))
     }
 
-
     private func scroll(_ scroller: ScrollViewProxy, animated: Bool, userInitiated: Bool, reason: String) {
         if userInitiated { follow(.reset) } else if !followLatch.isFollowing { return }
         if animated && !reduceMotion {

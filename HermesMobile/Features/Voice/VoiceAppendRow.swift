@@ -34,7 +34,6 @@ struct VoiceAppendRow: View {
                 .padding(7)
                 .chatTimelineAccessoryInsetSurface()
         }
-        // JSON is code-like and stays left-to-right (#259), like tool rows.
         .forcedLeftToRight()
     }
 }

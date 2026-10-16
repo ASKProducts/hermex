@@ -313,24 +313,26 @@ import Foundation
         guard reply["ok"].flag == true else { throw BotFailure.unsupported }
         return (reply["transcript"].text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
     }
-    func voiceChoices() async throws -> VoiceChoices {
+    func voiceChoices(profile: String? = nil) async throws -> VoiceChoices {
         guard let routes = try? await BotDashboardClient(http: http).companionRoutes(),
               routes.supports("GET /voice/voices") else { throw VoiceChoices.Unavailable.routeNotAdvertised }
-        guard let choices = VoiceChoices(try await voiceREST(.voiceChoices)) else { throw BotFailure.unsupported }
+        guard let choices = VoiceChoices(try await voiceREST(.voiceChoices(profile: profile))) else { throw BotFailure.unsupported }
         return choices
     }
 
     /// Sets `mode`'s voice on the host and returns what the host then has.
-    func saveVoiceChoice(mode: VoiceChoices.Mode, voice: String) async throws -> VoiceChoices {
-        guard let choices = VoiceChoices(try await voiceREST(.saveVoiceChoice(mode: mode.rawValue, voice: voice))) else {
+    func saveVoiceChoice(mode: VoiceChoices.Mode, voice: String, profile: String? = nil) async throws -> VoiceChoices {
+        guard let choices = VoiceChoices(try await voiceREST(.saveVoiceChoice(mode: mode.rawValue, voice: voice, profile: profile))) else {
             throw BotFailure.unsupported
         }
         return choices
     }
 
     /// `GET /api/audio/voice-live/status`; nil on an older host without the route.
-    func voiceLiveStatus() async throws -> VoiceLive.Status? {
-        do { return VoiceLive.Status(try await voiceREST(.voiceLiveStatus)) }
+    func voiceLiveStatus() async throws -> VoiceLive.Status? { try await voiceLiveStatus(profile: nil) }
+
+    func voiceLiveStatus(profile: String?) async throws -> VoiceLive.Status? {
+        do { return VoiceLive.Status(try await voiceREST(.voiceLiveStatus(profile: profile))) }
         catch BotFailure.rejected(404) { return nil }
     }
 
@@ -341,6 +343,19 @@ import Foundation
         let reply = try await voiceREST(.voiceLiveSession(sdp: sdp, history: history, profile: profile))
         guard reply["ok"].flag == true, let answer = reply["transport"]["sdp"].text, !answer.isEmpty else { throw BotFailure.unsupported }
         return (answer, reply["session"]["id"].text)
+    }
+
+    func voiceMode(profile: String?) async throws -> VoiceMode {
+        guard let status = try await voiceLiveStatus(profile: profile) else { throw BotFailure.unsupported }
+        return VoiceMode(hostValue: status.mode)
+    }
+
+    func saveVoiceMode(_ mode: VoiceMode, profile: String?) async throws -> VoiceMode {
+        let resolved: String
+        if let profile { resolved = profile } else { resolved = try await currentProfile() }
+        let reply = try await voiceREST(.setVoiceMode(profile: resolved, mode: mode))
+        guard reply["ok"].flag == true else { throw BotFailure.unsupported }
+        return try await voiceMode(profile: resolved)
     }
 
     func speakClip(_ text: String) async throws -> Data {

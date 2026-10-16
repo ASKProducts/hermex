@@ -104,9 +104,10 @@ enum HermesREST: Equatable, Sendable {
     static let sessionSearchMaximum = 100
 
     /// Public, so it reads the host before any credential is sent.
-    case voiceChoices
-    case saveVoiceChoice(mode: String, voice: String)
-    case voiceLiveStatus
+    case voiceChoices(profile: String? = nil)
+    case saveVoiceChoice(mode: String, voice: String, profile: String? = nil)
+    case voiceLiveStatus(profile: String? = nil)
+    case setVoiceMode(profile: String, mode: VoiceMode)
     case voiceLiveSession(sdp: String, history: [BotJSON], profile: String?)
     case voiceSpeak(text: String)
     case status
@@ -335,10 +336,15 @@ enum HermesREST: Equatable, Sendable {
 
     func request(base: URL) throws -> URLRequest {
         switch self {
-        case .voiceChoices: return Self.get(base.appendingPathComponent("api/plugins/hermex-push/voice/voices"))
-        case .saveVoiceChoice(let mode, let voice):
-            return try Self.send("PUT", base.appendingPathComponent("api/plugins/hermex-push/voice/voices"), ["mode": .string(mode), "voice": .string(voice)])
-        case .voiceLiveStatus: return Self.get(base.appendingPathComponent("api/audio/voice-live/status"))
+        case .voiceChoices(let profile): return Self.get(try Self.url(base, "api/plugins/hermex-push/voice/voices", profile: profile))
+        case .saveVoiceChoice(let mode, let voice, let profile):
+            return try Self.send("PUT", try Self.url(base, "api/plugins/hermex-push/voice/voices", profile: profile), ["mode": .string(mode), "voice": .string(voice)])
+        case .voiceLiveStatus(let profile):
+            return Self.get(try Self.url(base, "api/audio/voice-live/status", profile: profile))
+        case .setVoiceMode(let profile, let mode):
+            guard !profile.isEmpty else { throw BotFailure.invalidAddress }
+            return try Self.send("PUT", try Self.url(base, "api/config", profile: profile),
+                ["config": .object(["voice": .object(["voice_chat_mode": .string(mode.hostValue)])])])
         case .voiceLiveSession(let sdp, let history, let profile):
             return try Self.send("POST", try Self.url(base, "api/audio/voice-live/session", profile: profile),
                                  ["sdp": .string(sdp), "history": .array(history)])

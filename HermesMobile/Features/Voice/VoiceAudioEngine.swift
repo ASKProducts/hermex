@@ -181,20 +181,10 @@ enum VoiceCallAudio {
     static let mode = AVAudioSession.Mode.voiceChat
     static let options: AVAudioSession.CategoryOptions = [.defaultToSpeaker, .allowBluetoothHFP]
 
-    static func routeFields(_ session: AVAudioSession = .sharedInstance()) -> [String: Any] {
-        ["route_out": session.currentRoute.outputs.map(\.portType.rawValue).joined(separator: ","),
-         "route_in": session.currentRoute.inputs.map(\.portType.rawValue).joined(separator: ","),
-         "category": session.category.rawValue, "audio_mode": session.mode.rawValue,
-         "options": Int(session.categoryOptions.rawValue),
-         "speaker_default": session.categoryOptions.contains(.defaultToSpeaker)]
-    }
+
 
     /// `voice-route` fields for a route change: the reason code and the new output port type.
-    static func routeChangeFields(_ note: Notification, _ session: AVAudioSession = .sharedInstance()) -> [String: Any] {
-        ["reason": Int(note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt ?? 0),
-         "route_out": session.currentRoute.outputs.map(\.portType.rawValue).joined(separator: ","),
-         "options": Int(session.categoryOptions.rawValue)]
-    }
+
 }
 
 /// Mic health: why the input stopped, as seen by the voice screen.
@@ -247,7 +237,6 @@ enum VoiceMicEvent: Equatable {
     var onOutputLevel: ((Float) -> Void)?
     var muted = false
     /// Extra `voice-start` fields from the screen (recognition mode).
-    var startContext: [String: Any] = [:]
     var endpointer = VoiceEndpointer()
     /// Seconds without any mic buffer before the input counts as stopped.
     var stallTimeout: TimeInterval = 3
@@ -325,25 +314,14 @@ enum VoiceMicEvent: Equatable {
         configured = true
         usesMicrophone = useMicrophone
         let session = AVAudioSession.sharedInstance()
-        var fields: [String: Any] = startContext
-        fields["mic"] = useMicrophone
         do {
             try session.setCategory(VoiceCallAudio.category, mode: VoiceCallAudio.mode,
                                     options: VoiceCallAudio.options)
             try session.setActive(true)
-            fields["input_available"] = session.isInputAvailable
-            fields["session_rate"] = Int(session.sampleRate)
-            fields["session_in_ch"] = session.inputNumberOfChannels
-            fields.merge(VoiceCallAudio.routeFields(session)) { _, new in new }
             engine.attach(player)
             if useMicrophone {
-                do { try engine.inputNode.setVoiceProcessingEnabled(true) } catch {
-                    fields["vp_error"] = Self.code(error)
-                }
-                fields["vp"] = engine.inputNode.isVoiceProcessingEnabled
+                try? engine.inputNode.setVoiceProcessingEnabled(true)
                 let format = engine.inputNode.outputFormat(forBus: 0)
-                fields["in_rate"] = Int(format.sampleRate)
-                fields["in_ch"] = Int(format.channelCount)
                 guard format.sampleRate > 0, format.channelCount > 0 else {
                     throw NSError(domain: "VoiceAudio", code: 1, userInfo: [NSLocalizedDescriptionKey: String(localized: "No microphone input is available.")])
                 }
@@ -357,11 +335,8 @@ enum VoiceMicEvent: Equatable {
             engine.prepare()
             try engine.start()
             lastBuffer = now()
-            fields["start"] = "ok"
 
         } catch {
-            fields["start"] = "error"
-            fields["error"] = Self.code(error)
 
             throw error
         }
@@ -378,10 +353,7 @@ enum VoiceMicEvent: Equatable {
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 
-    static func code(_ error: Error) -> String {
-        let ns = error as NSError
-        return "\(ns.domain):\(ns.code)"
-    }
+
 
     // MARK: Mic health
 
@@ -402,20 +374,16 @@ enum VoiceMicEvent: Equatable {
 
     /// Reacts to a configuration change, interruption or route change.
     func handle(_ event: VoiceMicEvent) {
-        var fields: [String: Any] = ["event": event.code]
         switch event {
         case .configurationChange:
-            fields["action"] = interrupted ? "wait" : "restart"
 
             if !interrupted { scheduleRestart(reason: event.code) }
         case .interruptionBegan:
             interrupted = true
             dropUtterance()
-            fields["action"] = "pause"
 
         case .interruptionEnded(let resume):
             interrupted = false
-            fields["action"] = resume ? "restart" : "ask"
 
             if resume { restart(reason: event.code) } else { report(Self.micStoppedLine) }
         case .routeChange(let reason):
@@ -424,7 +392,6 @@ enum VoiceMicEvent: Equatable {
                                              AVAudioSession.RouteChangeReason.oldDeviceUnavailable.rawValue,
                                              AVAudioSession.RouteChangeReason.override.rawValue]
             let act = !interrupted && usesMicrophone && (restartReasons.contains(reason) || !engine.isRunning)
-            fields["action"] = act ? "restart" : "none"
 
             if act { scheduleRestart(reason: event.code) }
         }
@@ -675,7 +642,6 @@ enum VoiceMicEvent: Equatable {
         if problem != nil, problem != Self.micStoppedLine { report(nil) }
         onUtterance?(data, seconds)
     }
-
 
     // MARK: Output
 
@@ -928,7 +894,6 @@ enum VoiceMicEvent: Equatable {
         }
         mixerTapInstalled = true
     }
-
 
     private final class ClipDelegate: NSObject, AVAudioPlayerDelegate {
         let done: () -> Void

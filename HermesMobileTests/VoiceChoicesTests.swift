@@ -1,11 +1,7 @@
 import XCTest
 @testable import HermesMobile
 
-/// #113: the voice pickers in Settings → Voice, against the ariex-voice plugin's
-/// `GET|PUT /api/plugins/hermex-push/voice/voices`.
 @MainActor final class VoiceChoicesTests: XCTestCase {
-    /// The box's reply to `GET /api/plugins/hermex-push/voice/voices`, captured 10-08 after the route
-    /// went live (aaron-hermex-push 8efed7b). PUT answers the same body.
     static let capturedGET = #"{"ok": true, "live": {"voice": "marin", "choices": ["marin", "cedar", "quartz", "ripple", "vesper", "willow", "stone", "gleam", "meridian", "bossa", "tempo", "beacon", "delta", "cinder"]}, "cascade": {"voice": "marin", "choices": ["alloy", "ash", "ballad", "cedar", "coral", "echo", "fable", "marin", "nova", "onyx", "sage", "shimmer", "verse"]}}"#
     /// The box's reply to `PUT {"mode": "live", "voice": "alloy"}`: 400.
     static let captured400 = #"{"detail":"Voice not available for this mode"}"#
@@ -29,7 +25,7 @@ import XCTest
 
     func testRoutesAskForTheDashboardsOwnProfile() throws {
         let base = URL(string: "https://hermes.example")!
-        let get = try HermesREST.voiceChoices.request(base: base)
+        let get = try HermesREST.voiceChoices().request(base: base)
         XCTAssertEqual(get.httpMethod, "GET")
         XCTAssertEqual(get.url?.absoluteString, "https://hermes.example/api/plugins/hermex-push/voice/voices")
         let put = try HermesREST.saveVoiceChoice(mode: "cascade", voice: "cedar").request(base: base)

@@ -5,6 +5,7 @@ import SwiftUI
     @State private var editor: BotProfileEditor
     @State private var capabilitySheet: BotProfileEditor.Field?
     @State private var showsModels = false
+    @State private var showsVoice = false
     @State private var photoItem: PhotosPickerItem?
     @State private var showsPhotoPicker = false
     @State private var showsExpressions = false
@@ -64,6 +65,9 @@ import SwiftUI
         }
         .sheet(item: $capabilitySheet) { field in capabilityPicker(field) }
         .sheet(isPresented: $showsModels) { modelPicker }
+        .navigationDestination(isPresented: $showsVoice) {
+            VoiceSettingsView(server: editor.server, profile: editor.profile.name, connection: editor.connection)
+        }
         .navigationDestination(isPresented: $showsExpressions) { BotExpressionPickerView(editor: editor) }
         .photosPicker(isPresented: $showsPhotoPicker, selection: $photoItem, matching: .images)
         .onChange(of: photoItem) { _, item in loadPhoto(item) }
@@ -119,6 +123,9 @@ import SwiftUI
                 card { navigationRow(String(localized: "Default Model"), subtitle: editor.draft.model?.providerID,
                                      value: editor.draft.model?.displayName ?? "—",
                                      systemImage: "cpu") { showsModels = true } }
+
+                sectionLabel("Voice")
+                card { navigationRow(String(localized: "Voice"), subtitle: nil, value: "", systemImage: "waveform") { showsVoice = true } }
 
                 sectionLabel("Capabilities")
                 card {
