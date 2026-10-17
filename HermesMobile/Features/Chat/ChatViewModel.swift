@@ -590,6 +590,44 @@ final class ChatViewModel {
         return HermesSessionDestination(server: server, profile: engine.target.profile, key: key)
     }
 
+    /// The saved session row "Continue by voice" reads, and the attach it was read under.
+    private var voiceLookupScope: [String]?
+    private var voiceLookupSession: SessionSummary?
+
+    /// The saved session row the voice button reads, keyed by the attach it belongs to. Nil until
+    /// that attach is connected, so the lookup runs once the session can answer it.
+    var hermesVoiceLookupScope: [String]? {
+        guard let engine = hermesTurn?.engine, case .session = engine.target, engine.connectionState == .connected,
+              let link = hermesSessionLink, let profile = link.profile else { return nil }
+        return [String(describing: ObjectIdentifier(engine)), profile, link.key, String(engine.generation)]
+    }
+
+    /// What the chat's "Continue by voice" offers: hidden until this attach's saved row is read,
+    /// busy while a turn runs (here or one the host started).
+    var hermesContinueByVoice: VoicePreferences.ContinueByVoice {
+        guard let engine = hermesTurn?.engine, engine.connectionState == .connected,
+              !isViewingCachedData, voiceLookupScope == hermesVoiceLookupScope,
+              let row = voiceLookupSession else { return .hidden }
+        return VoicePreferences.canContinueByVoice(row, isViewingCachedData: false,
+            isBusy: hermesTurn?.hostRunning == true || activeStreamID != nil || isStartingChat || isHermesSubmissionUncertain)
+    }
+
+    /// Reads this chat's saved session row (its source and profile) for `hermesContinueByVoice`.
+    /// A failed read leaves the button hidden.
+    func prepareHermesVoice() async {
+        guard let engine = hermesTurn?.engine, engine.connectionState == .connected,
+              !isViewingCachedData, let key = engine.storedKey, let scope = hermesVoiceLookupScope else { return }
+        voiceLookupSession = nil; voiceLookupScope = nil
+        guard let reply = try? await engine.wire.sessionRow(key: key, profile: engine.target.profile),
+              !Task.isCancelled, hermesVoiceLookupScope == scope, engine.connectionState == .connected,
+              reply["id"].text == key,
+              let source = reply["source"].text, !source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              reply["profile"].text.map({ $0 == engine.target.profile }) != false else { return }
+        // Voice eligibility consumes this exact saved reply, not list/search source adaptation.
+        voiceLookupSession = SessionSummary(sessionId: key, profile: engine.target.profile, rawSource: source)
+        voiceLookupScope = scope
+    }
+
     /// The session pushes report under: a webui session's own ID, or a Hermes session's
     /// current stored key, the `session_id` every hook sends.
     var pushPresence: PushPresence.Viewer? {
@@ -8840,7 +8878,10 @@ private extension ToolCall {
 
         return preview == payloadPreview
     }
+}
 
+extension ToolCall {
+    /// The call once its `tool.complete` arrives: the chat's live cards and the voice screen's.
     func applyingCompletionPayload(_ payload: ToolStreamEvent) -> ToolCall {
         ToolCall(
             id: id.nonEmptyStableToolID == nil ? payload.stableID ?? id : id,

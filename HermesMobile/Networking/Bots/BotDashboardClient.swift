@@ -80,6 +80,21 @@ import Foundation
         HermexPushPlugin.loadedVersion(try await readPluginRoute(.pushPairing))
     }
 
+    /// One REST transcript page of the session (`HermesREST.sessionMessages`): its rows as the
+    /// host sends them, oldest first, which `HermesTranscriptHistory` reads as the chat does.
+    func sessionRows(sessionID: String, profile: String?, offset: Int = 0) async throws -> [BotJSON] {
+        let selected: String
+        if let profile { selected = profile } else {
+            let active = try JSONDecoder().decode(BotJSON.self, from: try await http.data(.profilesActive))
+            guard let current = active["current"].text else { throw BotFailure.unsupported }
+            selected = current
+        }
+        let data = try await http.data(.sessionMessages(key: sessionID, profile: selected, offset: offset),
+                                       accepting: 200..<300)
+        guard let rows = try JSONDecoder().decode(BotJSON.self, from: data)["messages"].list else { throw BotFailure.unsupported }
+        return rows
+    }
+
     /// The hermex-push routes the dashboard has mounted (#1235). Any 404 is
     /// `HermexCompanionRoutes.closed`, whatever its body says: an older plugin, an unloaded one
     /// and no plugin at all each mean the feature isn't there. Other refusals throw.

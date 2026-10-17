@@ -8,6 +8,7 @@ import Foundation
 @MainActor final class BotClient: BotTransport {
     private let gateway: HermesGateway
     let consumerID: Int
+    let holdsSocketInBackground: Bool
     /// The connection this client signs in and downloads through, shared with its Bot screens.
     var http: HermesConnection { gateway.http }
     /// Bumped by `close()`, `connect()` and a lost socket, so this screen's late HTTP
@@ -26,8 +27,8 @@ import Foundation
 
     /// A screen's client on the sign-in and socket `server`'s saved connection shares with
     /// its other Bot screens.
-    convenience init(saved connection: BotConnection, server: URL) {
-        self.init(http: HermesConnections.shared.connection(for: connection, server: server))
+    convenience init(saved connection: BotConnection, server: URL, holdsSocketInBackground: Bool = false) {
+        self.init(http: HermesConnections.shared.connection(for: connection, server: server), holdsSocketInBackground: holdsSocketInBackground)
     }
 
     /// A client with its own cookie jar, sign-in and socket, for credentials that are not
@@ -42,7 +43,8 @@ import Foundation
     }
 
     /// A client on `http`'s shared gateway.
-    init(http: HermesConnection) {
+    init(http: HermesConnection, holdsSocketInBackground: Bool = false) {
+        self.holdsSocketInBackground = holdsSocketInBackground
         gateway = http.gateway
         consumerID = gateway.makeConsumerID()
     }
@@ -97,6 +99,8 @@ import Foundation
         try checkOwner(attempt)
         guard (try? JSONDecoder().decode(BotJSON.self, from: data))?["ok"].flag == true else { throw BotFailure.unsupported }
     }
+
+    var isConnected: Bool { gateway.isAttached(consumerID) }
 
     func currentProfile() async throws -> String {
         guard gateway.isAttached(consumerID) else { throw BotFailure.stale }
@@ -295,4 +299,62 @@ import Foundation
         for task in artifactTasks.values { task.cancel() }
         artifactTasks.removeAll()
     }
+    private func voiceREST(_ rest: HermesREST) async throws -> BotJSON {
+        guard gateway.isAttached(consumerID) else { throw BotFailure.stale }
+        let attempt = self.attempt
+        let data = try await http.data(rest, validateDispatch: { try self.checkOwner(attempt) })
+        try checkOwner(attempt)
+        return try JSONDecoder().decode(BotJSON.self, from: data)
+    }
+
+    func transcribeVoice(sessionKey: String, audio: Data, mimeType: String) async throws -> String {
+        guard !audio.isEmpty else { throw BotFailure.unsupported }
+        let reply = try await voiceREST(.transcribe(profile: try await currentProfile(), dataURL: "data:\(mimeType);base64,\(audio.base64EncodedString())", mimeType: mimeType))
+        guard reply["ok"].flag == true else { throw BotFailure.unsupported }
+        return (reply["transcript"].text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    /// `GET /api/audio/voice-live/status`; nil on an older host without the route.
+    func voiceLiveStatus() async throws -> VoiceLive.Status? { try await voiceLiveStatus(profile: nil) }
+
+    func voiceLiveStatus(profile: String?) async throws -> VoiceLive.Status? {
+        do { return VoiceLive.Status(try await voiceREST(.voiceLiveStatus(profile: profile))) }
+        catch BotFailure.rejected(404) { return nil }
+    }
+
+    /// `POST /api/audio/voice-live/session {sdp, history}`: the SDP answer and the vendor session id.
+    /// The offer goes byte-exact (the vendor parser needs the trailing CRLF); `profile` scopes
+    /// model, voice and instructions to the resumed chat, or nil keeps dashboard defaults.
+    func voiceLiveSession(sdp: String, history: [BotJSON], profile: String?) async throws -> (answer: String, sessionID: String?) {
+        let reply = try await voiceREST(.voiceLiveSession(sdp: sdp, history: history, profile: profile))
+        guard reply["ok"].flag == true, let answer = reply["transport"]["sdp"].text, !answer.isEmpty else { throw BotFailure.unsupported }
+        return (answer, reply["session"]["id"].text)
+    }
+
+    func voiceMode(profile: String?) async throws -> VoiceMode {
+        guard let status = try await voiceLiveStatus(profile: profile) else { throw BotFailure.unsupported }
+        return VoiceMode(hostValue: status.mode)
+    }
+
+    func saveVoiceMode(_ mode: VoiceMode, profile: String?) async throws -> VoiceMode {
+        let resolved: String
+        if let profile { resolved = profile } else { resolved = try await currentProfile() }
+        let reply = try await voiceREST(.setVoiceMode(profile: resolved, mode: mode))
+        guard reply["ok"].flag == true else { throw BotFailure.unsupported }
+        return try await voiceMode(profile: resolved)
+    }
+
+    func speakClip(_ text: String) async throws -> Data {
+        let reply = try await voiceREST(.voiceSpeak(text: text))
+        guard let dataURL = reply["data_url"].text, let data = Self.decodeDataURL(dataURL) else { throw BotFailure.unsupported }
+        return data
+    }
+
+    /// A speak-stream socket on this connection's session, with a fresh single-use ticket.
+    func openSpeakStream() async throws -> any BotSocket {
+        let ticket = try await voiceREST(.ticket)
+        guard let token = ticket["ticket"].text else { throw BotFailure.unsupported }
+        return http.openSocket(URLRequest(url: try BotVoiceRPC.speakStreamURL(base: http.connection.address, ticket: token)))
+    }
 }
+
+extension BotClient: BotVoiceBackend {}

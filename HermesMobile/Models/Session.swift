@@ -574,6 +574,15 @@ extension SessionSummary {
             .contains("claude_code")
     }
 
+    /// A chat a messaging platform (Slack, Telegram, …) runs, by its source: a reply started
+    /// here would never post back there.
+    var isMessagingPlatformSession: Bool {
+        if [sessionSource, rawSource].compactMap(Self.normalizedSourceMarker).contains("messaging") { return true }
+        return [rawSource, sourceTag, sourceLabel]
+            .compactMap(Self.normalizedSourceMarker)
+            .contains(where: Self.messagingSourceMarkers.contains)
+    }
+
     /// Delegated children are runner-owned and view-only. Upstream has also
     /// emitted both read-only spellings across row sources, so either explicit
     /// true value preserves that safety for other imported sessions.

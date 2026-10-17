@@ -327,6 +327,7 @@ struct ChatView: View {
     @State private var completionScrollPolicy = ChatCompletionScrollPolicy()
     @State private var completedResponseRenderID: String?
     @State private var hydratedCompletionStreamID: String?
+    @State private var voiceAvailability = VoiceStartAvailability()
     @State private var composerFocusRevision = 0
     @State private var followLatch = ChatScrollPolicy.FollowLatch()
     @State private var followScrollGeneration = 0
@@ -721,16 +722,34 @@ struct ChatView: View {
             },
             uploadsAttachmentsOnSend: isHermesSession,
             onCancelAttachmentUpload: viewModel.isSendingAttachments ? { viewModel.cancelAttachmentUpload() } : nil,
-            hermesTranscriber: hermesTranscriber
+            hermesTranscriber: hermesTranscriber,
+            voiceCall: voiceCallControl
         )
         // The composer flips wholesale with the transcript under the RTL
         // toggle (#259): input, placeholder, and chrome mirror together.
+        .voiceBubbleClearance()
+        .task(id: viewModel.hermesVoiceLookupScope) { await viewModel.prepareHermesVoice() }
+        .task(id: VoiceStartScope.current(server: server, profile: viewModel.hermesSessionLink?.profile)) {
+            guard isHermesSession else { return }
+            let scope = VoiceStartScope.current(server: server, profile: viewModel.hermesSessionLink?.profile)
+            await voiceAvailability.refresh(scope: scope, currentScope: { VoiceStartScope.current(server: server, profile: viewModel.hermesSessionLink?.profile) })
+        }
         .environment(\.layoutDirection, chatLayoutDirection)
         .background(
             NavigationAppearanceCompletionObserver(action: handleInitialAppearanceCompletion)
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
         )
+    }
+
+    private var voiceCallControl: ComposerVoiceCallControl? {
+        guard isHermesSession, let link = viewModel.hermesSessionLink else { return nil }
+        let availability: VoicePreferences.ContinueByVoice = session.isSessionReadOnly ? .hidden : viewModel.hermesContinueByVoice
+        return ComposerVoiceCallControl(availability: availability, modes: voiceAvailability,
+            scope: VoiceStartScope.current(server: server, profile: viewModel.hermesSessionLink?.profile)) { mode in
+                VoiceCallController.shared.start(VoiceCallPresentation(server: server, requestedMode: mode,
+                    resumeSessionKey: link.key, resumeProfile: link.profile))
+            }
     }
 
     private var composerReadOnlyMessage: String? {
@@ -2481,6 +2500,9 @@ struct ChatView: View {
 
     private func loadMessages(appliesInitialFocus: Bool = true, usesInitialPrefetch: Bool = false) async {
         await viewModel.loadMessages(modelContext: modelContext, usesInitialPrefetch: usesInitialPrefetch)
+        if isHermesSession, let key = viewModel.hermesSessionLink?.key {
+            VoiceCallController.shared.chatScreenReady(sessionID: key)
+        }
         await viewModel.reconnectStreamIfNeeded(modelContext: modelContext)
         if appliesInitialFocus {
             applyInitialComposerFocusPolicyIfNeeded()

@@ -1,6 +1,55 @@
 import Foundation
 import SwiftUI
 
+/// The composer's "Continue by voice" button: what it offers and what a tap or a mode starts.
+struct ComposerVoiceCallControl {
+    let availability: VoicePreferences.ContinueByVoice
+    let modes: VoiceStartAvailability
+    let scope: VoiceStartScope
+    let start: (VoiceMode?) -> Void
+}
+
+/// The button's look: hidden, dimmed while the chat or another call is busy, or ready.
+enum ComposerVoiceCallState: Equatable {
+    case hidden, disabled, enabled
+    init(availability: VoicePreferences.ContinueByVoice, callIsRunning: Bool) {
+        switch availability {
+        case .hidden: self = .hidden
+        case .busy: self = .disabled
+        case .available: self = callIsRunning ? .disabled : .enabled
+        }
+    }
+}
+
+struct ComposerVoiceCallButton: View {
+    let control: ComposerVoiceCallControl
+    let callIsRunning: Bool
+    let color: Color
+
+    @ViewBuilder var body: some View {
+        let state = ComposerVoiceCallState(availability: control.availability, callIsRunning: callIsRunning)
+        if state != .hidden, control.modes.offersVoice(for: control.scope) {
+            Menu {
+                VoiceStartMenu(availability: control.modes, scope: control.scope, start: { control.start($0) })
+            } label: {
+                Image(systemName: "waveform")
+                    .font(.system(size: 18, weight: .regular))
+                    .frame(width: 44, height: 44)
+                    .foregroundStyle(color)
+            } primaryAction: {
+                control.start(nil)
+            }
+            .buttonStyle(.plain)
+            .disabled(state == .disabled)
+            // Dimmed as the mic button next to it dims (`ComposerVoiceControlButton.label`).
+            .opacity(state == .disabled ? 0.4 : 1)
+            .accessibilityLabel("Continue by voice")
+            .accessibilityValue(state == .disabled ? "Busy — try when it's done" : "")
+            .accessibilityIdentifier("chat-voice")
+        }
+    }
+}
+
 struct ComposerVoiceStatus: Equatable {
     let text: String
     let systemImage: String

@@ -637,6 +637,47 @@
 		559000000000000000000006 /* PushPreviewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 559000000000000000000016 /* PushPreviewTests.swift */; };
 		C0DE88500000000000000003 /* AppLockTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE88500000000000000004 /* AppLockTests.swift */; };
 		559000000000000000000007 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 10CA110C0DE000000000B002 /* Localizable.xcstrings */; };
+		F7F76BC9D90954A5F8C221C3 /* BotVoiceRPC.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCE3FF4BF4919C7874FC49B9 /* BotVoiceRPC.swift */; };
+		F939B12B7F6DE8EB7341C990 /* VoiceAppendJournal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FE0A9090F4BA9D9CF8BE1F6 /* VoiceAppendJournal.swift */; };
+		01B92E75EE6A38BFFA2742CB /* VoiceAppendObservation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2187A033FD410D31636C15E4 /* VoiceAppendObservation.swift */; };
+		7713FAE5E5C2C7915ACCBFFC /* VoiceAudioEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F86B4968930003FD3960BB /* VoiceAudioEngine.swift */; };
+		A67F17C5E750A0BCAA41569D /* VoiceCall.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CB0898BF2A883CB8182B51D /* VoiceCall.swift */; };
+		C6421BF4B20A4F24C7A01E6D /* VoiceCallOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE692F9F452B9021EC792614 /* VoiceCallOverlay.swift */; };
+		E2789D3F9A2E08E6D2C2A018 /* VoiceChatTranscript.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A94261DDF327F83DFD5B01 /* VoiceChatTranscript.swift */; };
+		0D442FE6FBC7AC01DFDA2855 /* VoiceEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = C928181991D6EE52A5C83BAA /* VoiceEngine.swift */; };
+		A058CCD3C857934955CD2160 /* VoiceHermesLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 159A74176C71D57935EC11B4 /* VoiceHermesLink.swift */; };
+		5BB710A60ED74BB12CC7A052 /* VoiceHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C8AD9F1BEEBD65B1F8944CE /* VoiceHistory.swift */; };
+		351D25F6E0B3E9CCE94C930E /* VoiceLiveProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B7BB3E775890941C8970C78 /* VoiceLiveProtocol.swift */; };
+		450D82CA1976D837EBAF7821 /* VoiceOrb.swift in Sources */ = {isa = PBXBuildFile; fileRef = C44ACBC219B041357EBFED8A /* VoiceOrb.swift */; };
+		4B70A3D47D960A34685A4F8B /* VoiceRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B21AFB751FD79DBD6AD8E3D3 /* VoiceRecognizer.swift */; };
+		D7FA8FEFDE6D54FB4058F8E8 /* VoiceScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D1A07A830F8840D8E63D54E /* VoiceScreen.swift */; };
+		C40615386873269A3B6B05DD /* VoiceScreenChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BA7539C8EA1F65F18DA394 /* VoiceScreenChrome.swift */; };
+		C99B5E225AE21658935891E7 /* VoiceSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC5DF8DCD3E3E769595D8F68 /* VoiceSession.swift */; };
+		D5239296F8A0C004FC9D9889 /* VoiceSpeakStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFB5D8BD968607AA7E1E7B38 /* VoiceSpeakStream.swift */; };
+		942F89C31EC9FE36BE2FFF52 /* VoiceText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C6FE4E47A425860A29376CC /* VoiceText.swift */; };
+		2D2EA7139255F21A8123C41B /* VoiceTranscriptModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90AF3B0E062BA3A17151E3D3 /* VoiceTranscriptModel.swift */; };
+		FA8DEE41F11623137ACD278F /* VoiceTranscriptSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77AB7D795FDD3474951215CA /* VoiceTranscriptSupport.swift */; };
+		AA8F8D6C785986D85B788BCB /* VoiceWorkSteps.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE87573CA961F2328A711361 /* VoiceWorkSteps.swift */; };
+		C41960DED5981E6839BDDC7E /* VoiceModeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32B3051F9CDCA7543DF6C73B /* VoiceModeTests.swift */; };
+		711AD6FF2685EA1256CAEC62 /* VoiceCallTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 631F388CD2BD9A8A83A37750 /* VoiceCallTests.swift */; };
+		7E1D00000000000000000015 /* WebRTC in Frameworks */ = {isa = PBXBuildFile; productRef = 7E1D00000000000000000014 /* WebRTC */; };
+		5D1C0D75D6634A673C6023A0 /* VoiceLiveConversation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E97135376E46A9524DA31D8 /* VoiceLiveConversation.swift */; };
+		54A4E0997EB163047005B99D /* VoiceLiveSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E7052BE0A57D2519B484AAF /* VoiceLiveSession.swift */; };
+		318DEFF77A57B04FAB2A67E5 /* VoiceEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70D44B59D3B33BB0B2C762E9 /* VoiceEngineTests.swift */; };
+		530F5E4C47E38624336B3C26 /* VoiceLiveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBE155E0624D2A8BB8E2C982 /* VoiceLiveTests.swift */; };
+		4338C67D515908C0D29CC85C /* VoiceWorkStepsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0924591BA049A3DBC9181F /* VoiceWorkStepsTests.swift */; };
+		4C5219A08CB25F8B8595D843 /* VoiceAppendRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5993426480BABEA1EDA482 /* VoiceAppendRow.swift */; };
+		CFB746F763C5B12526588027 /* VoiceAppendCaptureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87D6C8688955208AE07D91C4 /* VoiceAppendCaptureTests.swift */; };
+		6A69B10F94ADA8330B4320CC /* VoiceAppendJournalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77AB315FB6B3A5B2D8E683A2 /* VoiceAppendJournalTests.swift */; };
+		72358CAD14AD96CAD9F5D755 /* VoiceAppendLogRowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53A296B2BA6894134D4B2D3D /* VoiceAppendLogRowTests.swift */; };
+		E6B05C5834BBD2B4A00BDE81 /* VoiceAppendModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CFDB596B0377438BDE1F3FF /* VoiceAppendModelTests.swift */; };
+		04F9EDE737ECB6F29D623AB4 /* VoiceCallLinkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29A5D17D240F5C6AACE5022B /* VoiceCallLinkTests.swift */; };
+		968189D6A38CE4614F99EFFA /* VoiceEchoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FDDA75402FA9BD2746E6A9F /* VoiceEchoTests.swift */; };
+		4871A725949BF70DCAD73CB8 /* VoiceLookTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7527A0F87F1E74B8E3321557 /* VoiceLookTests.swift */; };
+		B30F558E910674060D2CFF83 /* VoiceOrbTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 587FD5AD5810D6B029FFAFAB /* VoiceOrbTests.swift */; };
+		3B91ADAAC4093B7B7F00ACEB /* VoiceTranscriptModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7CB49EE264550156321C2E /* VoiceTranscriptModelTests.swift */; };
+		D2A4335B34750A387C6BF752 /* VoiceModePreference.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60006D4BC38E31494AB07AFC /* VoiceModePreference.swift */; };
+		7F3D5D37ADD4213434F46A18 /* VoiceModePreferenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF15FE1E01794EFDBAC1A307 /* VoiceModePreferenceTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -1314,6 +1355,46 @@
 		559000000000000000000015 /* PushNotificationRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushNotificationRouter.swift; sourceTree = "<group>"; };
 		559000000000000000000016 /* PushPreviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushPreviewTests.swift; sourceTree = "<group>"; };
 		C0DE88500000000000000004 /* AppLockTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLockTests.swift; sourceTree = "<group>"; };
+		FCE3FF4BF4919C7874FC49B9 /* BotVoiceRPC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobile/Features/Voice/BotVoiceRPC.swift"; sourceTree = SOURCE_ROOT; };
+		0FE0A9090F4BA9D9CF8BE1F6 /* VoiceAppendJournal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobile/Features/Voice/VoiceAppendJournal.swift"; sourceTree = SOURCE_ROOT; };
+		2187A033FD410D31636C15E4 /* VoiceAppendObservation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobile/Features/Voice/VoiceAppendObservation.swift"; sourceTree = SOURCE_ROOT; };
+		D0F86B4968930003FD3960BB /* VoiceAudioEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobile/Features/Voice/VoiceAudioEngine.swift"; sourceTree = SOURCE_ROOT; };
+		0CB0898BF2A883CB8182B51D /* VoiceCall.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobile/Features/Voice/VoiceCall.swift"; sourceTree = SOURCE_ROOT; };
+		CE692F9F452B9021EC792614 /* VoiceCallOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobile/Features/Voice/VoiceCallOverlay.swift"; sourceTree = SOURCE_ROOT; };
+		C2A94261DDF327F83DFD5B01 /* VoiceChatTranscript.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobile/Features/Voice/VoiceChatTranscript.swift"; sourceTree = SOURCE_ROOT; };
+		C928181991D6EE52A5C83BAA /* VoiceEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobile/Features/Voice/VoiceEngine.swift"; sourceTree = SOURCE_ROOT; };
+		159A74176C71D57935EC11B4 /* VoiceHermesLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobile/Features/Voice/VoiceHermesLink.swift"; sourceTree = SOURCE_ROOT; };
+		4C8AD9F1BEEBD65B1F8944CE /* VoiceHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobile/Features/Voice/VoiceHistory.swift"; sourceTree = SOURCE_ROOT; };
+		7B7BB3E775890941C8970C78 /* VoiceLiveProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobile/Features/Voice/VoiceLiveProtocol.swift"; sourceTree = SOURCE_ROOT; };
+		C44ACBC219B041357EBFED8A /* VoiceOrb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobile/Features/Voice/VoiceOrb.swift"; sourceTree = SOURCE_ROOT; };
+		B21AFB751FD79DBD6AD8E3D3 /* VoiceRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobile/Features/Voice/VoiceRecognizer.swift"; sourceTree = SOURCE_ROOT; };
+		9D1A07A830F8840D8E63D54E /* VoiceScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobile/Features/Voice/VoiceScreen.swift"; sourceTree = SOURCE_ROOT; };
+		A1BA7539C8EA1F65F18DA394 /* VoiceScreenChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobile/Features/Voice/VoiceScreenChrome.swift"; sourceTree = SOURCE_ROOT; };
+		CC5DF8DCD3E3E769595D8F68 /* VoiceSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobile/Features/Voice/VoiceSession.swift"; sourceTree = SOURCE_ROOT; };
+		AFB5D8BD968607AA7E1E7B38 /* VoiceSpeakStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobile/Features/Voice/VoiceSpeakStream.swift"; sourceTree = SOURCE_ROOT; };
+		0C6FE4E47A425860A29376CC /* VoiceText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobile/Features/Voice/VoiceText.swift"; sourceTree = SOURCE_ROOT; };
+		90AF3B0E062BA3A17151E3D3 /* VoiceTranscriptModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobile/Features/Voice/VoiceTranscriptModel.swift"; sourceTree = SOURCE_ROOT; };
+		77AB7D795FDD3474951215CA /* VoiceTranscriptSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobile/Features/Voice/VoiceTranscriptSupport.swift"; sourceTree = SOURCE_ROOT; };
+		DE87573CA961F2328A711361 /* VoiceWorkSteps.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobile/Features/Voice/VoiceWorkSteps.swift"; sourceTree = SOURCE_ROOT; };
+		32B3051F9CDCA7543DF6C73B /* VoiceModeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobileTests/VoiceModeTests.swift"; sourceTree = SOURCE_ROOT; };
+		631F388CD2BD9A8A83A37750 /* VoiceCallTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobileTests/VoiceCallTests.swift"; sourceTree = SOURCE_ROOT; };
+		6E97135376E46A9524DA31D8 /* VoiceLiveConversation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobile/Features/Voice/VoiceLiveConversation.swift"; sourceTree = SOURCE_ROOT; };
+		2E7052BE0A57D2519B484AAF /* VoiceLiveSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobile/Features/Voice/VoiceLiveSession.swift"; sourceTree = SOURCE_ROOT; };
+		70D44B59D3B33BB0B2C762E9 /* VoiceEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobileTests/VoiceEngineTests.swift"; sourceTree = SOURCE_ROOT; };
+		FBE155E0624D2A8BB8E2C982 /* VoiceLiveTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobileTests/VoiceLiveTests.swift"; sourceTree = SOURCE_ROOT; };
+		0C0924591BA049A3DBC9181F /* VoiceWorkStepsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobileTests/VoiceWorkStepsTests.swift"; sourceTree = SOURCE_ROOT; };
+		DD5993426480BABEA1EDA482 /* VoiceAppendRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobile/Features/Voice/VoiceAppendRow.swift"; sourceTree = SOURCE_ROOT; };
+		87D6C8688955208AE07D91C4 /* VoiceAppendCaptureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobileTests/VoiceAppendCaptureTests.swift"; sourceTree = SOURCE_ROOT; };
+		77AB315FB6B3A5B2D8E683A2 /* VoiceAppendJournalTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobileTests/VoiceAppendJournalTests.swift"; sourceTree = SOURCE_ROOT; };
+		53A296B2BA6894134D4B2D3D /* VoiceAppendLogRowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobileTests/VoiceAppendLogRowTests.swift"; sourceTree = SOURCE_ROOT; };
+		0CFDB596B0377438BDE1F3FF /* VoiceAppendModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobileTests/VoiceAppendModelTests.swift"; sourceTree = SOURCE_ROOT; };
+		29A5D17D240F5C6AACE5022B /* VoiceCallLinkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobileTests/VoiceCallLinkTests.swift"; sourceTree = SOURCE_ROOT; };
+		2FDDA75402FA9BD2746E6A9F /* VoiceEchoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobileTests/VoiceEchoTests.swift"; sourceTree = SOURCE_ROOT; };
+		7527A0F87F1E74B8E3321557 /* VoiceLookTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobileTests/VoiceLookTests.swift"; sourceTree = SOURCE_ROOT; };
+		587FD5AD5810D6B029FFAFAB /* VoiceOrbTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobileTests/VoiceOrbTests.swift"; sourceTree = SOURCE_ROOT; };
+		CF7CB49EE264550156321C2E /* VoiceTranscriptModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobileTests/VoiceTranscriptModelTests.swift"; sourceTree = SOURCE_ROOT; };
+		60006D4BC38E31494AB07AFC /* VoiceModePreference.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobile/Features/Voice/VoiceModePreference.swift"; sourceTree = SOURCE_ROOT; };
+		CF15FE1E01794EFDBAC1A307 /* VoiceModePreferenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HermesMobileTests/VoiceModePreferenceTests.swift"; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1321,6 +1402,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7E1D00000000000000000015 /* WebRTC in Frameworks */,
 				1A2B3C4D5E6F700000000004 /* LDSwiftEventSource in Frameworks */,
 				1A2B3C4D5E6F700000000005 /* MarkdownUI in Frameworks */,
 				1A2B3C4D5E6F700000000006 /* Splash in Frameworks */,
@@ -1378,6 +1460,31 @@
 		1A2B3C4D5E6F700000000031 /* HermesMobile */ = {
 			isa = PBXGroup;
 			children = (
+				60006D4BC38E31494AB07AFC /* VoiceModePreference.swift */,
+				DD5993426480BABEA1EDA482 /* VoiceAppendRow.swift */,
+				2E7052BE0A57D2519B484AAF /* VoiceLiveSession.swift */,
+				6E97135376E46A9524DA31D8 /* VoiceLiveConversation.swift */,
+				FCE3FF4BF4919C7874FC49B9 /* BotVoiceRPC.swift */,
+				0FE0A9090F4BA9D9CF8BE1F6 /* VoiceAppendJournal.swift */,
+				2187A033FD410D31636C15E4 /* VoiceAppendObservation.swift */,
+				D0F86B4968930003FD3960BB /* VoiceAudioEngine.swift */,
+				0CB0898BF2A883CB8182B51D /* VoiceCall.swift */,
+				CE692F9F452B9021EC792614 /* VoiceCallOverlay.swift */,
+				C2A94261DDF327F83DFD5B01 /* VoiceChatTranscript.swift */,
+				C928181991D6EE52A5C83BAA /* VoiceEngine.swift */,
+				159A74176C71D57935EC11B4 /* VoiceHermesLink.swift */,
+				4C8AD9F1BEEBD65B1F8944CE /* VoiceHistory.swift */,
+				7B7BB3E775890941C8970C78 /* VoiceLiveProtocol.swift */,
+				C44ACBC219B041357EBFED8A /* VoiceOrb.swift */,
+				B21AFB751FD79DBD6AD8E3D3 /* VoiceRecognizer.swift */,
+				9D1A07A830F8840D8E63D54E /* VoiceScreen.swift */,
+				A1BA7539C8EA1F65F18DA394 /* VoiceScreenChrome.swift */,
+				CC5DF8DCD3E3E769595D8F68 /* VoiceSession.swift */,
+				AFB5D8BD968607AA7E1E7B38 /* VoiceSpeakStream.swift */,
+				0C6FE4E47A425860A29376CC /* VoiceText.swift */,
+				90AF3B0E062BA3A17151E3D3 /* VoiceTranscriptModel.swift */,
+				77AB7D795FDD3474951215CA /* VoiceTranscriptSupport.swift */,
+				DE87573CA961F2328A711361 /* VoiceWorkSteps.swift */,
 				1A2B3C4D5E6F700000000011 /* HermesMobileApp.swift */,
 				1A2B3C4D5E6F700000000012 /* ContentView.swift */,
 				1A2B3C4D5E6F7000000000FA /* Config */,
@@ -1424,6 +1531,21 @@
 		1A2B3C4D5E6F700000000034 /* HermesMobileTests */ = {
 			isa = PBXGroup;
 			children = (
+				CF15FE1E01794EFDBAC1A307 /* VoiceModePreferenceTests.swift */,
+				CF7CB49EE264550156321C2E /* VoiceTranscriptModelTests.swift */,
+				587FD5AD5810D6B029FFAFAB /* VoiceOrbTests.swift */,
+				7527A0F87F1E74B8E3321557 /* VoiceLookTests.swift */,
+				2FDDA75402FA9BD2746E6A9F /* VoiceEchoTests.swift */,
+				29A5D17D240F5C6AACE5022B /* VoiceCallLinkTests.swift */,
+				0CFDB596B0377438BDE1F3FF /* VoiceAppendModelTests.swift */,
+				53A296B2BA6894134D4B2D3D /* VoiceAppendLogRowTests.swift */,
+				77AB315FB6B3A5B2D8E683A2 /* VoiceAppendJournalTests.swift */,
+				87D6C8688955208AE07D91C4 /* VoiceAppendCaptureTests.swift */,
+				0C0924591BA049A3DBC9181F /* VoiceWorkStepsTests.swift */,
+				FBE155E0624D2A8BB8E2C982 /* VoiceLiveTests.swift */,
+				70D44B59D3B33BB0B2C762E9 /* VoiceEngineTests.swift */,
+				631F388CD2BD9A8A83A37750 /* VoiceCallTests.swift */,
+				32B3051F9CDCA7543DF6C73B /* VoiceModeTests.swift */,
 				B48200000000000000000007 /* BotProfileEditorTests.swift */,
 				B48200000000000000000035 /* BotLifecycleTests.swift */,
 				B48200000000000000000023 /* BotFaceMotionTests.swift */,
@@ -2280,6 +2402,7 @@
 			);
 			name = HermesMobile;
 			packageProductDependencies = (
+				7E1D00000000000000000014 /* WebRTC */,
 				1A2B3C4D5E6F700000000094 /* LDSwiftEventSource */,
 				1A2B3C4D5E6F700000000095 /* MarkdownUI */,
 				1A2B3C4D5E6F700000000096 /* Splash */,
@@ -2417,6 +2540,7 @@
 			);
 			mainGroup = 1A2B3C4D5E6F700000000030;
 			packageReferences = (
+				7E1D00000000000000000013 /* XCRemoteSwiftPackageReference "WebRTC" */,
 				1A2B3C4D5E6F700000000090 /* XCRemoteSwiftPackageReference "swift-eventsource" */,
 				1A2B3C4D5E6F700000000091 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */,
 				1A2B3C4D5E6F700000000092 /* XCRemoteSwiftPackageReference "Splash" */,
@@ -2482,6 +2606,31 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D2A4335B34750A387C6BF752 /* VoiceModePreference.swift in Sources */,
+				4C5219A08CB25F8B8595D843 /* VoiceAppendRow.swift in Sources */,
+				54A4E0997EB163047005B99D /* VoiceLiveSession.swift in Sources */,
+				5D1C0D75D6634A673C6023A0 /* VoiceLiveConversation.swift in Sources */,
+				F7F76BC9D90954A5F8C221C3 /* BotVoiceRPC.swift in Sources */,
+				F939B12B7F6DE8EB7341C990 /* VoiceAppendJournal.swift in Sources */,
+				01B92E75EE6A38BFFA2742CB /* VoiceAppendObservation.swift in Sources */,
+				7713FAE5E5C2C7915ACCBFFC /* VoiceAudioEngine.swift in Sources */,
+				A67F17C5E750A0BCAA41569D /* VoiceCall.swift in Sources */,
+				C6421BF4B20A4F24C7A01E6D /* VoiceCallOverlay.swift in Sources */,
+				E2789D3F9A2E08E6D2C2A018 /* VoiceChatTranscript.swift in Sources */,
+				0D442FE6FBC7AC01DFDA2855 /* VoiceEngine.swift in Sources */,
+				A058CCD3C857934955CD2160 /* VoiceHermesLink.swift in Sources */,
+				5BB710A60ED74BB12CC7A052 /* VoiceHistory.swift in Sources */,
+				351D25F6E0B3E9CCE94C930E /* VoiceLiveProtocol.swift in Sources */,
+				450D82CA1976D837EBAF7821 /* VoiceOrb.swift in Sources */,
+				4B70A3D47D960A34685A4F8B /* VoiceRecognizer.swift in Sources */,
+				D7FA8FEFDE6D54FB4058F8E8 /* VoiceScreen.swift in Sources */,
+				C40615386873269A3B6B05DD /* VoiceScreenChrome.swift in Sources */,
+				C99B5E225AE21658935891E7 /* VoiceSession.swift in Sources */,
+				D5239296F8A0C004FC9D9889 /* VoiceSpeakStream.swift in Sources */,
+				942F89C31EC9FE36BE2FFF52 /* VoiceText.swift in Sources */,
+				2D2EA7139255F21A8123C41B /* VoiceTranscriptModel.swift in Sources */,
+				FA8DEE41F11623137ACD278F /* VoiceTranscriptSupport.swift in Sources */,
+				AA8F8D6C785986D85B788BCB /* VoiceWorkSteps.swift in Sources */,
 				A4790000000000000000E001 /* PushEnvironment.swift in Sources */,
 				A4790000000000000000E002 /* PushPairing.swift in Sources */,
 				559000000000000000000001 /* PushPreview.swift in Sources */,
@@ -2878,6 +3027,21 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7F3D5D37ADD4213434F46A18 /* VoiceModePreferenceTests.swift in Sources */,
+				3B91ADAAC4093B7B7F00ACEB /* VoiceTranscriptModelTests.swift in Sources */,
+				B30F558E910674060D2CFF83 /* VoiceOrbTests.swift in Sources */,
+				4871A725949BF70DCAD73CB8 /* VoiceLookTests.swift in Sources */,
+				968189D6A38CE4614F99EFFA /* VoiceEchoTests.swift in Sources */,
+				04F9EDE737ECB6F29D623AB4 /* VoiceCallLinkTests.swift in Sources */,
+				E6B05C5834BBD2B4A00BDE81 /* VoiceAppendModelTests.swift in Sources */,
+				72358CAD14AD96CAD9F5D755 /* VoiceAppendLogRowTests.swift in Sources */,
+				6A69B10F94ADA8330B4320CC /* VoiceAppendJournalTests.swift in Sources */,
+				CFB746F763C5B12526588027 /* VoiceAppendCaptureTests.swift in Sources */,
+				4338C67D515908C0D29CC85C /* VoiceWorkStepsTests.swift in Sources */,
+				530F5E4C47E38624336B3C26 /* VoiceLiveTests.swift in Sources */,
+				318DEFF77A57B04FAB2A67E5 /* VoiceEngineTests.swift in Sources */,
+				711AD6FF2685EA1256CAEC62 /* VoiceCallTests.swift in Sources */,
+				C41960DED5981E6839BDDC7E /* VoiceModeTests.swift in Sources */,
 				A4790000000000000000E006 /* PushRegistrationTests.swift in Sources */,
 				B48200000000000000000008 /* BotProfileEditorTests.swift in Sources */,
 				B48200000000000000000036 /* BotLifecycleTests.swift in Sources */,
@@ -3665,6 +3829,11 @@
 				minimumVersion = 1.7.3;
 			};
 		};
+		7E1D00000000000000000013 /* XCRemoteSwiftPackageReference "WebRTC" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/stasel/WebRTC";
+			requirement = { kind = exactVersion; version = 155.0.0; };
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -3703,6 +3872,7 @@
 			package = 5417A7400000000000000090 /* XCRemoteSwiftPackageReference "SwiftMath" */;
 			productName = SwiftMath;
 		};
+		7E1D00000000000000000014 /* WebRTC */ = {isa = XCSwiftPackageProductDependency; package = 7E1D00000000000000000013 /* XCRemoteSwiftPackageReference "WebRTC" */; productName = WebRTC; };
 /* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 1A2B3C4D5E6F700000000070 /* Project object */;

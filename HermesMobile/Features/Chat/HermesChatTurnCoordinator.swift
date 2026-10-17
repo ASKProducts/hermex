@@ -163,7 +163,9 @@ struct HermesChatTranscript: Equatable {
     /// The start a `session.info {running: true}` reported for the turn it opens. Only the
     /// first turn after an attach is sure to get one, so a turn consumes it.
     @ObservationIgnored private var hostTurnStartedAt: Double?
-    @ObservationIgnored private var hostRunning = false
+    /// Whether the host runs a turn in this session, as its last `session.info` said: also one
+    /// another client started. Observed, so the composer's voice button follows it.
+    private(set) var hostRunning = false
     /// The last title `session.info` reported, so a repeat leaves the header alone.
     @ObservationIgnored private var infoTitle: String?
     /// The session's working folder, as the latest `session.info` or attach reports it.

@@ -281,6 +281,11 @@ struct HermesSessionListView: View {
         .task { await viewModel.openHermes(modelContext: modelContext) }
         // A link arriving while a chat, screen or sheet covers the rows pops and closes them, so
         // what it opens or says shows here.
+        .onChange(of: home?.voiceChat.wrappedValue) {
+            guard let target = home?.voiceChat.wrappedValue else { return }
+            covers.chat = HermesSessionChat(server: entry.server, connection: entry.connection, target: target)
+            home?.voiceChat.wrappedValue = nil
+        }
         .onChange(of: pendingLink, initial: true) { covers.accept(pendingLink, on: entry.server) }
         .task(id: pendingLink) { await openPendingLink() }
         // A Shortcut's new session and a share bring the rows forward at once, and open once the
