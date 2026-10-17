@@ -10,9 +10,14 @@ import Observation
 }
 
 /// Detaching closes only this screen's socket. The plugin keeps the shell and
-/// buffers its output for up to 30 minutes; every attach clears SwiftTerm before replay.
+/// buffers its output for up to 30 minutes; every attach clears SwiftTerm once its socket opens, before replay.
 @MainActor @Observable final class TerminalSessionController {
-    enum EndReason: Equatable { case exited(Int?), gone, error(String) }
+    /// `disconnected`: the connection was lost but the shell may still run on the host, so
+    /// the screen offers Reconnect as well as Restart. Only close code 4410 means it exited.
+    enum EndReason: Equatable {
+        case exited(Int?), gone, error(String), disconnected(String)
+        var isDisconnected: Bool { if case .disconnected = self { return true }; return false }
+    }
     enum State: Equatable {
         case idle, connecting, live, reconnecting
         case ended(EndReason)
@@ -22,7 +27,7 @@ import Observation
 
     private(set) var state: State = .idle
     private(set) var isRetired = false
-    @ObservationIgnored var onOutput: ((Data) -> Void)?
+    @ObservationIgnored var onOutput: ((Data) async -> Void)?
     @ObservationIgnored var onReset: (() -> Void)?
     @ObservationIgnored private let transport: any TerminalTransport
     @ObservationIgnored private let registryKey: String
@@ -32,6 +37,8 @@ import Observation
     @ObservationIgnored private var isSuspended = false
     @ObservationIgnored private var authenticationRetried = false
     @ObservationIgnored private var retirementToken: UUID?
+    /// Set when an attach starts; the screen is cleared when that attach's socket opens.
+    @ObservationIgnored private var pendingReset: (generation: UUID, previousGone: Bool)?
     @ObservationIgnored private weak var http: HermesConnection?
 
     init(target: TerminalTarget, transport: (any TerminalTransport)? = nil) {
@@ -53,11 +60,26 @@ import Observation
     }
 
     func open(rows: Int, cols: Int) async {
-        guard state == .idle || isFailed, observeRetirement() else { return }
+        guard state == .idle || isFailed else { return }
         size = (max(1, rows), max(1, cols))
+        await attach(state: .connecting)
+    }
+
+    func retry() async { await open(rows: size.rows, cols: size.cols) }
+
+    /// After a lost connection: attaches to the shell the host kept (`restart: false`),
+    /// which replays its output.
+    func reconnect() async {
+        guard case .ended(let reason) = state, reason.isDisconnected else { return }
+        await attach(state: .reconnecting)
+    }
+
+    /// Reads whether the shell still runs, then attaches without restarting it.
+    private func attach(state: State) async {
+        guard observeRetirement() else { return }
         isSuspended = false
         authenticationRetried = false
-        let current = beginConnection(state: .connecting)
+        let current = beginConnection(state: state)
         do {
             let running = try await transport.status()
             guard generation == current, !Task.isCancelled else { return }
@@ -65,13 +87,13 @@ import Observation
             await connect(current: current, restart: false, previousGone: previousGone)
         } catch {
             guard generation == current, !Task.isCancelled else { return }
-            state = .failed(error as? BotFailure == .rejected(404)
-                            ? String(localized: "Terminal needs the hermex-push companion plugin on Hermes")
-                            : error.localizedDescription)
+            let message = error as? BotFailure == .rejected(404)
+                ? String(localized: "Terminal needs the hermex-push companion plugin on Hermes")
+                : error.localizedDescription
+            // A reconnect keeps the old screen and its Reconnect action.
+            self.state = state == .reconnecting ? .ended(.disconnected(message)) : .failed(message)
         }
     }
-
-    func retry() async { await open(rows: size.rows, cols: size.cols) }
 
     func restart() async {
         guard observeRetirement() else { return }
@@ -116,14 +138,14 @@ import Observation
 
     private func connect(current: UUID, restart: Bool, previousGone: Bool = false) async {
         guard generation == current, !Task.isCancelled else { return }
-        onReset?()
-        if previousGone { onOutput?(Data("\u{1B}[2m\(Self.previousSessionNotice)\u{1B}[0m\r\n".utf8)) }
+        pendingReset = (current, previousGone)
         do {
             try await transport.connect(rows: size.rows, cols: size.cols, restart: restart) { [weak self] event in
                 guard let self, self.generation == current else { return }
-                self.handle(event)
+                await self.handle(event)
             }
             guard generation == current, !Task.isCancelled else { return }
+            await resetScreenIfPending()
             TerminalShellRegistry.markKnown(registryKey)
             state = .live
             // The view may have resized while ticket/handshake was in flight.
@@ -135,15 +157,27 @@ import Observation
                 authenticationRetried = true
                 await connect(current: current, restart: restart, previousGone: previousGone)
             } else {
-                handle(.failed((error as? TerminalConnectionFailure) ?? .network(error.localizedDescription)))
+                await handle(.failed((error as? TerminalConnectionFailure) ?? .network(error.localizedDescription)))
             }
         }
     }
 
-    func handle(_ event: TerminalEvent) {
+    /// Clears the screen for the attach whose socket just opened (its first frame, or the
+    /// completed open when the shell sent nothing), so a failed attach leaves the old output.
+    private func resetScreenIfPending() async {
+        guard let pending = pendingReset, pending.generation == generation else { return }
+        pendingReset = nil
+        onReset?()
+        if pending.previousGone { await onOutput?(Data("\u{1B}[2m\(Self.previousSessionNotice)\u{1B}[0m\r\n".utf8)) }
+    }
+
+    func handle(_ event: TerminalEvent) async {
         switch event {
-        case .output(let bytes): onOutput?(bytes)
+        case .output(let bytes):
+            await resetScreenIfPending()
+            await onOutput?(bytes)
         case .failed(let failure):
+            pendingReset = nil
             transport.disconnect()
             if failure.isAuthenticationFailure, !authenticationRetried {
                 authenticationRetried = true
@@ -152,8 +186,10 @@ import Observation
                 connectionTask = Task { [weak self] in await self?.connect(current: current, restart: false) }
             } else if failure == .closed(4410) {
                 state = .ended(.exited(nil))
-            } else {
+            } else if failure.isAuthenticationFailure {
                 state = .ended(.error(failure.message))
+            } else {
+                state = .ended(.disconnected(failure.message))
             }
         }
     }

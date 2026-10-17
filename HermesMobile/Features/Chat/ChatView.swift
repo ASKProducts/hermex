@@ -1076,7 +1076,7 @@ struct ChatView: View {
 
     private var terminalCapabilityScope: String {
         let chat = viewModel.hermesTerminalTarget?.id ?? "unattached"
-        return "\(server.absoluteString)|\(chat)|\(scenePhase == .active)|\(viewModel.isViewingCachedData)"
+        return "\(server.absoluteString)|\(chat)|\(viewModel.isViewingCachedData)"
     }
 
     /// Toolbar, navigation, and presentations over `chatLifecycle`.
@@ -1141,7 +1141,7 @@ struct ChatView: View {
             }
             .task(id: terminalCapabilityScope) {
                 terminalTarget = nil
-                guard scenePhase == .active, !viewModel.isViewingCachedData else { return }
+                guard !viewModel.isViewingCachedData else { return }
                 let target = viewModel.hermesTerminalTarget
                 await terminalAvailability.refresh(target)
                 guard !Task.isCancelled else { return }

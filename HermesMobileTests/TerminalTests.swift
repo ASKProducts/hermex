@@ -53,8 +53,8 @@ final class TerminalAPITests: XCTestCase {
     var connections: [(rows: Int, cols: Int, restart: Bool)] = []
     var frames: [URLSessionWebSocketTask.Message] = []
     var operations: [String] = []
-    var onEvent: ((TerminalEvent) -> Void)?
-    var onConnect: (() -> Void)?
+    var onEvent: ((TerminalEvent) async -> Void)?
+    var onConnect: (() async -> Void)?
     var statusGate: CheckedContinuation<Bool, Error>?
     var statusRequested: (() -> Void)?
     var parkStatus = false
@@ -66,10 +66,10 @@ final class TerminalAPITests: XCTestCase {
         }
         return running
     }
-    func connect(rows: Int, cols: Int, restart: Bool, onEvent: @escaping (TerminalEvent) -> Void) async throws {
+    func connect(rows: Int, cols: Int, restart: Bool, onEvent: @escaping (TerminalEvent) async -> Void) async throws {
         operations.append("connect"); connections.append((rows, cols, restart))
         if !connectionErrors.isEmpty { throw connectionErrors.removeFirst() }
-        self.onEvent = onEvent; onConnect?()
+        self.onEvent = onEvent; await onConnect?()
     }
     func send(_ frame: URLSessionWebSocketTask.Message) { frames.append(frame) }
     func disconnect() { operations.append("disconnect"); onEvent = nil }
@@ -115,36 +115,107 @@ final class TerminalAPITests: XCTestCase {
     }
     func testRestartPassesRestartAndResetsScreen() async {
         await controller.open(rows: 24, cols: 80)
-        transport.onEvent?(.output(Data("old".utf8)))
+        await transport.onEvent?(.output(Data("old".utf8)))
         await controller.restart()
         XCTAssertEqual(transport.connections.map(\.restart), [false, true])
         XCTAssertEqual(controller.state, .live); XCTAssertEqual(output, Data()); XCTAssertEqual(resets, 2)
     }
     func testBackgroundReturnClearsBeforeReplayWithoutRestart() async {
         await controller.open(rows: 24, cols: 80)
-        transport.onEvent?(.output(Data("one".utf8)))
+        await transport.onEvent?(.output(Data("one".utf8)))
         controller.suspend(); XCTAssertNil(transport.onEvent)
         let connected = expectation(description: "reattached")
         transport.onConnect = { [weak self] in
-            XCTAssertEqual(self?.output, Data(), "reset precedes replay")
-            self?.transport.onEvent?(.output(Data("one\ntwo".utf8)))
+            await self?.transport.onEvent?(.output(Data("one\ntwo".utf8)))
             connected.fulfill()
         }
         controller.resume()
         await fulfillment(of: [connected], timeout: 2)
-        XCTAssertEqual(output, Data("one\ntwo".utf8))
+        XCTAssertEqual(output, Data("one\ntwo".utf8), "reset precedes replay")
         XCTAssertEqual(transport.connections.map(\.restart), [false, false])
     }
     func testExitedShellOffersRestartWithoutAutoStarting() async {
         await controller.open(rows: 24, cols: 80)
-        transport.onEvent?(.failed(.closed(4410)))
+        await transport.onEvent?(.failed(.closed(4410)))
         XCTAssertEqual(controller.state, .ended(.exited(nil))); XCTAssertEqual(transport.connections.count, 1)
         await controller.restart(); XCTAssertTrue(transport.connections.last!.restart)
     }
     func testTooManyTerminalsMessage() async {
         await controller.open(rows: 24, cols: 80)
-        transport.onEvent?(.failed(.closed(1013)))
-        XCTAssertEqual(controller.state, .ended(.error("Too many terminals open")))
+        await transport.onEvent?(.failed(.closed(1013)))
+        XCTAssertEqual(controller.state, .ended(.disconnected("Too many terminals open")))
+    }
+    /// Only close code 4410 says the shell exited; any other loss leaves it running on the host.
+    func testConnectionLossIsNotShellExit() async {
+        for failure in [TerminalConnectionFailure.closed(1006), .closed(1001), .closed(4409), .handshake(502), .network("offline")] {
+            await controller.restart()
+            await transport.onEvent?(.failed(failure))
+            XCTAssertEqual(controller.state, .ended(.disconnected(failure.message)), "\(failure)")
+        }
+    }
+    /// Reconnect reattaches to the same shell (`restart: false`) and replays its output; Restart
+    /// stays the separate action that replaces it.
+    func testReconnectAfterADropKeepsTheShellAndRestartReplacesIt() async {
+        await controller.open(rows: 24, cols: 80)
+        await transport.onEvent?(.output(Data("sleep 600".utf8)))
+        await transport.onEvent?(.failed(.network("The network connection was lost.")))
+        XCTAssertEqual(controller.state, .ended(.disconnected("The network connection was lost.")))
+        XCTAssertEqual(output, Data("sleep 600".utf8), "the drop leaves the screen as it was")
+        transport.onConnect = { [weak self] in await self?.transport.onEvent?(.output(Data("sleep 600 (replayed)".utf8))) }
+        await controller.reconnect()
+        XCTAssertEqual(transport.operations.filter { $0 != "disconnect" }, ["status", "connect", "status", "connect"])
+        XCTAssertEqual(transport.connections.map(\.restart), [false, false])
+        XCTAssertEqual(controller.state, .live); XCTAssertEqual(output, Data("sleep 600 (replayed)".utf8))
+        await transport.onEvent?(.failed(.closed(1006)))
+        transport.onConnect = nil
+        await controller.restart()
+        XCTAssertEqual(transport.connections.map(\.restart), [false, false, true])
+    }
+    /// A restart whose socket never opens leaves the old output; the screen is cleared only
+    /// once the new connection is open.
+    func testFailedRestartKeepsTheOldOutput() async {
+        await controller.open(rows: 24, cols: 80)
+        await transport.onEvent?(.output(Data("old".utf8)))
+        transport.connectionErrors = [TerminalConnectionFailure.handshake(502)]
+        await controller.restart()
+        XCTAssertEqual(output, Data("old".utf8)); XCTAssertEqual(resets, 1)
+        await controller.restart()
+        XCTAssertEqual(controller.state, .live); XCTAssertEqual(output, Data()); XCTAssertEqual(resets, 2)
+    }
+    /// A failed reconnect keeps the old output and the Reconnect action.
+    func testFailedReconnectKeepsTheOldOutput() async {
+        await controller.open(rows: 24, cols: 80)
+        await transport.onEvent?(.output(Data("old".utf8)))
+        await transport.onEvent?(.failed(.network("offline")))
+        transport.statusError = URLError(.notConnectedToInternet)
+        await controller.reconnect()
+        XCTAssertEqual(controller.state, .ended(.disconnected(URLError(.notConnectedToInternet).localizedDescription)),
+                       "a failed status read keeps Reconnect on the screen, not the unavailable page")
+        transport.statusError = nil
+        transport.connectionErrors = [TerminalConnectionFailure.network("offline")]
+        await controller.reconnect()
+        XCTAssertEqual(controller.state, .ended(.disconnected("offline")))
+        XCTAssertEqual(output, Data("old".utf8)); XCTAssertEqual(resets, 1)
+        await controller.reconnect()
+        XCTAssertEqual(controller.state, .live); XCTAssertEqual(output, Data()); XCTAssertEqual(resets, 2)
+    }
+    /// A flood is read only as fast as the screen takes it: the reader waits while the batcher
+    /// holds its limit, and every byte still reaches SwiftTerm in order.
+    func testFloodStopsReadingWhileTheScreenIsBehindAndKeepsEveryByte() async {
+        var fed = Data()
+        let batcher = TerminalOutputBatcher(maxPerPass: 4, maxQueued: 8) { fed.append($0) }
+        controller.onOutput = { await batcher.enqueue($0) }
+        await controller.open(rows: 24, cols: 80)
+        var expected = Data(), deepest = 0
+        for index in 0..<50 {
+            let chunk = Data(String(format: "%02d\u{1B}[0m", index).utf8)
+            expected.append(chunk)
+            await transport.onEvent?(.output(chunk))
+            deepest = max(deepest, batcher.queuedBytes)
+        }
+        batcher.flush()
+        XCTAssertLessThan(deepest, 8, "the next frame is read only once the queue is under its limit")
+        XCTAssertEqual(fed, expected)
     }
     func testAuthenticationRetriesOnlyOnceFor4401AndHTTP403() async {
         for failure in [TerminalConnectionFailure.closed(4401), .handshake(403)] {

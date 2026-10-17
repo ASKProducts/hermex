@@ -573,6 +573,19 @@ import UIKit
                                URLQueryItem(name: "profile", value: "default")])
     }
 
+    /// The Terminal button's target is the chat's identity, not its socket: going to the
+    /// background drops the gateway socket, and the target (and the capability check keyed
+    /// on it) stays, so the button neither flickers nor waits on the network on return.
+    func testTheTerminalTargetKeepsItsIdentityInTheBackground() async throws {
+        let chat = await openChat()
+        let target = try XCTUnwrap(chat.model.hermesTerminalTarget)
+        chat.model.suspendStreamForBackground()
+        XCTAssertNotEqual(chat.turn.engine.connectionState, .connected)
+        XCTAssertEqual(chat.model.hermesTerminalTarget?.id, target.id)
+        await chat.model.reconnectStreamIfNeeded()
+        XCTAssertEqual(chat.model.hermesTerminalTarget?.id, target.id)
+    }
+
     /// The chat owns its repository's Git writes (#1115): none goes out while a turn runs, and a
     /// client made for a folder the chat has since left writes nothing at all.
     func testGitWritesWaitForTheTurnAndStopAtAFolderMove() async throws {

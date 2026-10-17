@@ -102,9 +102,9 @@ struct TerminalScreen: View {
     private var statusBanner: some View {
         switch controller.state {
         case .reconnecting:
-            banner(text: String(localized: "Reconnecting…"), showsRestart: false)
+            banner(text: String(localized: "Reconnecting…"), showsRestart: false, showsReconnect: false)
         case let .ended(reason):
-            banner(text: endedText(reason), showsRestart: true)
+            banner(text: endedText(reason), showsRestart: true, showsReconnect: reason.isDisconnected)
         default:
             EmptyView()
         }
@@ -116,17 +116,26 @@ struct TerminalScreen: View {
             return String(localized: "Shell exited")
         case let .error(message):
             return message
+        case let .disconnected(message):
+            return message
         default:
             return String(localized: "Session ended")
         }
     }
 
-    private func banner(text: String, showsRestart: Bool) -> some View {
+    private func banner(text: String, showsRestart: Bool, showsReconnect: Bool) -> some View {
         HStack {
             Text(text)
                 .font(.footnote.weight(.medium))
                 .accessibilityIdentifier("terminal-status")
             Spacer()
+            if showsReconnect {
+                Button("Reconnect") { Task { await controller.reconnect() } }
+                    .font(.footnote.weight(.semibold))
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                    .accessibilityIdentifier("terminal-reconnect")
+            }
             if showsRestart {
                 Button("Restart") { Task { await terminalHandle.restart(controller) } }
                     .font(.footnote.weight(.semibold))
@@ -146,25 +155,51 @@ struct TerminalScreen: View {
 @MainActor
 final class TerminalOutputBatcher {
     static let defaultMaxPerPass = 16_384
+    static let defaultMaxQueued = 262_144
     private let sink: (Data) -> Void
     private let maxPerPass: Int
+    private let maxQueued: Int
     private var queue: [Data] = []
     private var head = 0
     private var scheduled = false
 
-    init(maxPerPass: Int = TerminalOutputBatcher.defaultMaxPerPass, sink: @escaping (Data) -> Void) {
+    init(maxPerPass: Int = TerminalOutputBatcher.defaultMaxPerPass,
+         maxQueued: Int = TerminalOutputBatcher.defaultMaxQueued, sink: @escaping (Data) -> Void) {
         self.maxPerPass = max(1, maxPerPass)
+        self.maxQueued = max(1, maxQueued)
         self.sink = sink
     }
     var hasPending: Bool { head < queue.count }
+    private(set) var queuedBytes = 0
+    private var roomWaiters: [CheckedContinuation<Void, Never>] = []
+
+    /// Queues `bytes`, then returns only once fewer than `maxQueued` bytes wait for the
+    /// screen. The socket reader awaits this before its next receive, so a flood stops
+    /// being read while SwiftTerm is behind; no byte is dropped.
+    func enqueue(_ bytes: Data) async {
+        append(bytes)
+        while queuedBytes >= maxQueued {
+            await withCheckedContinuation { roomWaiters.append($0) }
+        }
+    }
     func append(_ bytes: Data) {
         guard !bytes.isEmpty else { return }
         queue.append(bytes)
+        queuedBytes += bytes.count
         scheduleIfNeeded()
     }
     func append(_ text: String) { append(Data(text.utf8)) }
-    func clear() { queue.removeAll(keepingCapacity: true); head = 0 }
+    func clear() {
+        queue.removeAll(keepingCapacity: true); head = 0; queuedBytes = 0
+        resumeWaitersIfRoom()
+    }
     func flush() { while hasPending { drainOnePass() } }
+    private func resumeWaitersIfRoom() {
+        guard queuedBytes < maxQueued, !roomWaiters.isEmpty else { return }
+        let waiters = roomWaiters
+        roomWaiters.removeAll()
+        waiters.forEach { $0.resume() }
+    }
     private func scheduleIfNeeded() {
         guard !scheduled, hasPending else { return }
         scheduled = true
@@ -183,9 +218,11 @@ final class TerminalOutputBatcher {
             queue[head].removeFirst(count)
             if queue[head].isEmpty { head += 1 }
         }
-        if head == queue.count { clear() }
+        queuedBytes -= slice.count
+        if head == queue.count { queue.removeAll(keepingCapacity: true); head = 0 }
         else if head > 64 { queue.removeFirst(head); head = 0 }
         if !slice.isEmpty { sink(slice) }
+        resumeWaitersIfRoom()
     }
 }
 
@@ -265,7 +302,7 @@ struct SwiftTermView: UIViewRepresentable {
         handle.view = view
         let batcher = TerminalOutputBatcher { [weak view] bytes in view?.feed(byteArray: [UInt8](bytes)[...]) }
         context.coordinator.batcher = batcher
-        controller.onOutput = { bytes in batcher.append(bytes) }
+        controller.onOutput = { bytes in await batcher.enqueue(bytes) }
         controller.onReset = { [weak view] in
             batcher.clear()
             view?.getTerminal().resetToInitialState()
@@ -352,10 +389,7 @@ struct SwiftTermView: UIViewRepresentable {
             let terminal = view.getTerminal()
             guard position.col >= 0, position.col < terminal.cols, position.row >= 0, position.row < terminal.rows,
                   let link = terminal.link(at: .screen(position), mode: .explicitAndImplicit),
-                  let url = TerminalLinks.openableURL(link) else {
-                NSLog("TerminalLinkTap: no link at col %d row %d", position.col, position.row)
-                return
-            }
+                  let url = TerminalLinks.openableURL(link) else { return }
             openURL(url)
         }
 

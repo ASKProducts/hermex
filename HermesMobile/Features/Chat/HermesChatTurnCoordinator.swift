@@ -544,9 +544,10 @@ struct HermesChatTranscript: Equatable {
         engine.connectionState == .connected && engine.storedKey != nil ? engine.generation : nil
     }
 
+    /// The chat's identity on its host, kept while its socket is down (in the background or
+    /// reconnecting) so the Terminal button stays.
     var terminalTarget: TerminalTarget? {
-        guard case .session = engine.target, engine.connectionState == .connected,
-              let key = engine.storedKey else { return nil }
+        guard case .session = engine.target, let key = engine.storedKey else { return nil }
         return TerminalTarget(http: HermesConnections.shared.connection(for: engine.connection, server: engine.server),
                               sessionID: key, profile: engine.target.profile)
     }

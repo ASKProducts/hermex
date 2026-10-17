@@ -72,7 +72,9 @@ enum TerminalEvent: Equatable {
 
 @MainActor protocol TerminalTransport: AnyObject {
     func status() async throws -> Bool
-    func connect(rows: Int, cols: Int, restart: Bool, onEvent: @escaping (TerminalEvent) -> Void) async throws
+    /// The reader awaits `onEvent` before it receives the next frame, so a slow consumer
+    /// stops reading the socket instead of queueing its output.
+    func connect(rows: Int, cols: Int, restart: Bool, onEvent: @escaping (TerminalEvent) async -> Void) async throws
     func send(_ frame: URLSessionWebSocketTask.Message)
     func disconnect()
 }
@@ -84,7 +86,7 @@ enum TerminalEvent: Equatable {
     private var socket: URLSessionWebSocketTask?
     private var reader: Task<Void, Never>?
     private var sender: Task<Void, Never>?
-    private var onEvent: ((TerminalEvent) -> Void)?
+    private var onEvent: ((TerminalEvent) async -> Void)?
     private var generation = UUID()
 
     init(target: TerminalTarget) { self.target = target }
@@ -95,7 +97,7 @@ enum TerminalEvent: Equatable {
         return running
     }
 
-    func connect(rows: Int, cols: Int, restart: Bool, onEvent: @escaping (TerminalEvent) -> Void) async throws {
+    func connect(rows: Int, cols: Int, restart: Bool, onEvent: @escaping (TerminalEvent) async -> Void) async throws {
         disconnect()
         let current = generation
         let request = try await target.http.terminalUpgrade(sessionID: target.sessionID, profile: target.profile,
@@ -112,18 +114,19 @@ enum TerminalEvent: Equatable {
             do {
                 while !Task.isCancelled {
                     let frame = try await socket.receive()
-                    guard let self, self.generation == current else { return }
+                    // No strong self across the await: a reader waiting for the screen must not keep this client alive.
+                    guard self?.generation == current else { return }
                     switch frame {
-                    case .data(let bytes): onEvent(.output(bytes))
-                    case .string(let text): onEvent(.output(Data(text.utf8)))
+                    case .data(let bytes): await onEvent(.output(bytes))
+                    case .string(let text): await onEvent(.output(Data(text.utf8)))
                     @unknown default: break
                     }
                 }
             } catch {
-                guard let self, self.generation == current, !Task.isCancelled else { return }
+                guard self?.generation == current, !Task.isCancelled else { return }
                 let failure = Self.failure(socket: socket, error: error)
-                self.disconnect()
-                onEvent(.failed(failure))
+                self?.disconnect()
+                await onEvent(.failed(failure))
             }
         }
         // A completed ping means the upgrade really opened, even on a shell with no new output.
@@ -157,7 +160,7 @@ enum TerminalEvent: Equatable {
                 let callback = self.onEvent
                 let failure = Self.failure(socket: socket, error: error)
                 self.disconnect()
-                callback?(.failed(failure))
+                await callback?(.failed(failure))
             }
         }
     }
