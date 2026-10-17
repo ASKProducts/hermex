@@ -898,7 +898,9 @@ private struct ChatTranscriptMessageRow: View {
         // Compaction marker messages render as collapsible cards (matching the
         // web UI), never as user bubbles — and without bubble actions, which
         // don't apply to system-emitted markers.
-        if let markerKind = ChatMarkerMessageClassifier.classify(message) {
+        if let append = message.voiceAppend {
+            VoiceAppendRow(append: append)
+        } else if let markerKind = ChatMarkerMessageClassifier.classify(message) {
             MarkerMessageCardView(kind: markerKind, content: message.content)
         } else if let completion = HermesDelegationCompletion(message) {
             // A Hermes chat's async-delegation delivery (#1140): the host's turn, never a

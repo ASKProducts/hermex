@@ -126,6 +126,9 @@ import OSLog
     /// The chat, inbox, rooms and editor reconnect on `.active` onto a fresh socket, ticket
     /// and handshake; the creators reconnect on their next Create.
     func closeForBackground() {
+        // A running voice call keeps the app awake through its audio session and needs the
+        // socket; the one shared socket then stays open for every consumer, chat and inbox too.
+        guard !consumers.contains(where: { $0.client?.holdsSocketInBackground == true }) else { return }
         guard socket != nil || opening != nil else { return }
         let label = socketLabel(generation)
         HermesConnectionLog.logger.notice("\(label, privacy: .public) closed, app in background")
@@ -198,7 +201,7 @@ import OSLog
         }
         switch call {
         // A branch's reply names the runtime the host made for it (#1051).
-        case .sessionResume, .sessionBranch:
+        case .sessionResume, .sessionBranch, .voiceSessionCreate, .voiceSessionResume:
             if let runtime = reply["session_id"].text, !runtime.isEmpty { http.noteAttached(runtime) }
         case .sessionClose(let runtime): http.noteClosed(runtime)
         default: break

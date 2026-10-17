@@ -34,6 +34,8 @@ struct ChatMessage: Decodable, Equatable, Identifiable {
     /// A Hermes session's settled row that compaction archived (the REST row's `active` is 0,
     /// #1049). It shows above the compaction card, and the host can no longer cut there.
     let isCompacted: Bool
+    /// A GPT-Live append the voice screen sent, drawn as its log row (`VoiceAppendRow`).
+    var voiceAppend: VoiceAppendObservation? = nil
 
     init(
         role: String?,

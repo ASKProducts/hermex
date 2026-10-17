@@ -19,5 +19,7 @@ with the iOS app.
   See NetworkImage-LICENSE.txt.
 - swift-cmark / cmark-gfm 0.7.1
   See swift-cmark-COPYING.txt.
+- WebRTC (stasel/WebRTC) 155.0.0
+  See WebRTC-LICENSE.txt.
 - Lucide icons
   See LucideIcons-LICENSE.txt.

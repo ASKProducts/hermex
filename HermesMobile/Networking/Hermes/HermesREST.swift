@@ -103,6 +103,10 @@ enum HermesREST: Equatable, Sendable {
     /// The host's cap on one search, which has no offset to page past it.
     static let sessionSearchMaximum = 100
 
+    case voiceLiveStatus(profile: String? = nil)
+    case setVoiceMode(profile: String, mode: VoiceMode)
+    case voiceLiveSession(sdp: String, history: [BotJSON], profile: String?)
+    case voiceSpeak(text: String)
     /// Public, so it reads the host before any credential is sent.
     case status
     case login(username: String, password: String)
@@ -330,6 +334,16 @@ enum HermesREST: Equatable, Sendable {
 
     func request(base: URL) throws -> URLRequest {
         switch self {
+        case .voiceLiveStatus(let profile):
+            return Self.get(try Self.url(base, "api/audio/voice-live/status", profile: profile))
+        case .setVoiceMode(let profile, let mode):
+            guard !profile.isEmpty else { throw BotFailure.invalidAddress }
+            return try Self.send("PUT", try Self.url(base, "api/config", profile: profile),
+                ["config": .object(["voice": .object(["voice_chat_mode": .string(mode.hostValue)])])])
+        case .voiceLiveSession(let sdp, let history, let profile):
+            return try Self.send("POST", try Self.url(base, "api/audio/voice-live/session", profile: profile),
+                                 ["sdp": .string(sdp), "history": .array(history)])
+        case .voiceSpeak(let text): return try Self.send("POST", BotVoiceRPC.speakURL(base: base), ["text": .string(text)])
         case .status: return Self.get(base.appendingPathComponent("api/status"))
         case .health: return Self.get(base.appendingPathComponent("api/health"))
         case .updateCheck(let force):

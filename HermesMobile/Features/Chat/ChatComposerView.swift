@@ -338,6 +338,8 @@ struct MessageComposerView: View {
     @State private var showMediaPicker = false
     @State private var presentFilesAfterMediaPickerDismisses = false
     @State private var showFileImporter = false
+    var voiceCall: ComposerVoiceCallControl? = nil
+    private let voiceCalls = VoiceCallController.shared
     @State private var voiceInput = ComposerVoiceInputController()
     @State private var voiceNoteRecorder = ComposerVoiceNoteRecorder()
     @State private var voiceNoteCancelArmed = false
@@ -994,6 +996,8 @@ struct MessageComposerView: View {
                         onPreview: onPreviewAttachment
                     )
 
+                    voiceCallButton
+
                     voiceControlButton
 
                     actionButton
@@ -1031,6 +1035,8 @@ struct MessageComposerView: View {
                     gitBranchPicker
                 }
 
+                voiceCallButton
+
                 voiceControlButton
 
                 ContextWindowIndicatorView(snapshot: contextWindowSnapshot)
@@ -1038,6 +1044,12 @@ struct MessageComposerView: View {
             }
 
             actionButton
+        }
+    }
+
+    @ViewBuilder private var voiceCallButton: some View {
+        if let voiceCall {
+            ComposerVoiceCallButton(control: voiceCall, callIsRunning: voiceCalls.isRunning, color: metaControlColor)
         }
     }
 
@@ -1435,17 +1447,15 @@ struct MessageComposerView: View {
     }
 
     private var isVoiceInputDisabled: Bool {
-        if voiceInput.isListening {
-            return false
-        }
+        Self.isVoiceInputDisabled(isListening: voiceInput.isListening,
+            isBusy: isReadOnly || isSending || isCompressingSession || isWaitingForStream
+                || isUploadingAttachment || isUpdatingConfiguration || voiceInput.isRequestingPermission,
+            voiceCallRunning: voiceCalls.isRunning)
+    }
 
-        return isReadOnly
-            || isSending
-            || isCompressingSession
-            || isWaitingForStream
-            || isUploadingAttachment
-            || isUpdatingConfiguration
-            || voiceInput.isRequestingPermission
+    static func isVoiceInputDisabled(isListening: Bool, isBusy: Bool, voiceCallRunning: Bool) -> Bool {
+        if isListening { return false }
+        return isBusy || voiceCallRunning
     }
 
     /// Whether a hold-to-record gesture is allowed to start a new voice note.
@@ -1453,6 +1463,7 @@ struct MessageComposerView: View {
     /// this does not block on `isWaitingForStream`.
     private var isVoiceNoteRecordingDisabled: Bool {
         !showsSessionControls
+            || voiceCalls.isRunning
             || isReadOnly
             || isSending
             || isSendingVoiceNote

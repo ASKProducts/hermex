@@ -627,7 +627,7 @@ extension BotsInboxView {
 /// the session list's Bots row, the back button and the toolbar are the whole header, so the
 /// pinned tiles sit at the top; the title still names the screen for VoiceOver and for a pushed
 /// chat's back button, with only its visible text removed.
-private struct BotsInboxChrome<Filter: View, NewChat: View>: ViewModifier {
+struct BotsInboxChrome<Filter: View, NewChat: View>: ViewModifier {
     let home: HermesHome?
     /// No Bot connection is saved, so there is nothing to search.
     let isOffline: Bool
@@ -642,9 +642,13 @@ private struct BotsInboxChrome<Filter: View, NewChat: View>: ViewModifier {
         self.filter = filter(); self.newChat = newChat()
     }
 
+    var homeChrome: HermesHomeChrome<Filter, NewChat>? {
+        home.map { HermesHomeChrome(home: $0, isVoiceDisabled: isOffline, filter: { filter }, newChat: { newChat }) }
+    }
+
     func body(content: Content) -> some View {
-        if let home {
-            content.modifier(HermesHomeChrome(home: home, filter: { filter }, newChat: { newChat }))
+        if let homeChrome {
+            content.modifier(homeChrome)
         } else {
             content
                 .navigationTitle("Bots")

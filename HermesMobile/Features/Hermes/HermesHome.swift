@@ -11,16 +11,21 @@ struct HermesHome {
     let title: String
     let avatar: SessionsHeader.Avatar
     let tab: Binding<HermesHomeTab>
+    let server: URL
+    var voiceChat: Binding<ConversationTarget?>
 }
 
 /// The Hermes home's bar chrome (#709), the same on both sides: no top bar, since each side's
 /// list leads with the session list's header (`SessionsHeader`), and a bottom bar of
-/// `(filter) [Bots | Sessions] (new chat)` whose ends each side fills. The title names a pushed
+/// `(filter) [Bots | Sessions] (voice) (new chat)` whose ends each side fills; the voice button
+/// shows while no call runs and the server offers voice. The title names a pushed
 /// screen's back button, and stays inline so a pushed screen such as Tasks keeps the one-line bar.
 /// On iOS 26 the bar's glass pills float over the list: the system's bottom scroll edge effect
 /// read as a solid band behind them, so it is hidden.
 struct HermesHomeChrome<Filter: View, NewChat: View>: ViewModifier {
     let home: HermesHome
+    var isVoiceDisabled = false
+    @State private var voiceAvailability = VoiceStartAvailability()
     @ViewBuilder let filter: Filter
     @ViewBuilder let newChat: NewChat
 
@@ -41,8 +46,42 @@ struct HermesHomeChrome<Filter: View, NewChat: View>: ViewModifier {
                 } else {
                     ToolbarItem(placement: .bottomBar) { HermesHomeSwitch(tab: home.tab) }
                 }
+                if !VoiceCallController.shared.isRunning,
+                   voiceAvailability.offersVoice(for: VoiceStartScope.current(server: home.server)) {
+                    ToolbarItem(placement: .bottomBar) {
+                        HermesHomeVoiceButton(server: home.server, isDisabled: isVoiceDisabled, availability: voiceAvailability)
+                    }
+                }
                 ToolbarItem(placement: .bottomBar) { newChat }
             }
+            .task(id: VoiceStartScope.current(server: home.server)) {
+                let scope = VoiceStartScope.current(server: home.server)
+                await voiceAvailability.refresh(scope: scope, currentScope: { VoiceStartScope.current(server: home.server) })
+            }
+    }
+}
+
+/// The home bar's new-call button: a tap starts a call in the default mode, a hold offers both.
+struct HermesHomeVoiceButton: View {
+    let server: URL
+    let isDisabled: Bool
+    @State private var voiceCalls = VoiceCallController.shared
+    let availability: VoiceStartAvailability
+    @AppStorage(AppHaptics.isEnabledKey) private var isHapticsEnabled = true
+
+    var body: some View {
+        Menu {
+            VoiceStartMenu(availability: availability, scope: VoiceStartScope.current(server: server)) { mode in
+                voiceCalls.start(VoiceCallPresentation(server: server, requestedMode: mode))
+            }
+        } label: {
+            Label("Talk to Hermes", systemImage: "waveform")
+        } primaryAction: {
+            HapticButtonHaptics.tap(style: .medium, isEnabled: isHapticsEnabled)
+            voiceCalls.start(VoiceCallPresentation(server: server))
+        }
+        .disabled(isDisabled)
+        .accessibilityIdentifier("voice-start")
     }
 }
 
