@@ -1097,9 +1097,6 @@ struct ScheduledSessionsView: View {
         .task(id: searchText) {
             if viewModel.isHermes { await viewModel.searchSessions(query: searchText) }
         }
-        .onDisappear {
-            if viewModel.isHermes { viewModel.pauseHermes() }
-        }
         .onChange(of: scenePhase) {
             guard viewModel.isHermes else { return }
             if scenePhase == .background { viewModel.closeHermes() }
