@@ -83,6 +83,10 @@ import Foundation
 /// `/auth/native/refresh` answer the tokens in the body and set no cookie, a bearer passes the
 /// gate on every `/api/*` route, an expired or unknown one is 401 `{error: "session_expired"}`,
 /// and the WebSocket upgrades still present a ticket, which the bearer can mint.
+/// The session write fence (#1300) is read at hermes-agent main, past the pin
+/// (`web_server_sessions.py` `_mutate_session_request`): a PATCH or an import without
+/// `request_id` and `expected_revision` is 409 `client_upgrade_required: …`, with one of them
+/// 409 `mutation_identity_required`, and the 0.21.5 pin has no `mutation-snapshot` route.
 enum HermesREST: Equatable, Sendable {
     /// What the agent of a Hermex session is told about the screen it writes to (#1278): the
     /// host appends it to the system prompt of every agent running as `HermesCall.source`.
@@ -164,16 +168,22 @@ enum HermesREST: Equatable, Sendable {
     /// mid-scan shifts later pages, so a row can repeat or slip past; the scan reads any id it
     /// didn't list by that id.
     case sessionScan(profile: String, offset: Int)
-    /// One change to a session, with `profile` in the body (#1046, #1048).
-    case updateSession(key: String, profile: String, change: HermesSessionChange)
+    /// One change to a session, with `profile` in the body (#1046, #1048), and the write fence's
+    /// identity (#1300) on a host that has the fence; nil sends the change alone.
+    case updateSession(key: String, profile: String, change: HermesSessionChange, identity: HermesSessionWriteIdentity?)
+    /// The write fence's counters for that session (#1300): `{session_id, exists, runtime_revision,
+    /// runtime_generation}`, 200 with `exists: false` when `profile` has no such session. A host
+    /// from before the fence answers its catch-all 404 (`HermexPushPairing` names both).
+    case sessionMutationSnapshot(key: String, profile: String)
     /// That exact session's row and every message, unredacted, as one JSON object (#1048).
     case sessionExport(key: String, profile: String)
     /// That exact session's stored row (#1051), or 404 `{detail}` when `profile` has none.
     case sessionRow(key: String, profile: String)
     /// Imports sessions as an export holds them (#1051), each under the id it carries. `body` is
     /// the JSON `{sessions, profile}`, encoded by the caller off the main actor: it carries every
-    /// message.
-    case importSessions(body: Data)
+    /// message. `identity` is spliced in after its `{` rather than encoded with it; its revision
+    /// is 0, the host's revision for an anchor (`sessions[0].id`) it doesn't have yet (#1300).
+    case importSessions(body: Data, identity: HermesSessionWriteIdentity)
     /// `profile`'s sessions matching `query` (#1053): id matches, then message-content matches,
     /// at most `limit` (the host clamps it to 1…`sessionSearchMaximum`), archived and hidden ones
     /// included, without machine-run rows.
@@ -453,19 +463,23 @@ enum HermesREST: Equatable, Sendable {
             ]
             guard let url = parts.url else { throw BotFailure.invalidAddress }
             return Self.get(url)
-        case .updateSession(let key, let profile, let change):
+        case .updateSession(let key, let profile, let change, let identity):
             guard Self.isSegment(key), !profile.isEmpty else { throw BotFailure.invalidAddress }
             return try Self.send("PATCH", base.appendingPathComponent("api/sessions").appendingPathComponent(key),
-                                 [change.field: change.value, "profile": .string(profile)])
+                                 [change.field: change.value, "profile": .string(profile)].merging(identity?.fields ?? [:]) { $1 })
+        case .sessionMutationSnapshot(let key, let profile):
+            guard Self.isSegment(key), !profile.isEmpty else { throw BotFailure.invalidAddress }
+            return Self.get(try Self.url(base, "api/sessions/\(key)/mutation-snapshot", profile: profile))
         case .sessionExport(let key, let profile):
             guard Self.isSegment(key), !profile.isEmpty else { throw BotFailure.invalidAddress }
             return Self.get(try Self.url(base, "api/sessions/\(key)/export", profile: profile))
         case .sessionRow(let key, let profile):
             guard Self.isSegment(key), !profile.isEmpty else { throw BotFailure.invalidAddress }
             return Self.get(try Self.url(base, "api/sessions/\(key)", profile: profile))
-        case .importSessions(let body):
+        case .importSessions(let body, let identity):
+            guard body.first == UInt8(ascii: "{") else { throw BotFailure.unsupported }
             var request = Self.bare("POST", base.appendingPathComponent("api/sessions/import"))
-            request.httpBody = body
+            request.httpBody = Data("{".utf8) + identity.leadingMembers + body.dropFirst()
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             return request
         case .sessionSearch(let query, let profile, let limit):
@@ -791,6 +805,22 @@ enum HermesREST: Equatable, Sendable {
         request.httpBody = try JSONEncoder().encode(BotJSON.object(body))
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         return request
+    }
+}
+
+/// What hermes-agent's write fence (#1300) asks of a REST session write: a request id the host
+/// dedupes a retried write on, and the `runtime_revision` the write expects the session to be at.
+/// A stale revision is refused (409 `revision_conflict`), so an edit reads it right before writing.
+struct HermesSessionWriteIdentity: Equatable, Sendable {
+    var requestID = UUID()
+    let expectedRevision: Int
+
+    fileprivate var fields: [String: BotJSON] {
+        ["request_id": .string(requestID.uuidString), "expected_revision": .number(Double(expectedRevision))]
+    }
+
+    var leadingMembers: Data {
+        Data(#""request_id":"\#(requestID.uuidString)","expected_revision":\#(expectedRevision),"#.utf8)
     }
 }
 
