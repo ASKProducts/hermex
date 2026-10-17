@@ -1760,6 +1760,9 @@ final class ChatViewModel {
         return hermesTurn?.terminalTarget
     }
 
+    /// The Hermes chat's socket is attached; false on a webui chat.
+    var isHermesConnected: Bool { hermesTurn?.engine.connectionState == .connected }
+
     /// A Hermes session's working folder (#1112); nil on a webui chat, and until `session.info`
     /// names it.
     var hermesWorkspace: HermesWorkspaceContext? { hermesTurn?.workspace }

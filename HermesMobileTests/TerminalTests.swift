@@ -295,6 +295,53 @@ final class TerminalAPITests: XCTestCase {
         guard case .failed = availability.state else { return XCTFail("Network failure is not plugin absence") }
         http.retire()
     }
+    /// Only a reconnect reads a failed check again: a failure with the chat still up, or a route
+    /// the host doesn't mount, stays as it is (no loop on a host that keeps failing).
+    func testOnlyAReconnectRetriesAFailedCheck() async {
+        var status = 503
+        let http = HermesConnection(connection: BotConnection(id: UUID(), name: "QA", address: URL(string: "https://example.test")!, username: "test", password: "fixture"),
+            configuration: HermesHostFixture.configuration { request in
+                request.url?.path == "/api/plugins/hermex-push/capabilities" ? .json(status, .object(["routes": .array([])])) : nil
+            })
+        defer { http.retire() }
+        let target = TerminalTarget(http: http, sessionID: "s1", profile: nil), availability = TerminalAvailability()
+        availability.connectionChanged(isConnected: true)
+        let first = availability.checkID(for: target)
+        await availability.refresh(target)
+        guard case .failed = availability.state else { return XCTFail("a 503 is a failed check") }
+        XCTAssertEqual(availability.checkID(for: target), first, "a failure with no reconnect runs no new check")
+        availability.connectionChanged(isConnected: false)
+        XCTAssertEqual(availability.checkID(for: target), first)
+        availability.connectionChanged(isConnected: true)
+        let second = availability.checkID(for: target)
+        XCTAssertNotEqual(second, first)
+
+        HermesHostFixture.script { status = 404 }
+        await availability.refresh(target)
+        XCTAssertEqual(availability.state, .missing)
+        availability.connectionChanged(isConnected: false); availability.connectionChanged(isConnected: true)
+        XCTAssertEqual(availability.checkID(for: target), second, "a missing route is an answer, not a failure")
+    }
+    /// The chat reconnects while the check is still out, and the check then fails: it runs again.
+    func testAReconnectDuringTheCheckRetriesItsFailure() async {
+        let parked = expectation(description: "capability check out")
+        HermesHostFixture.onPark = { parked.fulfill() }
+        let http = HermesConnection(connection: BotConnection(id: UUID(), name: "QA", address: URL(string: "https://example.test")!, username: "test", password: "fixture"),
+            configuration: HermesHostFixture.configuration { request in
+                request.url?.path == "/api/plugins/hermex-push/capabilities" ? .park : nil
+            })
+        defer { http.retire() }
+        let target = TerminalTarget(http: http, sessionID: "s1", profile: nil), availability = TerminalAvailability()
+        let first = availability.checkID(for: target)
+        let check = Task { await availability.refresh(target) }
+        await fulfillment(of: [parked], timeout: 5)
+        availability.connectionChanged(isConnected: true)
+        XCTAssertEqual(availability.checkID(for: target), first, "a check still out is not retried")
+        HermesHostFixture.releaseParked(.fail(URLError(.networkConnectionLost)))
+        await check.value
+        guard case .failed = availability.state else { return XCTFail("the dropped check failed") }
+        XCTAssertNotEqual(availability.checkID(for: target), first)
+    }
     func testEachUpgradeMintsItsOwnTicketAndUsesHermesHeaders() async throws {
         var tickets = 0
         let http = HermesConnection(connection: BotConnection(id: UUID(), name: "QA", address: URL(string: "https://example.test")!, username: "test", password: "fixture", headers: [CustomHeader(name: "X-QA", value: "fixture")]),

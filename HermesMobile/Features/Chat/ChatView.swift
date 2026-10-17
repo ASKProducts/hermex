@@ -1075,7 +1075,7 @@ struct ChatView: View {
     }
 
     private var terminalCapabilityScope: String {
-        let chat = viewModel.hermesTerminalTarget?.id ?? "unattached"
+        let chat = terminalAvailability.checkID(for: viewModel.hermesTerminalTarget)
         return "\(server.absoluteString)|\(chat)|\(viewModel.isViewingCachedData)"
     }
 
@@ -1146,6 +1146,9 @@ struct ChatView: View {
                 await terminalAvailability.refresh(target)
                 guard !Task.isCancelled else { return }
                 terminalTarget = target
+            }
+            .onChange(of: viewModel.isHermesConnected) { _, isConnected in
+                terminalAvailability.connectionChanged(isConnected: isConnected)
             }
             .navigationDestination(item: $pushedSession) { session in
                 ChatView(session: session, server: server, onAPIError: onAPIError)

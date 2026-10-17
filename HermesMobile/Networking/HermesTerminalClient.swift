@@ -198,10 +198,29 @@ enum TerminalEvent: Equatable {
     private(set) var state: State = .checking
     private var generation = UUID()
     var isAvailable: Bool { state == .available }
+    /// Counts the reconnects that came after a failed check (or during one that then failed).
+    /// It is part of the chat's check identity, so only a failure is read again, once per
+    /// reconnect; an available or missing answer is kept.
+    private var retries = 0
+    private var reconnectedDuringCheck = false
+
+    /// The identity the chat's capability check runs under.
+    func checkID(for target: TerminalTarget?) -> String { "\(target?.id ?? "unattached")|\(retries)" }
+
+    /// The chat's socket came up or went down. Coming up re-reads a failed check.
+    func connectionChanged(isConnected: Bool) {
+        guard isConnected else { return }
+        switch state {
+        case .failed: retries += 1
+        case .checking: reconnectedDuringCheck = true
+        case .available, .missing: break
+        }
+    }
 
     func refresh(_ target: TerminalTarget?) async {
         let current = UUID(); generation = current
         state = .checking
+        reconnectedDuringCheck = false
         guard let target else { state = .missing; return }
         do {
             let routes = try await BotDashboardClient(http: target.http).companionRoutes()
@@ -210,7 +229,10 @@ enum TerminalEvent: Equatable {
         } catch {
             guard generation == current, !Task.isCancelled else { return }
             if error as? BotFailure == .rejected(404) { state = .missing }
-            else { state = .failed(error.localizedDescription) }
+            else {
+                state = .failed(error.localizedDescription)
+                if reconnectedDuringCheck { retries += 1 }
+            }
         }
     }
 }
