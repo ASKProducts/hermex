@@ -164,6 +164,10 @@ Canonical vocabulary: `CONTEXT.md`.
 
 ## Branch TestFlight (maintainer-only)
 
+For App Store release preparation, tester management, submission, or publication,
+use `scripts/app-store` and `TESTFLIGHT.md` § App Store Connect CLI. The command
+defaults to read-only; `--write` is for an explicitly authorized change.
+
 "push to branch testflight" means upload the current branch to the side-by-side **Hermex Branch** internal TestFlight app (`com.uzairansar.hermesmobile.branch`). It is a TestFlight upload, **not** a git push. Validate and commit first, then run `scripts/branch-testflight` from the feature branch (`DEVELOPMENT.md` has the details). Never touch the production `com.uzairansar.hermesmobile` app, invite testers, or change App Store Connect state unless explicitly asked. `TESTFLIGHT.md` owns release gates.
 
 ## Additional tips
