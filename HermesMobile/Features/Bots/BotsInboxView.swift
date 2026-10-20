@@ -6,6 +6,7 @@ import SwiftUI
 /// avatar replaces the Bot connection gear, and takes the home's bar (`HermesHomeChrome`): the
 /// filter holds hidden bots and section order, and new chat makes a bot or a group chat.
 @MainActor struct BotsInboxView: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.modelContext) private var modelContext
     @AppStorage(HeaderLogoColor.storageKey) private var headerLogoColorHex = HeaderLogoColor.defaultHex
@@ -70,7 +71,7 @@ import SwiftUI
     }
 
     var body: some View {
-        let toasted = list
+        let toasted = navigationSurface
             .overlay(alignment: .bottom) {
                 if let toast {
                     Text(toast).font(.callout).padding()
@@ -84,6 +85,65 @@ import SwiftUI
                 toast = nil
             }
         attachPresentations(to: toasted)
+    }
+
+    private var usesSplit: Bool {
+        HermesHomeLayout.usesSplit(isHome: home != nil, horizontalSizeClass: horizontalSizeClass)
+    }
+
+    @ViewBuilder private var navigationSurface: some View {
+        if usesSplit {
+            SessionSplitView(rootRevision: rootIdentity.hashValue) {
+                list
+                    .navigationSplitViewColumnWidth(min: 260, ideal: 320, max: 420)
+            } detail: {
+                regularWidthDetail
+            }
+        } else {
+            compactList
+        }
+    }
+
+    private var rootIdentity: String {
+        selection.profile?.id ?? selection.room?.roomID ?? "empty"
+    }
+
+    @ViewBuilder private var regularWidthDetail: some View {
+        if let profile = selection.profile, let connection = inbox.connection { chat(profile, connection) }
+        else if let key = selection.room, let connection = inbox.connection, connection.id == key.connectionID,
+                let room = inbox.rooms.first(where: { $0.id == key.roomID }) {
+            BotRoomView(reader: BotRoomReader(key: key, connection: connection, room: room, initialSequence: roomSequence, onExpired: {
+                inbox.expireRoom(key); selection.room = nil
+                toast = String(localized: "This room’s history is no longer available.")
+            }, onChanged: { inbox.updateRoom($0, connectionID: key.connectionID) }, onDisbanded: {
+                inbox.removeRoom(key); selection.room = nil
+            }), roster: inbox.profiles, avatars: inbox.avatars,
+                onUpdateSignIn: { inbox.noteRejectedSignIn(connection); selection.room = nil; updateSignIn() })
+                .id(key)
+        } else { ContentUnavailableView("Select a Bot", systemImage: "bubble.left.and.bubble.right") }
+    }
+
+    private var compactList: some View {
+        list
+            .navigationDestination(item: $selection.profile) { profile in
+                if let connection = inbox.connection { chat(profile, connection) }
+            }
+            .navigationDestination(item: $selection.room) { key in
+                if let connection = inbox.connection, connection.id == key.connectionID,
+                   let room = inbox.rooms.first(where: { $0.id == key.roomID }) {
+                    BotRoomView(reader: BotRoomReader(key: key, connection: connection, room: room, initialSequence: roomSequence, onExpired: {
+                        inbox.expireRoom(key); selection.room = nil
+                        toast = String(localized: "This room’s history is no longer available.")
+                    }, onChanged: { inbox.updateRoom($0, connectionID: key.connectionID) }, onDisbanded: {
+                        inbox.removeRoom(key); selection.room = nil
+                    }), roster: inbox.profiles, avatars: inbox.avatars,
+                        onUpdateSignIn: { inbox.noteRejectedSignIn(connection); selection.room = nil; updateSignIn() })
+                    .id(key)
+                }
+            }
+            .navigationDestination(item: $editSelection) { selection in
+                editProfile(selection)
+            }
     }
 
     /// The rows alone. The list, its sheets and its lifecycle each sit in their
@@ -581,24 +641,9 @@ extension BotsInboxView {
                     BotConnectionView(server: server, focusesPassword: updatingSignIn) { inbox.signInSaved() }
                 }
             }
-            .navigationDestination(item: $selection.profile) { profile in
-                if let connection = inbox.connection { chat(profile, connection) }
-            }
-            .navigationDestination(item: $selection.room) { key in
-                if let connection = inbox.connection, connection.id == key.connectionID,
-                   let room = inbox.rooms.first(where: { $0.id == key.roomID }) {
-                    BotRoomView(reader: BotRoomReader(key: key, connection: connection, room: room, initialSequence: roomSequence, onExpired: {
-                        inbox.expireRoom(key); selection.room = nil
-                        toast = String(localized: "This room’s history is no longer available.")
-                    }, onChanged: { inbox.updateRoom($0, connectionID: key.connectionID) }, onDisbanded: {
-                        inbox.removeRoom(key); selection.room = nil
-                    }), roster: inbox.profiles, avatars: inbox.avatars,
-                        onUpdateSignIn: { inbox.noteRejectedSignIn(connection); selection.room = nil; updateSignIn() })
-                    .id(key)
-                }
-            }
-            .navigationDestination(item: $editSelection) { selection in
-                editProfile(selection)
+            .sheet(item: Binding(get: { usesSplit ? editSelection : nil },
+                                 set: { editSelection = $0 })) { selection in
+                NavigationStack { editProfile(selection) }
             }
             // The subscription lives while the inbox is on screen and the app is not in the
             // background; returning, refreshing and reconnecting all go through the same open().

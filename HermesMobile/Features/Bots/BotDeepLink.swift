@@ -152,8 +152,14 @@ enum BotDeepLinkOutcome: Equatable {
 /// The inbox's presented chat and optional linked root. Resolving a link replaces
 /// the whole selection, including when its Profile is no longer on the roster.
 struct BotInboxSelection {
-    var profile: BotProfile?
-    var room: BotRoomKey?
+    // The inbox owns one destination on every width: picking a room replaces
+    // the bot (including a linked conversation), and picking a bot replaces the room.
+    var profile: BotProfile? {
+        didSet { if profile != nil { room = nil } }
+    }
+    var room: BotRoomKey? {
+        didSet { if room != nil { profile = nil; conversation = nil } }
+    }
     var conversation: String?
 
     @MainActor mutating func open(

@@ -18,8 +18,8 @@ struct HermesSessionListEntry: Hashable, Identifiable {
 /// (#1046): the webui list's rows, live states and row menu, on a `SessionListViewModel` with a
 /// Hermes backend. It is the Sessions side of the Hermes home (#709), where `home` gives it the
 /// home's chrome and its Tasks, Kanban, Skills, Memory and Usage rows, or pushed from a chat's
-/// `/sessions`; either way it sits on a stack it brings no navigation container to, and a row
-/// opens in the main chat on top of it. Its socket listens while it is on screen, rests
+/// `/sessions`; a home owns a sidebar and detail at regular width, while a pushed list
+/// stays in its caller's stack. Its socket listens while it is on screen, rests
 /// while a chat covers it, and closes when it leaves or the app goes to the background. Rows
 /// rename, pin, archive (with Undo and an Archived screen), delete and export as JSON (#1048), and
 /// duplicate (#1051).
@@ -33,6 +33,7 @@ struct HermesSessionListEntry: Hashable, Identifiable {
 /// a Shortcut's new session (#1180) and a share (#1181), as New Session would.
 struct HermesSessionListView: View {
 
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.modelContext) private var modelContext
@@ -84,6 +85,7 @@ struct HermesSessionListView: View {
     /// switch back shows the last rows at once (#709), and opening the session `pendingLink` names,
     /// the new session `pendingNewChat` asks for and `pendingShare`.
     init(entry: HermesSessionListEntry, model: SessionListViewModel, home: HermesHome?,
+         initialCovers: HermesSessionListCovers = HermesSessionListCovers(),
          pendingLink: Binding<HermesSessionDestination?> = .constant(nil),
          pendingNewChat: Binding<HermesNewChatDestination?> = .constant(nil),
          pendingShare: SharedImportReservation? = nil,
@@ -91,6 +93,7 @@ struct HermesSessionListView: View {
          didRouteShare: @escaping (SharedImportReservation) -> Void = { _ in },
          didDeclineShare: @escaping (SharedImportReservation) -> Void = { _ in },
          didAbandonShare: @escaping (SharedImportReservation) -> Void = { _ in }) {
+        _covers = State(initialValue: initialCovers)
         self.entry = entry
         self.home = home
         _pendingLink = pendingLink
@@ -112,7 +115,7 @@ struct HermesSessionListView: View {
         ))
     }
 
-    var body: some View {
+    private var sessionRows: some View {
         List {
             if let home {
                 SessionsHeader(
@@ -145,7 +148,7 @@ struct HermesSessionListView: View {
                 isSearchActive: false,
                 showsMessageCount: showsMessageCount,
                 showsWorkspace: showsWorkspace,
-                selectedSessionID: nil,
+                selectedSessionID: usesSplit ? selectedSessionID : nil,
                 actions: actions
             )
             // A search reads the host's whole list, so it pages nothing in.
@@ -155,6 +158,11 @@ struct HermesSessionListView: View {
         }
         .listStyle(.plain)
         .environment(\.defaultMinListRowHeight, 0)
+        .modifier(chrome)
+    }
+
+    var body: some View {
+        navigationSurface
         .animation(SessionListMotion.disclosureAnimation(reduceMotion: reduceMotion), value: projectsAreExpanded)
         .overlay(alignment: .bottom) {
             ActionToastView(state: actionToast)
@@ -166,45 +174,6 @@ struct HermesSessionListView: View {
         // Debounced inside; a new query or Profile cancels the search in flight.
         .task(id: SearchScope(profile: profile, showsAll: viewModel.hermesShowsAllProfiles, text: searchText)) {
             await viewModel.searchSessions(query: searchText)
-        }
-        .modifier(chrome)
-        // Keyed by the chat, so a Profile picked in an empty chat replaces its screen (#1015).
-        .navigationDestination(item: $covers.chat) { chat in
-            // `/sessions` and `/resume` in the chat come back here, in the chat's Profile, searching
-            // what they name.
-            ChatView(hermesSession: chat, onReplace: { self.covers.chat = $0 }, onOpenSessions: { opened in
-                self.covers.chat = nil
-                if let listed = opened.profile, listed != profile || viewModel.hermesShowsAllProfiles {
-                    Task { await viewModel.selectHermesProfile(listed) }
-                }
-                searchText = opened.query
-                if !opened.query.isEmpty && home != nil { isSearchExpanded = true }
-            })
-            .id(chat.id)
-        }
-        .navigationDestination(isPresented: $covers.showingArchived) {
-            if let profile {
-                ArchivedSessionsView(server: entry.server, hermes: .saved(entry.connection, server: entry.server, profile: profile))
-            }
-        }
-        .navigationDestination(item: $covers.tasks) { entry in
-            TasksView(server: entry.server, onAPIError: { _ in }, client: entry.client, newTaskProfile: entry.newTaskProfile)
-                .id(entry.id)
-        }
-        .navigationDestination(item: $covers.skills) { entry in
-            SkillsView(client: entry.client, profile: entry.client.profile, onAPIError: { _ in })
-                .id(entry.id)
-        }
-        .navigationDestination(item: $covers.memory) { entry in
-            MemoryView(server: entry.server, client: entry.client, profile: entry.client.profile, onAPIError: { _ in })
-                .id(entry.id)
-        }
-        .navigationDestination(item: $covers.insights) { entry in
-            InsightsView(client: entry.client, profile: entry.client.profile, onAPIError: { _ in })
-                .id(entry.id)
-        }
-        .navigationDestination(isPresented: $covers.showingKanban) {
-            KanbanView(server: entry.server, hermes: HermesConnections.shared.connection(for: entry.connection, server: entry.server))
         }
         .sheet(item: $covers.renaming, onDismiss: { viewModel.clearRenameError() }) { session in
             SessionRenameSheet(initialTitle: SessionRowView.displayTitle(for: session), isSaving: viewModel.isRenamingSession,
@@ -314,10 +283,106 @@ struct HermesSessionListView: View {
             switch scenePhase {
             case .background: viewModel.closeHermes()
             // Control Center and banners (`.inactive`) keep the socket; only a closed list reopens.
-            case .active where covers.chat == nil && !covers.isCoveredByScreen && !viewModel.isHermesConnected:
+            case .active where (usesSplit || (covers.chat == nil && !covers.isCoveredByScreen)) && !viewModel.isHermesConnected:
                 Task { await viewModel.openHermes(modelContext: modelContext) }
             default: break
             }
+        }
+    }
+
+    private var usesSplit: Bool {
+        HermesHomeLayout.usesSplit(isHome: home != nil, horizontalSizeClass: horizontalSizeClass)
+    }
+
+    private var selectedSessionID: String? {
+        if case .session(_, let key)? = covers.chat?.target { return covers.chat?.lineageRoot ?? key }
+        return nil
+    }
+
+    private func prepareRootSelection() {
+        if usesSplit { covers.bringForward() }
+    }
+
+    @ViewBuilder private var navigationSurface: some View {
+        if usesSplit {
+            SessionSplitView(rootRevision: covers.detailIdentity.hashValue) {
+                sessionRows
+                    .navigationSplitViewColumnWidth(min: 280, ideal: 340, max: 420)
+            } detail: {
+                regularWidthDetail
+            }
+        } else {
+            compactSessionRows
+        }
+    }
+
+    private var compactSessionRows: some View {
+        sessionRows
+        // Keyed by the chat, so a Profile picked in an empty chat replaces its screen (#1015).
+        .navigationDestination(item: $covers.chat) { chat in
+            // `/sessions` and `/resume` in the chat come back here, in the chat's Profile, searching
+            // what they name.
+            ChatView(hermesSession: chat, onReplace: { self.covers.chat = $0 }, onOpenSessions: { opened in
+                self.covers.chat = nil
+                if let listed = opened.profile, listed != profile || viewModel.hermesShowsAllProfiles {
+                    Task { await viewModel.selectHermesProfile(listed) }
+                }
+                searchText = opened.query
+                if !opened.query.isEmpty && home != nil { isSearchExpanded = true }
+            })
+            .id(chat.id)
+        }
+        .navigationDestination(isPresented: $covers.showingArchived) {
+            if let profile {
+                ArchivedSessionsView(server: entry.server, hermes: .saved(entry.connection, server: entry.server, profile: profile))
+            }
+        }
+        .navigationDestination(item: $covers.tasks) { entry in
+            TasksView(server: entry.server, onAPIError: { _ in }, client: entry.client, newTaskProfile: entry.newTaskProfile)
+                .id(entry.id)
+        }
+        .navigationDestination(item: $covers.skills) { entry in
+            SkillsView(client: entry.client, profile: entry.client.profile, onAPIError: { _ in })
+                .id(entry.id)
+        }
+        .navigationDestination(item: $covers.memory) { entry in
+            MemoryView(server: entry.server, client: entry.client, profile: entry.client.profile, onAPIError: { _ in })
+                .id(entry.id)
+        }
+        .navigationDestination(item: $covers.insights) { entry in
+            InsightsView(client: entry.client, profile: entry.client.profile, onAPIError: { _ in })
+                .id(entry.id)
+        }
+        .navigationDestination(isPresented: $covers.showingKanban) {
+            KanbanView(server: entry.server, hermes: HermesConnections.shared.connection(for: entry.connection, server: entry.server))
+        }
+    }
+
+    @ViewBuilder private var regularWidthDetail: some View {
+        if let chat = covers.chat {
+            ChatView(hermesSession: chat, onReplace: { covers.chat = $0 }, onOpenSessions: { opened in
+                covers.chat = nil
+                if let listed = opened.profile, listed != profile || viewModel.hermesShowsAllProfiles {
+                    Task { await viewModel.selectHermesProfile(listed) }
+                }
+                searchText = opened.query
+                if !opened.query.isEmpty { isSearchExpanded = true }
+            }).id(chat.id)
+        } else if let entry = covers.tasks {
+            TasksView(server: entry.server, onAPIError: { _ in }, client: entry.client, newTaskProfile: entry.newTaskProfile).id(entry.id)
+        } else if let entry = covers.skills {
+            SkillsView(client: entry.client, profile: entry.client.profile, onAPIError: { _ in }).id(entry.id)
+        } else if let entry = covers.memory {
+            MemoryView(server: entry.server, client: entry.client, profile: entry.client.profile, onAPIError: { _ in }).id(entry.id)
+        } else if let entry = covers.insights {
+            InsightsView(client: entry.client, profile: entry.client.profile, onAPIError: { _ in }).id(entry.id)
+        } else if covers.showingKanban {
+            KanbanView(server: entry.server, hermes: HermesConnections.shared.connection(for: entry.connection, server: entry.server))
+        } else if covers.showingArchived, let profile {
+            ArchivedSessionsView(server: entry.server, hermes: .saved(entry.connection, server: entry.server, profile: profile))
+        } else {
+            ContentUnavailableView("Select a Chat", systemImage: "bubble.left.and.bubble.right",
+                                   description: Text("Choose a session from the sidebar or start a new chat."))
         }
     }
 
@@ -340,6 +405,7 @@ struct HermesSessionListView: View {
     /// Pushes a home row's screen: Tasks, Skills, Memory and Usage on the listed Profile (the one
     /// New Session opens in, on a list of every Profile), Kanban for the whole host.
     private func open(_ destination: SessionListUtilityDestination) {
+        prepareRootSelection()
         let server = entry.server, connection = entry.connection
         if destination == .kanban { covers.showingKanban = true; return }
         guard let profile else { return }
@@ -377,6 +443,7 @@ struct HermesSessionListView: View {
     private var newSessionButton: some View {
         Button("New Session", systemImage: "square.and.pencil") {
             guard let profile else { return }
+            prepareRootSelection()
             covers.chat = HermesSessionChat(server: entry.server, connection: entry.connection, target: .new(profile: profile))
         }
         .disabled(viewModel.isViewingCachedData || profile == nil)
@@ -467,6 +534,7 @@ struct HermesSessionListView: View {
     /// The Profile's archived sessions, hidden Bot Chats included, where they are restored.
     private var archivedRow: some View {
         Button {
+            prepareRootSelection()
             covers.showingArchived = true
         } label: {
             HStack(spacing: 12) {
@@ -509,6 +577,7 @@ struct HermesSessionListView: View {
                 guard let listed = profile ?? session.profile,
                       let opened = session.hermesChat(on: entry.server, connection: entry.connection, listedIn: listed) else { return }
                 viewModel.beginViewing(session)
+                prepareRootSelection()
                 covers.chat = opened
             },
             toggleUnread: { viewModel.toggleUnread($0) },
@@ -568,6 +637,7 @@ struct HermesSessionListView: View {
             } else if let profile = session.profile,
                       let opened = session.hermesChat(on: entry.server, connection: entry.connection, listedIn: profile) {
                 viewModel.beginViewing(session)
+                prepareRootSelection()
                 covers.chat = opened
             }
         case .gone:
@@ -646,6 +716,7 @@ struct HermesSessionListView: View {
     /// "Archived · Undo" once the host confirms (#865); Undo restores the row in place.
     private func archive(_ session: SessionSummary) async {
         guard await viewModel.archive(session, animation: mutationAnimation) else { return }
+        covers.closeChat(for: session)
         SessionHaptics.archiveStateChanged(isEnabled: isHapticsEnabled)
         let message = String(localized: "Archived")
         actionToast.show(ActionToast(
@@ -680,11 +751,13 @@ struct HermesSessionListView: View {
     private func duplicate(_ session: SessionSummary) async {
         guard let profile, let copy = await viewModel.duplicate(session),
               let opened = copy.hermesChat(on: entry.server, connection: entry.connection, listedIn: profile) else { return }
+        prepareRootSelection()
         covers.chat = opened
     }
 
     private func delete(_ session: SessionSummary) async {
         if await viewModel.delete(session, animation: mutationAnimation) {
+            covers.closeChat(for: session)
             SessionHaptics.sessionDeleted(isEnabled: isHapticsEnabled)
         }
     }
@@ -872,6 +945,15 @@ struct HermesSessionListCovers {
         showingArchived || showingKanban || tasks != nil || skills != nil || memory != nil || insights != nil
     }
 
+    /// Re-root the detail, including a second pick of the same Library screen after it pushed.
+    /// The existing generation advances when a root selection clears the previous covers.
+    var detailIdentity: String {
+        let destination = chat?.id.uuidString ?? tasks?.id.uuidString ?? skills?.id.uuidString
+            ?? memory?.id.uuidString ?? insights?.id.uuidString
+            ?? (showingKanban ? "kanban" : showingArchived ? "archived" : "empty")
+        return "\(generation)|\(destination)"
+    }
+
     /// Counts the links that brought the rows forward, so work started before one (an export)
     /// doesn't cover them again when it finishes.
     private(set) var generation = 0
@@ -903,6 +985,15 @@ struct HermesSessionListCovers {
                                   isLive: Bool) -> HermesShareOpening? {
         bringForward()
         return share.hermesOpening(on: entry, listed: listed, isLive: isLive)
+    }
+
+    /// A confirmed row mutation can originate in search, outside the loaded pages.
+    /// Only its own selected chat closes; a newer selection is left alone.
+    mutating func closeChat(for row: SessionSummary) {
+        guard let chat, case .session(let profile, let key) = chat.target,
+              row.profile == profile,
+              row.sessionId == key || row.hermes?.lineageRoot == (chat.lineageRoot ?? key) else { return }
+        self.chat = nil
     }
 
     /// Closes everything over the rows, so what opens next shows on the list itself.

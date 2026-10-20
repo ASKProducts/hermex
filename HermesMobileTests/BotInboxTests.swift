@@ -18,6 +18,19 @@ import SwiftUI
         super.tearDown()
     }
 
+    func testBotAndRoomPicksReplaceTheSelection() throws {
+        let bot = try XCTUnwrap(BotProfile(.object(["name": .string("fixture")])))
+        let room = BotRoomKey(server: server, connectionID: UUID(), roomID: "room")
+        var selection = BotInboxSelection(profile: bot, conversation: "linked-root")
+        selection.room = room
+        XCTAssertNil(selection.profile)
+        XCTAssertNil(selection.conversation)
+        XCTAssertEqual(selection.room, room)
+        selection.profile = bot
+        XCTAssertNil(selection.room)
+        XCTAssertEqual(selection.profile, bot)
+    }
+
     func testSessionsChangedBurstCoalescesIntoBoundedReloads() async throws {
         let wire = BotInboxFixtureWire(roster: [row("triage", lastActive: 100, preview: "old")])
         let inbox = try makeInbox(wires: [wire])
