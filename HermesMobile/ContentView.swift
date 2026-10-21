@@ -514,17 +514,19 @@ enum SharedImportGate {
     }
 }
 
-/// A signed-in Hermes server's whole app (#899, #709): one navigation stack, full width on iPad
-/// too, where chats push, rooted on either side of the home's `[Bots | Sessions]` switch. Each
+/// A signed-in Hermes server's whole app (#899, #709): a sidebar and detail at regular width,
+/// or one navigation stack where compact-width chats push, on either side of the home switch. Each
 /// side leads with the session list's header, whose avatar opens Settings on a tap and switches
 /// servers on a hold, and takes the home's bar (`HermesHomeChrome`). The home keeps both sides'
-/// state, so a switch shows the last roster or rows at once while they refresh. It opens on the
-/// side last shown, Sessions at first, and a Bot link (a push tap, a search hit) turns it to Bots,
-/// where the inbox opens it. A session link (#1176), a Shortcut's new session (#1180) or a share
+/// state, open chat included, so a switch or a size-class change shows the last roster, rows or
+/// chat at once while they refresh. It opens on the side last shown, Sessions at first, and a Bot
+/// link (a push tap, a search hit) turns it to Bots, where the inbox opens it. A session link (#1176), a Shortcut's new session (#1180) or a share
 /// (#1181) turns it to Sessions, where the list opens it.
 struct HermesServerHome: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Bindable var authManager: AuthManager
     let server: URL
+    private let loadConnection: @MainActor (URL) -> BotConnection?
     @Binding var pendingBotDestination: BotDestination?
     @Binding var pendingSessionDestination: HermesSessionDestination?
     @Binding var pendingNewChat: HermesNewChatDestination?
@@ -551,9 +553,13 @@ struct HermesServerHome: View {
          pendingShare: SharedImportReservation?, claimShare: @escaping (SharedImportReservation) -> Bool,
          didRouteShare: @escaping (SharedImportReservation) -> Void,
          didDeclineShare: @escaping (SharedImportReservation) -> Void,
-         didAbandonShare: @escaping (SharedImportReservation) -> Void) {
+         didAbandonShare: @escaping (SharedImportReservation) -> Void,
+         initiallyShowingSettings: Bool = false,
+         loadConnection: @escaping @MainActor (URL) -> BotConnection? = { try? BotConnectionStore().load(server: $0) }) {
         self.authManager = authManager
         self.server = server
+        self.loadConnection = loadConnection
+        _isShowingSettings = State(initialValue: initiallyShowingSettings)
         _pendingBotDestination = pendingBotDestination
         _pendingSessionDestination = pendingSessionDestination
         _pendingNewChat = pendingNewChat
@@ -563,36 +569,45 @@ struct HermesServerHome: View {
         self.didDeclineShare = didDeclineShare
         self.didAbandonShare = didAbandonShare
         _inbox = State(initialValue: BotInbox(server: server))
-        _sessions = State(initialValue: HermesSessionsSide(server: server))
+        _sessions = State(initialValue: loadConnection(server).map { HermesSessionsSide(server: server, connection: $0) })
     }
 
     var body: some View {
         let identity = HermesServerIdentity(account: authManager.activeServer, server: server)
         let home = HermesHome(title: identity.title, avatar: avatar(identity), tab: $tab)
-        NavigationStack {
-            Group {
-                // Without a saved connection the inbox's welcome sets one up.
-                if tab == .sessions, let sessions {
-                    HermesSessionListView(entry: sessions.entry, model: sessions.model, home: home,
-                                          pendingLink: $pendingSessionDestination, pendingNewChat: $pendingNewChat,
-                                          pendingShare: pendingShare, claimShare: claimShare,
-                                          didRouteShare: didRouteShare, didDeclineShare: didDeclineShare,
-                                          didAbandonShare: didAbandonShare)
-                        .id(sessions.entry.id)
-                } else {
-                    BotsInboxView(server: server, pendingDestination: $pendingBotDestination, home: home, inbox: inbox)
+        Group {
+            if HermesHomeLayout.usesSplit(isHome: true, horizontalSizeClass: horizontalSizeClass) {
+                homeContent(home)
+                    .sheet(isPresented: $isShowingSettings, onDismiss: readConnection) {
+                        NavigationStack {
+                            SettingsView(authManager: authManager, server: server)
+                                .toolbar {
+                                    ToolbarItem(placement: .confirmationAction) {
+                                        Button("Done") { isShowingSettings = false }
+                                    }
+                                }
+                        }
+                    }
+            } else {
+                NavigationStack {
+                    homeContent(home)
+                        .navigationDestination(isPresented: $isShowingSettings) {
+                            SettingsView(authManager: authManager, server: server)
+                        }
                 }
-            }
-            .onAppear(perform: readConnection)
-            .navigationDestination(isPresented: $isShowingSettings) {
-                SettingsView(authManager: authManager, server: server)
             }
         }
         // A Hermes chat's Update sign-in (#942) signs the server out to its sign-in form, which
         // keeps the saved values and focuses the password; saving signs it back in.
         .modifier(HermesUpdateSignInModifier { authManager.hermesSignInRejected(server: server) })
         // A connection the inbox's sheet saved or changed closes no screen, so the switch reads too.
-        .onChange(of: tab, readConnection)
+        // At compact width a route turning the home leaves the side it left on its root, so a
+        // later return doesn't push that side's old chat again.
+        .onChange(of: tab) {
+            readConnection()
+            guard !HermesHomeLayout.usesSplit(isHome: true, horizontalSizeClass: horizontalSizeClass) else { return }
+            if tab == .sessions { inbox.selection = BotInboxSelection() } else { sessions?.navigation.covers.bringForward() }
+        }
         // A bot route lands on the inbox, so Settings (and an Archived screen pushed from it, #1146)
         // closes first, as a Sessions list's pushed screens do when its tab goes.
         .onChange(of: pendingBotDestination, initial: true) {
@@ -623,9 +638,27 @@ struct HermesServerHome: View {
         }
     }
 
+    @ViewBuilder private func homeContent(_ home: HermesHome) -> some View {
+        Group {
+            // Without a saved connection the inbox's welcome sets one up.
+            if tab == .sessions, let sessions {
+                HermesSessionListView(entry: sessions.entry, model: sessions.model, home: home,
+                                      navigation: sessions.navigation,
+                                      pendingLink: $pendingSessionDestination, pendingNewChat: $pendingNewChat,
+                                      pendingShare: pendingShare, claimShare: claimShare,
+                                      didRouteShare: didRouteShare, didDeclineShare: didDeclineShare,
+                                      didAbandonShare: didAbandonShare)
+                    .id(sessions.entry.id)
+            } else {
+                BotsInboxView(server: server, pendingDestination: $pendingBotDestination, home: home, inbox: inbox)
+            }
+        }
+        .onAppear(perform: readConnection)
+    }
+
     /// A new list only when the saved record changed: a sign-in changed in Settings keeps its UUID.
     private func readConnection() {
-        let saved = try? BotConnectionStore().load(server: server)
+        let saved = loadConnection(server)
         if saved != sessions?.entry.connection { sessions = saved.map { HermesSessionsSide(server: server, connection: $0) } }
     }
 
@@ -677,20 +710,15 @@ struct HermesUpdateSignInModifier: ViewModifier {
 }
 
 /// The Hermes home's Sessions side: its list, opening on the server's pick, and the view model
-/// the home keeps across its switch.
+/// and open chat the home keeps across its switch and size-class changes.
 @MainActor private struct HermesSessionsSide {
     let entry: HermesSessionListEntry
     let model: SessionListViewModel
+    let navigation = HermesSessionListNavigation()
 
     init(server: URL, connection: BotConnection) {
         entry = HermesSessionListEntry(server: server, connection: connection, profile: nil)
         model = HermesSessionListView.model(for: entry)
-    }
-
-    /// The side on `server`'s saved connection; nil without one.
-    init?(server: URL) {
-        guard let connection = try? BotConnectionStore().load(server: server) else { return nil }
-        self.init(server: server, connection: connection)
     }
 }
 

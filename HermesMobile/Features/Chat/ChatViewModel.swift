@@ -2965,6 +2965,8 @@ final class ChatViewModel {
 
     /// A Hermes session's draft key: the new-session key until the host names the session.
     var hermesDraftKey: ChatDraftKey? { hermesTurn?.currentDraftKey }
+    /// The parent list learns a New Session's accepted identity without replacing its chat.
+    @ObservationIgnored var onHermesDraftKeyChange: ((ChatDraftKey) -> Void)?
 
     /// Stop asks first on a Hermes session holding a queued prompt or an open request,
     /// which the stop would discard or deny.
@@ -8222,6 +8224,7 @@ extension ChatViewModel: HermesChatTurnDelegate {
 
     func hermesDraftKeyDidChange(from: ChatDraftKey, to: ChatDraftKey) {
         drafts.moveDraft(from: from, to: to)
+        onHermesDraftKeyChange?(to)
     }
 
     func hermesRequestDidFail(_ message: String) {

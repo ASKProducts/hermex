@@ -1,6 +1,13 @@
 import SwiftUI
 import UIKit
 
+/// Hermes home owns a split only at regular width; pushed lists keep their caller's stack.
+enum HermesHomeLayout {
+    static func usesSplit(isHome: Bool, horizontalSizeClass: UserInterfaceSizeClass?) -> Bool {
+        isHome && horizontalSizeClass == .regular
+    }
+}
+
 /// The regular-width shell (iPad, landscape Plus/Max). A sidebar root selection
 /// bumps `rootRevision`, which rebuilds only the detail root and pops any screen
 /// pushed above it (#116). The sidebar keeps its identity, scroll position, and

@@ -51,7 +51,7 @@ struct HermesSessionChat: Hashable, Identifiable {
     let id = UUID()
     let server: URL
     let connection: BotConnection
-    let target: ConversationTarget
+    var target: ConversationTarget
     /// The session the row this chat opened from names as its parent (`parent_session_id`): the
     /// chat asks the host whether it is a branch of it, for its "Forked from" row (#1051). Nil
     /// asks nothing.

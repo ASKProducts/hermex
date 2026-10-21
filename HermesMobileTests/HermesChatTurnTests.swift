@@ -217,6 +217,31 @@ import SwiftUI
     /// A new session's draft keeps the new-session key until the host accepts its first
     /// prompt, so leaving before sending leaves it for the next New Session. Then it moves
     /// to the session's own key.
+    func testAcceptedNewSessionClosesOnConfirmedArchiveOrDelete() async throws {
+        for archived in [false, true] {
+            let key = archived ? "new-archived" : "new-deleted"
+            let chat = await openChat(key: key, target: .new(profile: "default"))
+            defer { chat.model.suspendStreamForNavigation() }
+            let opened = HermesSessionChat(server: URL(string: "https://hermes.example")!,
+                                           connection: Self.connection, target: .new(profile: "default"))
+            var covers = HermesSessionListCovers()
+            covers.chat = opened
+            var identified: ChatDraftKey?
+            chat.model.onHermesDraftKeyChange = { identity in
+                identified = identity
+                covers.identifyChat(opened.id, draftKey: identity)
+            }
+            chat.host.always("prompt.submit", .init(result: .object(["status": .string("streaming")])))
+            let sent = await chat.model.sendMessage("Plan the release")
+            XCTAssertTrue(sent)
+            XCTAssertEqual(identified, chat.model.hermesDraftKey, "Accepted identity must reach the parent")
+            XCTAssertEqual(covers.chat?.id, opened.id, "Identifying the session must not replace its live chat")
+            covers.closeChat(for: SessionSummary(sessionId: key, archived: archived, profile: "default",
+                hermes: .init(lineageRoot: key, unread: false, preview: nil)))
+            XCTAssertNil(covers.chat, "Both confirmed sidebar mutations must close a chat that opened as New Session")
+        }
+    }
+
     func testANewSessionKeepsItsDraftUntilItsFirstPromptIsAccepted() async throws {
         let drafts = ChatDraftStore(persistence: InMemoryDraftPersistence(), debounceDuration: .seconds(60))
         let server = URL(string: "https://hermes.example")!

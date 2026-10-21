@@ -6,6 +6,7 @@ import SwiftUI
 /// avatar replaces the Bot connection gear, and takes the home's bar (`HermesHomeChrome`): the
 /// filter holds hidden bots and section order, and new chat makes a bot or a group chat.
 @MainActor struct BotsInboxView: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.modelContext) private var modelContext
     @AppStorage(HeaderLogoColor.storageKey) private var headerLogoColorHex = HeaderLogoColor.defaultHex
@@ -34,7 +35,6 @@ import SwiftUI
     @State private var filing: BotProfile?
     @State private var newSectionName = ""
     @State private var showingSectionOrder = false
-    @State private var selection = BotInboxSelection()
     @State private var searchedRoom: BotRoomKey?
     @State private var searchedSequence: Int?
     @State private var roomSequence: Int?
@@ -70,7 +70,7 @@ import SwiftUI
     }
 
     var body: some View {
-        let toasted = list
+        let toasted = navigationSurface
             .overlay(alignment: .bottom) {
                 if let toast {
                     Text(toast).font(.callout).padding()
@@ -84,6 +84,61 @@ import SwiftUI
                 toast = nil
             }
         attachPresentations(to: toasted)
+    }
+
+    private var usesSplit: Bool {
+        HermesHomeLayout.usesSplit(isHome: home != nil, horizontalSizeClass: horizontalSizeClass)
+    }
+
+    @ViewBuilder private var navigationSurface: some View {
+        if usesSplit {
+            SessionSplitView(rootRevision: inbox.selection.pick.hashValue) {
+                list
+                    .navigationSplitViewColumnWidth(min: 260, ideal: 320, max: 420)
+            } detail: {
+                regularWidthDetail
+            }
+        } else {
+            compactList
+        }
+    }
+
+    @ViewBuilder private var regularWidthDetail: some View {
+        if let profile = inbox.selection.profile, let connection = inbox.connection { chat(profile, connection) }
+        else if let key = inbox.selection.room, let connection = inbox.connection, connection.id == key.connectionID,
+                let room = inbox.rooms.first(where: { $0.id == key.roomID }) {
+            BotRoomView(reader: BotRoomReader(key: key, connection: connection, room: room, initialSequence: roomSequence, onExpired: {
+                inbox.expireRoom(key); inbox.selection.room = nil
+                toast = String(localized: "This room’s history is no longer available.")
+            }, onChanged: { inbox.updateRoom($0, connectionID: key.connectionID) }, onDisbanded: {
+                inbox.removeRoom(key); inbox.selection.room = nil
+            }), roster: inbox.profiles, avatars: inbox.avatars,
+                onUpdateSignIn: { inbox.noteRejectedSignIn(connection); inbox.selection.room = nil; updateSignIn() })
+                .id(key)
+        } else { ContentUnavailableView("Select a Bot", systemImage: "bubble.left.and.bubble.right") }
+    }
+
+    private var compactList: some View {
+        list
+            .navigationDestination(item: $inbox.selection.profile) { profile in
+                if let connection = inbox.connection { chat(profile, connection) }
+            }
+            .navigationDestination(item: $inbox.selection.room) { key in
+                if let connection = inbox.connection, connection.id == key.connectionID,
+                   let room = inbox.rooms.first(where: { $0.id == key.roomID }) {
+                    BotRoomView(reader: BotRoomReader(key: key, connection: connection, room: room, initialSequence: roomSequence, onExpired: {
+                        inbox.expireRoom(key); inbox.selection.room = nil
+                        toast = String(localized: "This room’s history is no longer available.")
+                    }, onChanged: { inbox.updateRoom($0, connectionID: key.connectionID) }, onDisbanded: {
+                        inbox.removeRoom(key); inbox.selection.room = nil
+                    }), roster: inbox.profiles, avatars: inbox.avatars,
+                        onUpdateSignIn: { inbox.noteRejectedSignIn(connection); inbox.selection.room = nil; updateSignIn() })
+                    .id(key)
+                }
+            }
+            .navigationDestination(item: $editSelection) { selection in
+                editProfile(selection)
+            }
     }
 
     /// The rows alone. The list, its sheets and its lifecycle each sit in their
@@ -134,7 +189,7 @@ import SwiftUI
                                 Menu { organizeMenu(profile) } label: {
                                     BotHeroTile(profile: profile, avatar: inbox.avatars[profile.id], unread: inbox.isUnread(profile),
                                                 status: inbox.liveStatuses[profile.id])
-                                } primaryAction: { selection.profile = profile }
+                                } primaryAction: { inbox.selection.profile = profile }
                                 .buttonStyle(.plain)
                             case .room(let room):
                                 Menu { roomOrganizeMenu(room) } label: {
@@ -239,12 +294,12 @@ import SwiftUI
         // A pushed screen closes the inbox socket. Return to the inbox before waiting
         // for its roster, so its appearance task can reconnect and resolve the link,
         // as when the Sessions list opens a Bot Chat it found (#1053).
-        selection = BotInboxSelection()
+        inbox.selection = BotInboxSelection()
         guard BotDeepLinkRouter.inboxCanAnswer(
             link: inbox.link, hasConnection: inbox.connection != nil, hasSettled: hasSettled
         ) else { return }
         pendingDestination = nil
-        selection.open(destination, connection: inbox.connection, profiles: inbox.profiles)
+        inbox.selection.open(destination, connection: inbox.connection, profiles: inbox.profiles)
     }
 
     /// Resolve the selection again after the sheet closes so a refreshed roster
@@ -252,9 +307,9 @@ import SwiftUI
     private func openSearchSelection() {
         defer { searchedProfile = nil; searchedRoom = nil; searchedSequence = nil }
         if let key = searchedRoom, key.connectionID == inbox.connection?.id,
-           inbox.rooms.contains(where: { $0.id == key.roomID }) { roomSequence = searchedSequence; selection.room = key; return }
+           inbox.rooms.contains(where: { $0.id == key.roomID }) { roomSequence = searchedSequence; inbox.selection.room = key; return }
         guard let searched = searchedProfile, inbox.connection?.id == searched.connectionID else { return }
-        selection.profile = inbox.profiles.first { $0.id == searched.profileID }
+        inbox.selection.profile = inbox.profiles.first { $0.id == searched.profileID }
     }
 
     /// The list under the tiles. Headers appear only when a named section is on
@@ -292,7 +347,7 @@ import SwiftUI
     }
 
     private func row(_ profile: BotProfile, dimmed: Bool) -> some View {
-        Button { selection.profile = profile } label: {
+        Button { inbox.selection.profile = profile } label: {
             BotInboxRow(profile: profile, avatar: inbox.avatars[profile.id], unread: inbox.isUnread(profile),
                         status: inbox.liveStatuses[profile.id])
         }
@@ -343,17 +398,17 @@ import SwiftUI
     /// lands. A chat the bot replaced since a link named it comes back here and says so, and a
     /// refused password comes back here to the inbox's sign-in form.
     @ViewBuilder private func chat(_ profile: BotProfile, _ connection: BotConnection) -> some View {
-        if let chat = selection.chat(server: server, connection: connection) {
+        if let chat = inbox.selection.chat(server: server, connection: connection) {
             ChatView(hermesSession: chat, onChatReplaced: {
-                selection.profile = nil
+                inbox.selection.profile = nil
                 toast = String(localized: "That conversation is no longer available.")
             })
-            .modifier(HermesUpdateSignInModifier { inbox.noteRejectedSignIn(connection); selection.profile = nil; updateSignIn() })
+            .modifier(HermesUpdateSignInModifier { inbox.noteRejectedSignIn(connection); inbox.selection.profile = nil; updateSignIn() })
             // A composite rather than a concatenation: a Profile name and a
             // conversation root are both arbitrary server strings, so joining them
             // could let two destinations share one identity and keep the wrong
             // conversation on screen.
-            .id([profile.id, connection.id.uuidString, selection.conversation ?? ""])
+            .id([profile.id, connection.id.uuidString, inbox.selection.conversation ?? ""])
             .onAppear { inbox.markSeen(profile) }
             .onDisappear { inbox.noteReturn(from: profile) }
         }
@@ -402,7 +457,7 @@ import SwiftUI
 
     private func openRoom(_ room: BotGroupRoom) {
         guard let key = inbox.roomKey(room) else { return }
-        roomSequence = nil; selection.room = key
+        roomSequence = nil; inbox.selection.room = key
     }
 
     /// Pin and hide are this phone's own marks and always apply; Rename and
@@ -493,7 +548,7 @@ extension BotsInboxView {
     private func attachPresentations(to content: some View) -> some View {
         content
             .sheet(isPresented: Binding(get: { roomCreator != nil }, set: { if !$0 { roomCreator = nil } }), onDismiss: {
-                if let key = createdRoom, key.connectionID == inbox.connection?.id { roomSequence = nil; selection.room = key }
+                if let key = createdRoom, key.connectionID == inbox.connection?.id { roomSequence = nil; inbox.selection.room = key }
                 createdRoom = nil
             }) {
                 if let creator = roomCreator {
@@ -565,7 +620,7 @@ extension BotsInboxView {
                 showingSearch = false
                 searchedProfile = nil
                 searchedRoom = nil; searchedSequence = nil; roomSequence = nil
-                selection.room = nil; selection.conversation = nil
+                inbox.selection.room = nil; inbox.selection.conversation = nil
                 editSelection = nil
                 creation = nil
                 roomCreator?.suspend(); roomCreator = nil; createdRoom = nil
@@ -581,24 +636,16 @@ extension BotsInboxView {
                     BotConnectionView(server: server, focusesPassword: updatingSignIn) { inbox.signInSaved() }
                 }
             }
-            .navigationDestination(item: $selection.profile) { profile in
-                if let connection = inbox.connection { chat(profile, connection) }
-            }
-            .navigationDestination(item: $selection.room) { key in
-                if let connection = inbox.connection, connection.id == key.connectionID,
-                   let room = inbox.rooms.first(where: { $0.id == key.roomID }) {
-                    BotRoomView(reader: BotRoomReader(key: key, connection: connection, room: room, initialSequence: roomSequence, onExpired: {
-                        inbox.expireRoom(key); selection.room = nil
-                        toast = String(localized: "This room’s history is no longer available.")
-                    }, onChanged: { inbox.updateRoom($0, connectionID: key.connectionID) }, onDisbanded: {
-                        inbox.removeRoom(key); selection.room = nil
-                    }), roster: inbox.profiles, avatars: inbox.avatars,
-                        onUpdateSignIn: { inbox.noteRejectedSignIn(connection); selection.room = nil; updateSignIn() })
-                    .id(key)
+            .sheet(item: Binding(get: { usesSplit ? editSelection : nil },
+                                 set: { editSelection = $0 })) { selection in
+                NavigationStack {
+                    editProfile(selection)
+                        .toolbar {
+                            ToolbarItem(placement: .cancellationAction) {
+                                Button("Cancel") { editSelection = nil }
+                            }
+                        }
                 }
-            }
-            .navigationDestination(item: $editSelection) { selection in
-                editProfile(selection)
             }
             // The subscription lives while the inbox is on screen and the app is not in the
             // background; returning, refreshing and reconnecting all go through the same open().
@@ -608,7 +655,6 @@ extension BotsInboxView {
             }
             .onChange(of: inbox.link) { openPendingDestination() }
             .onChange(of: pendingDestination) { openPendingDestination() }
-            .onChange(of: selection.profile) { if selection.profile == nil { selection.conversation = nil } }
             .refreshable { await inbox.open() }
             .onChange(of: scenePhase) {
                 // Control Center and banners (`.inactive`) keep the socket (#902); only an

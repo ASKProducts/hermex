@@ -186,6 +186,9 @@ import UIKit
     private var uncertainDeletions: Set<String> = []
     /// Session-only reveal of hidden bots, as in Desktop. Never persisted.
     var showsHidden = false
+    /// The open bot or room. It lives here, not in the inbox view, so the Hermes home's
+    /// chat survives what rebuilds that view: a size-class change or the `[Bots | Sessions]` switch.
+    var selection = BotInboxSelection()
     /// Device-local watermarks for the current connection: the canonical
     /// `last_active` the user last saw for each Profile. Never leaves the phone.
     private(set) var seen: [String: Double] = [:]
@@ -332,6 +335,7 @@ import UIKit
         do {
             let saved = try store.load(server: server)
             if connection?.id != saved?.id {
+                selection = BotInboxSelection()
                 profiles = []; avatars = [:]; seen = [:]; rooms = []; roomCapabilities = BotRoomCapabilities(.null)
                 roomFlags = BotRoomOrganizeStore.Flags(); sectionOrder = []; setLiveStatuses([:])
             }
@@ -481,6 +485,7 @@ import UIKit
 
     /// Drops everything this phone kept for a bot that no longer exists on the host.
     private func forget(_ profile: String) async {
+        if selection.profile?.id == profile { selection = BotInboxSelection() }
         guard let connection else { return }
         seen.removeValue(forKey: profile); persistSeen()
         avatarStore.setImage(nil, connectionID: connection.id, profile: profile, revision: nil)

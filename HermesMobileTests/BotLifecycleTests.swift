@@ -304,9 +304,11 @@ import XCTest
         await inbox.open()
         let triage = inbox.profiles[0]
         XCTAssertTrue(inbox.mayDelete(triage))
+        inbox.selection.profile = triage
 
         await inbox.delete(triage)
 
+        XCTAssertNil(inbox.selection.profile, "The deleted bot's open chat closes")
         XCTAssertEqual(wire.deleted, ["triage"])
         XCTAssertEqual(purged.map(\.1), ["triage"])
         XCTAssertEqual(purged.first?.0, inbox.connection?.id)

@@ -1,4 +1,6 @@
 import SwiftUI
+import SwiftData
+import Observation
 import XCTest
 @testable import HermesMobile
 
@@ -747,6 +749,358 @@ final class SessionSplitViewIdentityTests: XCTestCase {
             SplitColumnProbe(onCreate: { log.sidebar += 1 })
         } detail: {
             SplitColumnProbe { log.detail += 1 }
+        }
+    }
+}
+
+/// Host the real home lists at both width classes.
+@MainActor
+final class HermesHomeSplitRoutingTests: XCTestCase {
+    private let server = URL(string: "http://127.0.0.1:9")!
+
+    func testDismissingRegularSettingsReadsTheEditedConnection() async throws {
+        let connection = BotConnection(id: UUID(), name: "Fixture", address: server,
+                                       username: "fixture", password: "fixture-only")
+        var saved = connection
+        var readsAfterEditing = 0
+        let reread = expectation(description: "Home reads the connection after Settings closes")
+        let shown = expectation(description: "Settings sheet presented")
+        let auth = AuthManager(keychain: InMemoryKeychainStore(), serverRegistry: .inMemory(),
+                               hermesConnections: HermesConnections(keychain: InMemoryKeychainStore()))
+        let home = HermesServerHome(authManager: auth, server: server,
+            pendingBotDestination: .constant(nil), pendingSessionDestination: .constant(nil),
+            pendingNewChat: .constant(nil), pendingShare: nil, claimShare: { _ in false },
+            didRouteShare: { _ in }, didDeclineShare: { _ in }, didAbandonShare: { _ in },
+            initiallyShowingSettings: true, loadConnection: { requested in
+                XCTAssertEqual(requested, self.server)
+                if saved.password != connection.password {
+                    readsAfterEditing += 1
+                    reread.fulfill()
+                }
+                return saved
+            })
+        let host = SettingsPresentationHost(rootView: home.modelContainer(try Self.selectionCache.get())
+            .environment(auth).environment(\.horizontalSizeClass, .regular))
+        host.didPresent = { shown.fulfill() }
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+        let window = UIWindow(windowScene: scene)
+        window.traitOverrides.horizontalSizeClass = .regular
+        window.frame = CGRect(x: 0, y: 0, width: 1194, height: 834)
+        window.rootViewController = host
+        window.makeKeyAndVisible()
+        defer { window.isHidden = true; window.rootViewController = nil }
+        await fulfillment(of: [shown], timeout: 5)
+        let sheet = try XCTUnwrap(host.presentedViewController)
+        saved.password = "edited-fixture-only" // Editing a sign-in retains its UUID.
+        await withCheckedContinuation { continuation in
+            sheet.dismiss(animated: false) { continuation.resume() }
+        }
+        await fulfillment(of: [reread], timeout: 2)
+        XCTAssertGreaterThan(readsAfterEditing, 0)
+    }
+
+    func testRegularHermesSessionsOwnsASplit() throws {
+        try assertSplit(in: sessions(), sizeClass: .regular, expected: true)
+    }
+
+    func testCompactHermesSessionsStillPushesInItsCallerStack() throws {
+        try assertSplit(in: NavigationStack { sessions() }, sizeClass: .compact, expected: false)
+    }
+
+    func testRegularBotsHomeOwnsASplit() throws {
+        try assertSplit(in: BotsInboxView(server: server, pendingDestination: .constant(nil),
+                                         home: home(.bots), inbox: BotInbox(server: server)),
+                        sizeClass: .regular, expected: true)
+    }
+
+    func testCompactBotsHomeKeepsItsCallerStack() throws {
+        try assertSplit(in: NavigationStack {
+            BotsInboxView(server: server, pendingDestination: .constant(nil),
+                          home: home(.bots), inbox: BotInbox(server: server))
+        }, sizeClass: .compact, expected: false)
+    }
+
+    func testNewSessionIdentityStaysWithItsCurrentSelection() {
+        let connection = BotConnection(id: UUID(), name: "Fixture", address: server,
+                                       username: "fixture", password: "fixture-only")
+        let first = HermesSessionChat(server: server, connection: connection, target: .new(profile: "default"))
+        let second = HermesSessionChat(server: server, connection: connection, target: .new(profile: "default"))
+        let identity = ChatDraftKey.hermesSession(server: server, connectionID: connection.id, profile: "default", key: "fresh")
+        var covers = HermesSessionListCovers()
+        covers.chat = first
+        covers.identifyChat(first.id, draftKey: identity)
+        XCTAssertEqual(covers.selectedSessionID, "fresh")
+        covers.chat = second
+        XCTAssertNil(covers.selectedSessionID)
+        covers.identifyChat(first.id, draftKey: identity)
+        for invalid in [
+            ChatDraftKey.hermesSession(server: URL(string: "https://other.example")!, connectionID: connection.id, profile: "default", key: "fresh"),
+            .hermesSession(server: server, connectionID: UUID(), profile: "default", key: "fresh"),
+            .hermesSession(server: server, connectionID: connection.id, profile: "other", key: "fresh")
+        ] {
+            covers.identifyChat(second.id, draftKey: invalid)
+        }
+        XCTAssertNil(covers.selectedSessionID, "Old chats and other scopes cannot supply this selection's identity")
+        covers.closeChat(for: SessionSummary(sessionId: "fresh", profile: "default"))
+        XCTAssertEqual(covers.chat?.id, second.id)
+        covers.identifyChat(second.id, draftKey: identity)
+        covers.closeChat(for: SessionSummary(sessionId: "fresh", profile: "other"))
+        XCTAssertEqual(covers.chat?.id, second.id)
+        covers.closeChat(for: SessionSummary(sessionId: "fresh", profile: "default"))
+        XCTAssertNil(covers.chat)
+        XCTAssertNil(covers.selectedSessionID)
+    }
+
+    func testRebuiltNewSessionReopensTheSessionItsFirstPromptCreated() {
+        let connection = BotConnection(id: UUID(), name: "Fixture", address: server,
+                                       username: "fixture", password: "fixture-only")
+        var started = HermesSessionChat(server: server, connection: connection, target: .new(profile: "default"))
+        started.autoStartsVoiceInput = true
+        var covers = HermesSessionListCovers()
+        covers.chat = started
+        XCTAssertEqual(covers.building(started).target, .new(profile: "default"))
+        covers.identifyChat(started.id, draftKey: .hermesSession(server: server, connectionID: connection.id,
+                                                                 profile: "default", key: "fresh"))
+        let rebuilt = covers.building(started)
+        XCTAssertEqual(rebuilt.target, .session(profile: "default", key: "fresh"))
+        XCTAssertEqual(rebuilt.id, started.id, "The live chat keeps its view identity")
+        XCTAssertFalse(rebuilt.autoStartsVoiceInput, "A rebuild doesn't dictate again")
+    }
+
+    func testConfirmedSearchRowRemovalClosesOnlyItsOwnChat() {
+        let connection = BotConnection(id: UUID(), name: "Fixture", address: server,
+                                       username: "fixture", password: "fixture-only")
+        let row = SessionSummary(sessionId: "chat-1", profile: "default",
+                                 hermes: .init(lineageRoot: "root-1", unread: false, preview: nil))
+        var covers = HermesSessionListCovers()
+        let newer = HermesSessionChat(server: server, connection: connection,
+            target: .session(profile: "default", key: "chat-2"))
+        covers.chat = newer
+        covers.closeChat(for: row)
+        XCTAssertEqual(covers.chat, newer, "A delayed mutation must not close a different chat")
+        covers.chat = HermesSessionChat(server: server, connection: connection,
+            target: .session(profile: "other", key: "chat-1"))
+        covers.closeChat(for: row)
+        XCTAssertNotNil(covers.chat, "Session keys are scoped to their Profile")
+        covers.chat = HermesSessionChat(server: server, connection: connection,
+            target: .session(profile: "default", key: "chat-1"))
+        covers.closeChat(for: row)
+        XCTAssertNil(covers.chat, "Search rows do not have to be in the loaded pages")
+    }
+
+    func testProfileSwitchKeepsTheOpenChat() async throws {
+        try await assertListReplacementKeepsChat(cached: false, replacement: [])
+    }
+
+    func testCachedToLiveFirstPageKeepsTheOpenChat() async throws {
+        try await assertListReplacementKeepsChat(cached: true,
+            replacement: [SessionSummary(sessionId: "first-page", profile: "default")])
+    }
+
+    func testReloadDroppingTheOpenChatOffThePageKeepsItOpen() async throws {
+        try await assertListReplacementKeepsChat(cached: false,
+            replacement: [SessionSummary(sessionId: "newer-chat", profile: "default")])
+    }
+
+    // The application owns its cache for the scene's lifetime. A hosted chat's
+    // initial attach can finish after its window closes, so its test store has the
+    // same process lifetime instead of invalidating a context still in use.
+    private static let selectionCache = Result {
+        try ModelContainer(for: CachedSession.self, CachedMessage.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+    }
+
+    /// Host the real list observer with a selected chat. These are list snapshots, not
+    /// confirmed mutations: changing Profile, replacing cache, and reloading a page.
+    private func assertListReplacementKeepsChat(cached: Bool, replacement: [SessionSummary]) async throws {
+        let connection = BotConnection(id: UUID(), name: "Fixture", address: server,
+                                       username: "fixture", password: "fixture-only")
+        let wire = HermesSessionListWire()
+        let suite = "SplitSelection." + UUID().uuidString
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let model = SessionListViewModel(server: server, hermes: HermesSessionListSource(
+            connection: connection, profile: "default", makeWire: { _ in wire }, preferences: defaults))
+        wire.pages["default"] = [0: HermesSessionPage(rows: [HermesSessionRow(id: "chat-1", profile: "default", lineageRootID: "chat-1")])]
+        var covers = HermesSessionListCovers()
+        covers.chat = HermesSessionChat(server: server, connection: connection,
+            target: .session(profile: "default", key: "chat-1"))
+        let entry = HermesSessionListEntry(server: server, connection: connection, profile: "default")
+        let container = try Self.selectionCache.get()
+        if cached {
+            try CacheStore.cacheHermesSessions([SessionSummary(sessionId: "chat-1", profile: "default",
+                hermes: .init(lineageRoot: "chat-1", unread: false, preview: nil))], profile: "default",
+                reachedEnd: true, serverURL: server, in: container.mainContext)
+            wire.connectFailure = BotFailure.transport
+        }
+        await model.openHermes(modelContext: container.mainContext)
+        XCTAssertEqual(model.sessions.map(\.sessionId), ["chat-1"])
+        XCTAssertEqual(model.isViewingCachedData, cached)
+        let auth = AuthManager(keychain: InMemoryKeychainStore(), serverRegistry: .inMemory(),
+                               hermesConnections: HermesConnections(keychain: InMemoryKeychainStore()))
+        let host = UIHostingController(rootView: HermesSessionListView(entry: entry, model: model,
+            home: home(.sessions), navigation: HermesSessionListNavigation(covers)).modelContainer(container)
+            .environment(auth).environment(\.horizontalSizeClass, .regular))
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+        let window = UIWindow(windowScene: scene)
+        window.traitOverrides.horizontalSizeClass = .regular
+        window.frame = CGRect(x: 0, y: 0, width: 1194, height: 834)
+        window.rootViewController = host
+        window.makeKeyAndVisible()
+        defer { model.closeHermes(); window.isHidden = true; window.rootViewController = nil }
+        await renderTurn(window)
+        let composer = try XCTUnwrap(findComposer(in: host.view), "The selected chat must be mounted before replacing its rows")
+        if replacement.isEmpty {
+            wire.pages["research"] = [0: HermesSessionPage(rows: [])]
+            await model.selectHermesProfile("research")
+        } else {
+            wire.connectFailure = nil
+            wire.pages["default"] = [0: HermesSessionPage(rows: replacement.compactMap { row in
+                row.sessionId.map { HermesSessionRow(id: $0, profile: "default") }
+            })]
+            await model.refreshHermes(modelContext: container.mainContext)
+        }
+        XCTAssertFalse(model.isViewingCachedData)
+        XCTAssertFalse(model.sessions.contains { $0.sessionId == "chat-1" })
+        await renderTurn(window)
+        XCTAssertTrue(composer.window === window, "A list snapshot is not a confirmed archive/delete")
+        XCTAssertTrue(findComposer(in: host.view) === composer, "The same live composer must remain mounted")
+    }
+
+    private func renderTurn(_ window: UIWindow) async {
+        // Synchronize with main-queue rendering, not an elapsed-time delay.
+        await withCheckedContinuation { continuation in
+            DispatchQueue.main.async {
+                window.layoutIfNeeded()
+                continuation.resume()
+            }
+        }
+    }
+
+    private func findComposer(in view: UIView) -> UIView? {
+        if view is ComposerChipTextView { return view }
+        return view.subviews.lazy.compactMap { self.findComposer(in: $0) }.first
+    }
+
+    func testUndoRestoresTheRowWithoutReopeningTheClosedChat() async throws {
+        let connection = BotConnection(id: UUID(), name: "Fixture", address: server,
+                                       username: "fixture", password: "fixture-only")
+        let wire = HermesSessionListWire()
+        wire.pages["default"] = [0: HermesSessionPage(rows: [HermesSessionRow(id: "chat-1", profile: "default")])]
+        let suite = "SplitUndo." + UUID().uuidString
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let model = SessionListViewModel(server: server, hermes: HermesSessionListSource(
+            connection: connection, profile: "default", makeWire: { _ in wire }, preferences: defaults))
+        await model.openHermes()
+        defer { model.closeHermes() }
+        let row = try XCTUnwrap(model.sessions.first)
+        var covers = HermesSessionListCovers()
+        covers.chat = HermesSessionChat(server: server, connection: connection,
+            target: .session(profile: "default", key: "chat-1"))
+        wire.pages["default"] = [0: HermesSessionPage(rows: [])]
+        let archived = await model.archive(row)
+        XCTAssertTrue(archived)
+        covers.closeChat(for: row)
+        XCTAssertNil(covers.chat)
+        XCTAssertTrue(model.sessions.isEmpty)
+        wire.pages["default"] = [0: HermesSessionPage(rows: [HermesSessionRow(id: "chat-1", profile: "default")])]
+        let rowReturned = expectation(description: "Undo's reload restored the row")
+        withObservationTracking { _ = model.sessions } onChange: {
+            Task { @MainActor in rowReturned.fulfill() }
+        }
+        let restored = await model.unarchive(row)
+        XCTAssertTrue(restored)
+        await fulfillment(of: [rowReturned], timeout: 2)
+        XCTAssertEqual(model.sessions.map(\.sessionId), ["chat-1"])
+        XCTAssertNil(covers.chat, "Undo restores the row, not the old selection")
+    }
+
+    func testConfirmedArchiveAndDeleteCloseTheSelectedDetail() {
+        let connection = BotConnection(id: UUID(), name: "Fixture", address: server,
+                                       username: "fixture", password: "fixture-only")
+        // Both confirmed mutation callbacks carry the original row, not a list diff.
+        for archived in [false, true] {
+            let row = SessionSummary(sessionId: "new-tip", archived: archived, profile: "default",
+                hermes: .init(lineageRoot: "root-1", unread: false, preview: nil))
+            var covers = HermesSessionListCovers()
+            covers.chat = HermesSessionChat(server: server, connection: connection,
+                target: .session(profile: "default", key: "old-tip"), lineageRoot: "root-1")
+            covers.closeChat(for: row)
+            XCTAssertNil(covers.chat)
+        }
+    }
+
+    func testRootSelectionsReplaceChatWithLibraryDetails() {
+        let connection = BotConnection(id: UUID(), name: "Split test", address: server,
+                                       username: "fixture", password: "fixture-only")
+        var covers = HermesSessionListCovers()
+        let empty = covers.detailIdentity
+        covers.chat = HermesSessionChat(server: server, connection: connection,
+                                       target: .session(profile: "default", key: "chat-1"))
+        let chat = covers.detailIdentity
+        XCTAssertNotEqual(chat, empty)
+        covers.bringForward()
+        covers.showingKanban = true
+        let library = covers.detailIdentity
+        XCTAssertNil(covers.chat)
+        XCTAssertNotEqual(library, chat)
+        covers.bringForward()
+        covers.showingKanban = true
+        XCTAssertNotEqual(covers.detailIdentity, library,
+                          "Picking the same Library root must also pop its pushed detail screens")
+    }
+
+    private func sessions() -> HermesSessionListView {
+        let connection = BotConnection(id: UUID(), name: "Split test", address: server,
+                                       username: "fixture", password: "fixture-only")
+        let entry = HermesSessionListEntry(server: server, connection: connection, profile: "default")
+        let wire = HermesSessionListWire()
+        let model = SessionListViewModel(server: server, hermes: HermesSessionListSource(
+            connection: connection, profile: "default", makeWire: { _ in wire }))
+        return HermesSessionListView(entry: entry, model: model, home: home(.sessions))
+    }
+
+    private func home(_ tab: HermesHomeTab) -> HermesHome {
+        let avatar = SessionsHeader.Avatar(initials: "QA", color: .blue, foreground: .white,
+            servers: .init(servers: [], activeServerID: nil), openSettings: {},
+            switchToServer: { _ in }, addServer: {}, manageServers: {})
+        return HermesHome(title: "Split test", avatar: avatar, tab: .constant(tab))
+    }
+
+    private func assertSplit<V: View>(in view: V, sizeClass: UserInterfaceSizeClass,
+                                      expected: Bool) throws {
+        let container = try ModelContainer(for: CachedSession.self, CachedMessage.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let auth = AuthManager(keychain: InMemoryKeychainStore(), serverRegistry: .inMemory(),
+                               hermesConnections: HermesConnections(keychain: InMemoryKeychainStore()))
+        let host = UIHostingController(rootView: view.modelContainer(container)
+            .environment(auth)
+            .environment(\.horizontalSizeClass, sizeClass))
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+        let window = UIWindow(windowScene: scene)
+        window.traitOverrides.horizontalSizeClass = sizeClass == .regular ? .regular : .compact
+        window.frame = CGRect(x: 0, y: 0, width: sizeClass == .regular ? 1194 : 402, height: 834)
+        window.rootViewController = host
+        window.makeKeyAndVisible()
+        host.view.layoutIfNeeded()
+        defer { window.isHidden = true; window.rootViewController = nil }
+        func containsSplit(_ controller: UIViewController) -> Bool {
+            controller is UISplitViewController || controller.children.contains(where: containsSplit)
+        }
+        XCTAssertEqual(containsSplit(host), expected)
+    }
+}
+
+@MainActor
+private final class SettingsPresentationHost<Content: View>: UIHostingController<Content> {
+    var didPresent: () -> Void = {}
+
+    override func present(_ viewControllerToPresent: UIViewController, animated flag: Bool,
+                          completion: (() -> Void)? = nil) {
+        super.present(viewControllerToPresent, animated: flag) {
+            completion?()
+            self.didPresent()
         }
     }
 }
