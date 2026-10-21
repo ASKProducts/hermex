@@ -18,6 +18,24 @@ import SwiftUI
         super.tearDown()
     }
 
+    func testPickingAnotherBotDropsTheLinkedConversation() throws {
+        let first = try XCTUnwrap(BotProfile(.object(["name": .string("first")])))
+        let second = try XCTUnwrap(BotProfile(.object(["name": .string("second")])))
+        let connection = BotConnection(id: UUID(), name: "Fixture", address: server,
+                                       username: "fixture", password: "fixture-only")
+        let destination = BotDestination(server: server, connectionID: connection.id,
+                                         profile: first.id, conversation: "first-root")
+        var selection = BotInboxSelection()
+        selection.open(destination, connection: connection, profiles: [first, second])
+        XCTAssertEqual(selection.chat(server: server, connection: connection)?.linkedRoot, "first-root")
+
+        selection.profile = second
+
+        let chat = try XCTUnwrap(selection.chat(server: server, connection: connection))
+        XCTAssertEqual(chat.target, .canonicalChat(profile: second.id))
+        XCTAssertNil(chat.linkedRoot, "An ordinary bot pick must not carry another bot's linked root")
+    }
+
     func testBotAndRoomPicksReplaceTheSelection() throws {
         let bot = try XCTUnwrap(BotProfile(.object(["name": .string("fixture")])))
         let room = BotRoomKey(server: server, connectionID: UUID(), roomID: "room")

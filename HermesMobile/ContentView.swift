@@ -526,6 +526,7 @@ struct HermesServerHome: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Bindable var authManager: AuthManager
     let server: URL
+    private let loadConnection: @MainActor (URL) -> BotConnection?
     @Binding var pendingBotDestination: BotDestination?
     @Binding var pendingSessionDestination: HermesSessionDestination?
     @Binding var pendingNewChat: HermesNewChatDestination?
@@ -552,9 +553,13 @@ struct HermesServerHome: View {
          pendingShare: SharedImportReservation?, claimShare: @escaping (SharedImportReservation) -> Bool,
          didRouteShare: @escaping (SharedImportReservation) -> Void,
          didDeclineShare: @escaping (SharedImportReservation) -> Void,
-         didAbandonShare: @escaping (SharedImportReservation) -> Void) {
+         didAbandonShare: @escaping (SharedImportReservation) -> Void,
+         initiallyShowingSettings: Bool = false,
+         loadConnection: @escaping @MainActor (URL) -> BotConnection? = { try? BotConnectionStore().load(server: $0) }) {
         self.authManager = authManager
         self.server = server
+        self.loadConnection = loadConnection
+        _isShowingSettings = State(initialValue: initiallyShowingSettings)
         _pendingBotDestination = pendingBotDestination
         _pendingSessionDestination = pendingSessionDestination
         _pendingNewChat = pendingNewChat
@@ -564,7 +569,7 @@ struct HermesServerHome: View {
         self.didDeclineShare = didDeclineShare
         self.didAbandonShare = didAbandonShare
         _inbox = State(initialValue: BotInbox(server: server))
-        _sessions = State(initialValue: HermesSessionsSide(server: server))
+        _sessions = State(initialValue: loadConnection(server).map { HermesSessionsSide(server: server, connection: $0) })
     }
 
     var body: some View {
@@ -573,7 +578,7 @@ struct HermesServerHome: View {
         Group {
             if HermesHomeLayout.usesSplit(isHome: true, horizontalSizeClass: horizontalSizeClass) {
                 homeContent(home)
-                    .sheet(isPresented: $isShowingSettings) {
+                    .sheet(isPresented: $isShowingSettings, onDismiss: readConnection) {
                         NavigationStack { SettingsView(authManager: authManager, server: server) }
                     }
             } else {
@@ -639,7 +644,7 @@ struct HermesServerHome: View {
 
     /// A new list only when the saved record changed: a sign-in changed in Settings keeps its UUID.
     private func readConnection() {
-        let saved = try? BotConnectionStore().load(server: server)
+        let saved = loadConnection(server)
         if saved != sessions?.entry.connection { sessions = saved.map { HermesSessionsSide(server: server, connection: $0) } }
     }
 
@@ -699,12 +704,6 @@ struct HermesUpdateSignInModifier: ViewModifier {
     init(server: URL, connection: BotConnection) {
         entry = HermesSessionListEntry(server: server, connection: connection, profile: nil)
         model = HermesSessionListView.model(for: entry)
-    }
-
-    /// The side on `server`'s saved connection; nil without one.
-    init?(server: URL) {
-        guard let connection = try? BotConnectionStore().load(server: server) else { return nil }
-        self.init(server: server, connection: connection)
     }
 }
 

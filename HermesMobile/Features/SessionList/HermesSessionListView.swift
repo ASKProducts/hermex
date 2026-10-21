@@ -295,8 +295,7 @@ struct HermesSessionListView: View {
     }
 
     private var selectedSessionID: String? {
-        if case .session(_, let key)? = covers.chat?.target { return covers.chat?.lineageRoot ?? key }
-        return nil
+        covers.selectedSessionID
     }
 
     private func prepareRootSelection() {
@@ -329,7 +328,7 @@ struct HermesSessionListView: View {
                 }
                 searchText = opened.query
                 if !opened.query.isEmpty && home != nil { isSearchExpanded = true }
-            })
+            }, onDraftKeyChange: { covers.identifyChat(chat.id, draftKey: $0) })
             .id(chat.id)
         }
         .navigationDestination(isPresented: $covers.showingArchived) {
@@ -367,7 +366,7 @@ struct HermesSessionListView: View {
                 }
                 searchText = opened.query
                 if !opened.query.isEmpty { isSearchExpanded = true }
-            }).id(chat.id)
+            }, onDraftKeyChange: { covers.identifyChat(chat.id, draftKey: $0) }).id(chat.id)
         } else if let entry = covers.tasks {
             TasksView(server: entry.server, onAPIError: { _ in }, client: entry.client, newTaskProfile: entry.newTaskProfile).id(entry.id)
         } else if let entry = covers.skills {
@@ -921,7 +920,10 @@ private struct HermesSessionListChrome<ProfileMenu: View, Filter: View, NewSessi
 /// session (#1180) or a share (#1181) clears them all, so its chat, or why it can't open, shows on
 /// the list itself; a closed chat keeps its draft in the draft store.
 struct HermesSessionListCovers {
-    var chat: HermesSessionChat?
+    var chat: HermesSessionChat? {
+        didSet { if chat?.id != oldValue?.id { chatDraftKey = nil } }
+    }
+    private var chatDraftKey: ChatDraftKey?
     var renaming: SessionSummary?
     var deleting: SessionSummary?
     var exported: SessionExportShareItem?
@@ -987,11 +989,28 @@ struct HermesSessionListCovers {
         return share.hermesOpening(on: entry, listed: listed, isLive: isLive)
     }
 
+    /// The accepted first prompt gives a New Session its durable identity without replacing
+    /// its live view. A late callback from a chat that has since closed cannot select it again.
+    mutating func identifyChat(_ id: UUID, draftKey: ChatDraftKey) {
+        guard let chat, chat.id == id, draftKey.serverID == chat.server.absoluteString,
+              case .hermesSession(let connectionID, let profile, .some) = draftKey.context,
+              connectionID == chat.connection.id, profile == chat.target.profile else { return }
+        chatDraftKey = draftKey
+    }
+
+    private var selectedSessionKey: String? {
+        if case .hermesSession(_, _, let key)? = chatDraftKey?.context { return key }
+        if case .session(_, let key)? = chat?.target { return key }
+        return nil
+    }
+
+    var selectedSessionID: String? { chat?.lineageRoot ?? selectedSessionKey }
+
     /// A confirmed row mutation can originate in search, outside the loaded pages.
     /// Only its own selected chat closes; a newer selection is left alone.
     mutating func closeChat(for row: SessionSummary) {
-        guard let chat, case .session(let profile, let key) = chat.target,
-              row.profile == profile,
+        guard let chat, let key = selectedSessionKey,
+              row.profile == chat.target.profile,
               row.sessionId == key || row.hermes?.lineageRoot == (chat.lineageRoot ?? key) else { return }
         self.chat = nil
     }

@@ -455,7 +455,8 @@ struct ChatView: View {
         hermesSession: HermesSessionChat? = nil,
         onReplaceHermesSession: ((HermesSessionChat) -> Void)? = nil,
         onOpenHermesSessions: ((HermesSessionListEntry) -> Void)? = nil,
-        onHermesChatReplaced: (() -> Void)? = nil
+        onHermesChatReplaced: (() -> Void)? = nil,
+        onHermesDraftKeyChange: ((ChatDraftKey) -> Void)? = nil
     ) {
         self.session = session
         self.server = server
@@ -489,6 +490,7 @@ struct ChatView: View {
         )
         model.hermesBotChatRoot = hermesSession?.botChatRoot
         model.hermesLineageRoot = hermesSession?.lineageRoot
+        model.onHermesDraftKeyChange = onHermesDraftKeyChange
         _viewModel = State(initialValue: model)
         _gitAvailabilityViewModel = State(initialValue: GitWorkspaceAvailabilityViewModel(
             session: session,
@@ -503,7 +505,8 @@ struct ChatView: View {
     /// sign-in goes through the environment's `HermesUpdateSignInAction`. New Chat with Voice's
     /// chat (#1180) starts dictation.
     init(hermesSession: HermesSessionChat, onReplace: ((HermesSessionChat) -> Void)? = nil,
-         onOpenSessions: ((HermesSessionListEntry) -> Void)? = nil, onChatReplaced: (() -> Void)? = nil) {
+         onOpenSessions: ((HermesSessionListEntry) -> Void)? = nil, onChatReplaced: (() -> Void)? = nil,
+         onDraftKeyChange: ((ChatDraftKey) -> Void)? = nil) {
         self.init(
             session: SessionSummary(profile: hermesSession.target.profile),
             server: hermesSession.server,
@@ -512,7 +515,8 @@ struct ChatView: View {
             hermesSession: hermesSession,
             onReplaceHermesSession: onReplace,
             onOpenHermesSessions: onOpenSessions,
-            onHermesChatReplaced: onChatReplaced
+            onHermesChatReplaced: onChatReplaced,
+            onHermesDraftKeyChange: onDraftKeyChange
         )
     }
 

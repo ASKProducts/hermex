@@ -758,6 +758,47 @@ final class SessionSplitViewIdentityTests: XCTestCase {
 final class HermesHomeSplitRoutingTests: XCTestCase {
     private let server = URL(string: "http://127.0.0.1:9")!
 
+    func testDismissingRegularSettingsReadsTheEditedConnection() async throws {
+        let connection = BotConnection(id: UUID(), name: "Fixture", address: server,
+                                       username: "fixture", password: "fixture-only")
+        var saved = connection
+        var readsAfterEditing = 0
+        let reread = expectation(description: "Home reads the connection after Settings closes")
+        let shown = expectation(description: "Settings sheet presented")
+        let auth = AuthManager(keychain: InMemoryKeychainStore(), serverRegistry: .inMemory(),
+                               hermesConnections: HermesConnections(keychain: InMemoryKeychainStore()))
+        let home = HermesServerHome(authManager: auth, server: server,
+            pendingBotDestination: .constant(nil), pendingSessionDestination: .constant(nil),
+            pendingNewChat: .constant(nil), pendingShare: nil, claimShare: { _ in false },
+            didRouteShare: { _ in }, didDeclineShare: { _ in }, didAbandonShare: { _ in },
+            initiallyShowingSettings: true, loadConnection: { requested in
+                XCTAssertEqual(requested, self.server)
+                if saved.password != connection.password {
+                    readsAfterEditing += 1
+                    reread.fulfill()
+                }
+                return saved
+            })
+        let host = SettingsPresentationHost(rootView: home.modelContainer(try Self.selectionCache.get())
+            .environment(auth).environment(\.horizontalSizeClass, .regular))
+        host.didPresent = { shown.fulfill() }
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+        let window = UIWindow(windowScene: scene)
+        window.traitOverrides.horizontalSizeClass = .regular
+        window.frame = CGRect(x: 0, y: 0, width: 1194, height: 834)
+        window.rootViewController = host
+        window.makeKeyAndVisible()
+        defer { window.isHidden = true; window.rootViewController = nil }
+        await fulfillment(of: [shown], timeout: 5)
+        let sheet = try XCTUnwrap(host.presentedViewController)
+        saved.password = "edited-fixture-only" // Editing a sign-in retains its UUID.
+        await withCheckedContinuation { continuation in
+            sheet.dismiss(animated: false) { continuation.resume() }
+        }
+        await fulfillment(of: [reread], timeout: 2)
+        XCTAssertGreaterThan(readsAfterEditing, 0)
+    }
+
     func testRegularHermesSessionsOwnsASplit() throws {
         try assertSplit(in: sessions(), sizeClass: .regular, expected: true)
     }
@@ -777,6 +818,37 @@ final class HermesHomeSplitRoutingTests: XCTestCase {
             BotsInboxView(server: server, pendingDestination: .constant(nil),
                           home: home(.bots), inbox: BotInbox(server: server))
         }, sizeClass: .compact, expected: false)
+    }
+
+    func testNewSessionIdentityStaysWithItsCurrentSelection() {
+        let connection = BotConnection(id: UUID(), name: "Fixture", address: server,
+                                       username: "fixture", password: "fixture-only")
+        let first = HermesSessionChat(server: server, connection: connection, target: .new(profile: "default"))
+        let second = HermesSessionChat(server: server, connection: connection, target: .new(profile: "default"))
+        let identity = ChatDraftKey.hermesSession(server: server, connectionID: connection.id, profile: "default", key: "fresh")
+        var covers = HermesSessionListCovers()
+        covers.chat = first
+        covers.identifyChat(first.id, draftKey: identity)
+        XCTAssertEqual(covers.selectedSessionID, "fresh")
+        covers.chat = second
+        XCTAssertNil(covers.selectedSessionID)
+        covers.identifyChat(first.id, draftKey: identity)
+        for invalid in [
+            ChatDraftKey.hermesSession(server: URL(string: "https://other.example")!, connectionID: connection.id, profile: "default", key: "fresh"),
+            .hermesSession(server: server, connectionID: UUID(), profile: "default", key: "fresh"),
+            .hermesSession(server: server, connectionID: connection.id, profile: "other", key: "fresh")
+        ] {
+            covers.identifyChat(second.id, draftKey: invalid)
+        }
+        XCTAssertNil(covers.selectedSessionID, "Old chats and other scopes cannot supply this selection's identity")
+        covers.closeChat(for: SessionSummary(sessionId: "fresh", profile: "default"))
+        XCTAssertEqual(covers.chat?.id, second.id)
+        covers.identifyChat(second.id, draftKey: identity)
+        covers.closeChat(for: SessionSummary(sessionId: "fresh", profile: "other"))
+        XCTAssertEqual(covers.chat?.id, second.id)
+        covers.closeChat(for: SessionSummary(sessionId: "fresh", profile: "default"))
+        XCTAssertNil(covers.chat)
+        XCTAssertNil(covers.selectedSessionID)
     }
 
     func testConfirmedSearchRowRemovalClosesOnlyItsOwnChat() {
@@ -1001,6 +1073,19 @@ final class HermesHomeSplitRoutingTests: XCTestCase {
             controller is UISplitViewController || controller.children.contains(where: containsSplit)
         }
         XCTAssertEqual(containsSplit(host), expected)
+    }
+}
+
+@MainActor
+private final class SettingsPresentationHost<Content: View>: UIHostingController<Content> {
+    var didPresent: () -> Void = {}
+
+    override func present(_ viewControllerToPresent: UIViewController, animated flag: Bool,
+                          completion: (() -> Void)? = nil) {
+        super.present(viewControllerToPresent, animated: flag) {
+            completion?()
+            self.didPresent()
+        }
     }
 }
 

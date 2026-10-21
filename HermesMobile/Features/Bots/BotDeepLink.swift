@@ -155,7 +155,10 @@ struct BotInboxSelection {
     // The inbox owns one destination on every width: picking a room replaces
     // the bot (including a linked conversation), and picking a bot replaces the room.
     var profile: BotProfile? {
-        didSet { if profile != nil { room = nil } }
+        didSet {
+            if profile != nil { room = nil }
+            conversation = nil
+        }
     }
     var room: BotRoomKey? {
         didSet { if room != nil { profile = nil; conversation = nil } }
