@@ -205,6 +205,11 @@ struct HermesSessionListView: View {
             guard !covers.showingScheduled else { return }
             await viewModel.searchSessions(query: searchText)
         }
+        // View all shares the list's search, so beside the rows a new sidebar query or Profile
+        // closes it and the sidebar's own search runs.
+        .onChange(of: SearchScope(profile: profile, showsAll: viewModel.hermesShowsAllProfiles, text: searchText, showingScheduled: false)) {
+            if usesSplit && covers.showingScheduled { covers.showingScheduled = false }
+        }
         .sheet(item: $navigation.covers.renaming, onDismiss: { viewModel.clearRenameError() }) { session in
             SessionRenameSheet(initialTitle: SessionRowView.displayTitle(for: session), isSaving: viewModel.isRenamingSession,
                                errorMessage: viewModel.renameErrorMessage) {
