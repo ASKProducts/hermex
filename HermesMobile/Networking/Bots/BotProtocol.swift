@@ -62,6 +62,10 @@ enum BotFailure: Error, Equatable, LocalizedError {
     /// `/api/status` reported this release, older than `HermesCompatibility.minimumVersion`,
     /// so sign-in stopped before the password. Permanent.
     case outdated(String)
+    /// The saved sign-in no longer matches the host's (#1314): a connection saved without
+    /// credentials met a sign-in, by password or browser, or one saved with them met a dashboard
+    /// with none. The user has to sign in again, so the saved record says what the host asks. Permanent.
+    case signInChanged
     var errorDescription: String? {
         switch self {
         case .stale: return String(localized: "This action is no longer current. Refresh the conversation.")
@@ -84,6 +88,7 @@ enum BotFailure: Error, Equatable, LocalizedError {
         case .blocked: return String(localized: "Something in front of Hermes, such as Cloudflare Access, wants its own sign-in first. Add its service token under Connection Headers in the Hermes connection, or use an address that skips it, such as the dashboard's local network address.")
         case .browserSignIn: return String(localized: "This Hermes host only offers sign-in with a browser, which Hermex doesn't support yet. To connect now, add a dashboard username and password on the host.")
         case .signInExpired: return String(localized: "Your Hermes sign-in expired. Sign in again.")
+        case .signInChanged: return String(localized: "This server’s sign-in changed. Sign in again to continue.")
         case .browserSignInFailed: return String(localized: "The browser sign-in didn't finish. Try again.")
         case .upgradeRefused: return String(localized: "Hermes accepted the sign-in, but the live connection was refused. If a proxy or tunnel sits in front of Hermes, turn on WebSocket support and let the Sec-WebSocket-Protocol header through.")
         case .outdated(let version):
@@ -102,13 +107,14 @@ enum BotConnectionAdvice {
     /// (the inbox, the Sessions list). False for a refusal the user has to act on: sign-in,
     /// an unsupported host or address, an address that now reaches a different host or is not
     /// a dashboard, an access proxy's own sign-in, a host with browser sign-in only, an expired
-    /// browser sign-in, a refused gateway upgrade, a Hermes release older than the minimum, and
-    /// any other permanent HTTP client error (a 404 is not a Hermes host). Server errors, rate limits and JSON-RPC
-    /// faults other than "method missing" are the retry loop's problem.
+    /// browser sign-in, a host that now requires a sign-in, a refused gateway upgrade, a Hermes
+    /// release older than the minimum, and any other permanent HTTP client error (a 404 is not a
+    /// Hermes host). Server errors, rate limits and JSON-RPC faults other than "method missing"
+    /// are the retry loop's problem.
     static func isRetryable(_ error: Error) -> Bool {
         switch error as? BotFailure {
         case .unsupported, .wrongIdentity, .differentHost, .invalidAddress, .notDashboard,
-             .blocked, .browserSignIn, .signInExpired, .upgradeRefused, .outdated: return false
+             .blocked, .browserSignIn, .signInExpired, .signInChanged, .upgradeRefused, .outdated: return false
         case .rejected(-32601), .rejected(4090), .rejected(4130): return false
         case .rejected(408), .rejected(429): return true
         case .rejected(let code): return !(400..<500).contains(code)
@@ -306,6 +312,32 @@ extension BotTransport {
     }
 }
 
+/// How a dashboard's `/api/status` says a phone signs in.
+enum HermesSignInMethod: Equatable {
+    /// A username and password.
+    case password
+    /// The host's browser page (`HermesBrowserSignIn.isRequired(by:)`, #708).
+    case browser
+    /// No sign-in (`auth_required` false, #1314): a dashboard bound to loopback without
+    /// `dashboard.public_url`, reached through a proxy. The connection reads the session token
+    /// the dashboard's page carries, and anyone who reaches the address can do the same.
+    case open
+
+    /// Shown wherever such a dashboard is connected or saved, in place of its sign-in.
+    static var openWarning: String {
+        String(localized: "This dashboard has no password. Anyone who can reach this address can use your agent. To require one, set dashboard.public_url on the host and turn on its password.")
+    }
+
+    /// Nil for a status without an `auth_required` flag, which is no dashboard Hermex knows.
+    init?(_ status: BotJSON) {
+        switch status["auth_required"].flag {
+        case false?: self = .open
+        case true?: self = HermesBrowserSignIn.isRequired(by: status) ? .browser : .password
+        case nil: return nil
+        }
+    }
+}
+
 /// The public `GET /api/status` fields the connection screen shows. Every field is
 /// optional because hosts add, omit and rename them between releases.
 struct BotHostStatus: Equatable {
@@ -324,8 +356,8 @@ struct BotHostStatus: Equatable {
     /// Every Profile's name, which the host reports even behind its sign-in (#1180); nil when
     /// it reports none.
     var profiles: [String]?
-    /// Whether the host asks for browser sign-in (`HermesBrowserSignIn.isRequired(by:)`).
-    var signsInWithBrowser: Bool
+    /// How the host says a phone signs in; a password for a status without `auth_required`.
+    var signInMethod: HermesSignInMethod
 
     init(_ json: BotJSON) {
         version = json["version"].text
@@ -340,7 +372,7 @@ struct BotHostStatus: Equatable {
             return items.compactMap { $0.text?.trimmingCharacters(in: .whitespacesAndNewlines) }
                 .filter { !$0.isEmpty && seen.insert($0).inserted }
         }
-        signsInWithBrowser = HermesBrowserSignIn.isRequired(by: json)
+        signInMethod = HermesSignInMethod(json) ?? .password
     }
 }
 

@@ -151,6 +151,10 @@ struct SettingsServerPage: View {
             HermesUpdateCallout(model: HermesUpdateModel.for(server: server), version: account.serverVersion)
         } header: {
             Text("Server")
+        } footer: {
+            if hermesConnection?.hasNoCredentials == true {
+                OpenDashboardWarning()
+            }
         }
 
         if let hermesConnection {
