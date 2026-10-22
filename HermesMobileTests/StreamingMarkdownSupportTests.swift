@@ -1,3 +1,5 @@
+import SwiftUI
+import UIKit
 import XCTest
 @testable import HermesMobile
 
@@ -237,5 +239,225 @@ final class TableCellWidthCapTests: XCTestCase {
             idealWidth: 40, proposedWidth: 200, minWidth: minWidth, maxWidth: maxWidth
         )
         XCTAssertEqual(width, 200)
+    }
+}
+
+/// A live thinking body past the row window stays scrollable for the whole
+/// turn: it follows the newest line until the reader scrolls it, keeps the
+/// reader's position while text keeps arriving, and follows again once the
+/// reader scrolls back to the newest line.
+@MainActor
+final class LiveReasoningScrollTests: XCTestCase {
+    private var defaults: UserDefaults!
+    private var suiteName: String!
+    private var window: UIWindow?
+
+    override func setUp() {
+        super.setUp()
+        suiteName = "LiveReasoningScrollTests-\(UUID().uuidString)"
+        defaults = UserDefaults(suiteName: suiteName)
+        defaults.set(ThinkingAndToolCards.expanded.rawValue, forKey: ChatTranscriptDisplaySettings.thinkingAndToolCardsKey)
+    }
+
+    override func tearDown() {
+        window?.isHidden = true
+        window?.rootViewController = nil
+        window = nil
+        defaults.removePersistentDomain(forName: suiteName)
+        defaults = nil
+        super.tearDown()
+    }
+
+    func testLiveBodyFollowsTheNewestLineWhileUntouched() async throws {
+        let (host, textView) = try await hostLiveReasoning(lines: 1...80)
+        XCTAssertTrue(textView.isScrollEnabled)
+        XCTAssertEqual(textView.bounds.height, TranscriptLogRowMetrics.bodyWindowHeight, accuracy: 0.5)
+        XCTAssertEqual(textView.contentOffset.y, tailOffset(of: textView), accuracy: 0.5)
+
+        await update(host, lines: 1...120, textView: textView)
+
+        XCTAssertGreaterThan(tailOffset(of: textView), 0)
+        XCTAssertEqual(textView.contentOffset.y, tailOffset(of: textView), accuracy: 0.5)
+    }
+
+    func testLiveBodyReceivesTouches() async throws {
+        let (host, textView) = try await hostLiveReasoning(lines: 1...80)
+
+        var blockers: [String] = []
+        var view: UIView? = textView
+        while let current = view, current !== host.view {
+            if !current.isUserInteractionEnabled {
+                blockers.append(String(describing: type(of: current)))
+            }
+            view = current.superview
+        }
+
+        XCTAssertNotNil(view, "the live body must be hosted in the row")
+        XCTAssertEqual(blockers, [], "the live body and its hosts must take the drag")
+    }
+
+    func testDraggedLiveBodyKeepsTheReadersPositionWhileTextArrives() async throws {
+        let (host, textView) = try await hostLiveReasoning(lines: 1...80)
+
+        drag(textView, to: 0)
+        await update(host, lines: 1...120, textView: textView)
+
+        XCTAssertEqual(textView.contentOffset.y, 0, accuracy: 0.5, "new thinking must not move the reader")
+        XCTAssertGreaterThan(tailOffset(of: textView), 0)
+    }
+
+    func testDraggingBackToTheNewestLineFollowsAgain() async throws {
+        let (host, textView) = try await hostLiveReasoning(lines: 1...80)
+        drag(textView, to: 0)
+        await update(host, lines: 1...100, textView: textView)
+
+        drag(textView, to: tailOffset(of: textView))
+        await update(host, lines: 1...140, textView: textView)
+
+        XCTAssertEqual(textView.contentOffset.y, tailOffset(of: textView), accuracy: 0.5)
+    }
+
+    func testFailedAccessibilityScrollPreservesTailFollowing() async throws {
+        let (host, textView) = try await hostLiveReasoning(lines: 1...80)
+        let offsetBefore = textView.contentOffset.y
+
+        // This vertically scrolling body has no horizontal page to visit.
+        XCTAssertFalse(textView.accessibilityScroll(.left))
+        XCTAssertEqual(textView.contentOffset.y, offsetBefore, accuracy: 0.5)
+        await update(host, lines: 1...120, textView: textView)
+
+        XCTAssertEqual(textView.contentOffset.y, tailOffset(of: textView), accuracy: 0.5)
+    }
+
+    func testFailedAccessibilityScrollPreservesTheReadersPosition() async throws {
+        let (host, textView) = try await hostLiveReasoning(lines: 1...80)
+        let readerOffset = tailOffset(of: textView) / 2
+        drag(textView, to: readerOffset)
+
+        XCTAssertFalse(textView.accessibilityScroll(.left))
+        XCTAssertEqual(textView.contentOffset.y, readerOffset, accuracy: 0.5)
+        await update(host, lines: 1...120, textView: textView)
+
+        XCTAssertEqual(textView.contentOffset.y, readerOffset, accuracy: 0.5)
+    }
+
+    func testScrollingAnimationDelegatePolicyAtTailResumesFollowing() async throws {
+        let (host, textView) = try await hostLiveReasoning(lines: 1...80)
+        drag(textView, to: 0)
+        await update(host, lines: 1...100, textView: textView)
+
+        // Exercise the completion policy directly, not a VoiceOver action.
+        textView.setContentOffset(CGPoint(x: 0, y: tailOffset(of: textView)), animated: false)
+        textView.delegate?.scrollViewDidEndScrollingAnimation?(textView)
+        await update(host, lines: 1...120, textView: textView)
+
+        XCTAssertEqual(textView.contentOffset.y, tailOffset(of: textView), accuracy: 0.5)
+    }
+
+    // MARK: - Helpers
+
+    private func hostLiveReasoning(
+        lines: ClosedRange<Int>
+    ) async throws -> (LiveReasoningHostingController, UITextView) {
+        let host = LiveReasoningHostingController(rootView: LiveReasoningHarness(text: text(lines), defaults: defaults))
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 390, height: 844)
+        window.rootViewController = host
+        window.makeKeyAndVisible()
+        self.window = window
+
+        await settle(host)
+        let textView = try XCTUnwrap(descendants(of: host.view).compactMap { $0 as? UITextView }.first)
+        await settle(host, textView: textView)
+        return (host, textView)
+    }
+
+    private func update(
+        _ host: LiveReasoningHostingController,
+        lines: ClosedRange<Int>,
+        textView: UITextView
+    ) async {
+        host.rootView = LiveReasoningHarness(text: text(lines), defaults: defaults)
+        await settle(host, textView: textView)
+    }
+
+    /// Waits for a hosting layout that has the requested storage and its
+    /// measured scroll extent, rather than guessing how many actor turns the
+    /// SwiftUI onChange/updateUIView sequence needs.
+    private func settle(_ host: LiveReasoningHostingController, textView: UITextView? = nil) async {
+        let ready = expectation(description: "requested reasoning text has completed layout")
+        let expectedText = host.rootView.text
+        var completed = false
+        host.didLayout = { [weak host] in
+            guard !completed, let host,
+                  let body = textView ?? self.descendants(of: host.view).compactMap({ $0 as? UITextView }).first,
+                  body.window != nil, body.text == expectedText,
+                  body.bounds.width > 0,
+                  abs(body.bounds.height - TranscriptLogRowMetrics.bodyWindowHeight) < 0.5
+            else { return }
+            body.layoutIfNeeded()
+            let measured = body.sizeThatFits(CGSize(width: body.bounds.width, height: .greatestFiniteMagnitude))
+            guard body.contentSize.height > body.bounds.height,
+                  abs(body.contentSize.height - measured.height) < 0.5 else { return }
+            completed = true
+            ready.fulfill()
+        }
+        let storageObserver = NotificationCenter.default.addObserver(
+            forName: NSTextStorage.didProcessEditingNotification, object: nil, queue: .main
+        ) { [weak host] _ in
+            MainActor.assumeIsolated {
+                host?.view.setNeedsLayout()
+            }
+        }
+        defer {
+            host.didLayout = nil
+            NotificationCenter.default.removeObserver(storageObserver)
+        }
+        host.view.setNeedsLayout()
+        host.view.layoutIfNeeded()
+        await fulfillment(of: [ready], timeout: 5)
+    }
+
+    /// Exercises the delegate policy with a supplied offset; this helper is
+    /// not a synthesized finger gesture or evidence that UIKit delivered one.
+    private func drag(_ textView: UITextView, to offsetY: CGFloat) {
+        textView.delegate?.scrollViewWillBeginDragging?(textView)
+        textView.setContentOffset(CGPoint(x: 0, y: offsetY), animated: false)
+        textView.delegate?.scrollViewDidEndDragging?(textView, willDecelerate: false)
+    }
+
+    private func tailOffset(of textView: UITextView) -> CGFloat {
+        max(0, textView.contentSize.height + textView.adjustedContentInset.bottom - textView.bounds.height)
+    }
+
+    private func text(_ lines: ClosedRange<Int>) -> String {
+        lines.map { "Thinking line \($0)" }.joined(separator: "\n")
+    }
+
+    private func descendants(of view: UIView) -> [UIView] {
+        view.subviews.flatMap { [$0] + descendants(of: $0) }
+    }
+}
+
+@MainActor
+private final class LiveReasoningHostingController: UIHostingController<LiveReasoningHarness> {
+    var didLayout: (() -> Void)?
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        didLayout?()
+    }
+}
+
+private struct LiveReasoningHarness: View {
+    let text: String
+    let defaults: UserDefaults
+
+    var body: some View {
+        ReasoningBlockView(text: text, liveStreamID: "stream-1")
+            .defaultAppStorage(defaults)
+            .frame(width: 390)
+            .frame(maxHeight: .infinity, alignment: .top)
     }
 }
