@@ -22034,6 +22034,112 @@
         }
       }
     },
+    "API Keys" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "مفاتيح API"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "API-Schlüssel"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Claves de API"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Clés d'API"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "מפתחות API"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Chiavi API"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "APIキー"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "API 키"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "API-sleutels"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Klucze API"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Chaves de API"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ключи API"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "API Anahtarları"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "API کلیدیں"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "API 金鑰"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "API 密钥"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "API 金鑰"
+          }
+        }
+      }
+    },
     "About Hermex" : {
       "localizations" : {
         "ar" : {
@@ -22136,6 +22242,112 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "關於 Hermex"
+          }
+        }
+      }
+    },
+    "Add Key" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "إضافة مفتاح"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Schlüssel hinzufügen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Añadir clave"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ajouter une clé"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "הוספת מפתח"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aggiungi chiave"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "キーを追加"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "키 추가"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sleutel toevoegen"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dodaj klucz"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Adicionar chave"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Добавить ключ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Anahtar Ekle"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "کلید شامل کریں"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "新增金鑰"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "添加密钥"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "新增金鑰"
           }
         }
       }
@@ -22349,6 +22561,112 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "請在 iOS 設定中允許，然後再試一次。"
+          }
+        }
+      }
+    },
+    "Already set" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "معيَّن بالفعل"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bereits festgelegt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ya configurada"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Déjà définie"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "כבר מוגדר"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Già impostata"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "設定済み"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "이미 설정됨"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Al ingesteld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Już ustawiony"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Já definida"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Уже задан"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zaten ayarlı"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "پہلے سے سیٹ ہے"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "已設定"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "已设置"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "已設定"
           }
         }
       }
@@ -33534,6 +33852,112 @@
     "Change" : { "localizations" : { "de" : { "stringUnit" : { "state" : "needs_review", "value" : "Ändern" } }, "es" : { "stringUnit" : { "state" : "needs_review", "value" : "Cambiar" } }, "fr" : { "stringUnit" : { "state" : "needs_review", "value" : "Changer" } }, "it" : { "stringUnit" : { "state" : "needs_review", "value" : "Cambia" } }, "pl" : { "stringUnit" : { "state" : "needs_review", "value" : "Zmień" } }, "pt-BR" : { "stringUnit" : { "state" : "needs_review", "value" : "Alterar" } }, "nl" : { "stringUnit" : { "state" : "needs_review", "value" : "Wijzigen" } }, "tr" : { "stringUnit" : { "state" : "needs_review", "value" : "Değiştir" } }, "ru" : { "stringUnit" : { "state" : "needs_review", "value" : "Изменить" } }, "ja" : { "stringUnit" : { "state" : "needs_review", "value" : "変更" } }, "zh-Hans" : { "stringUnit" : { "state" : "needs_review", "value" : "更改" } }, "ko" : { "stringUnit" : { "state" : "needs_review", "value" : "변경" } }, "ar" : { "stringUnit" : { "state" : "needs_review", "value" : "تغيير" } }, "he" : { "stringUnit" : { "state" : "needs_review", "value" : "שינוי" } }, "ur" : { "stringUnit" : { "state" : "needs_review", "value" : "تبدیل کریں" } }, "zh-Hant" : { "stringUnit" : { "state" : "needs_review", "value" : "變更" } }, "zh-HK" : { "stringUnit" : { "state" : "needs_review", "value" : "更改" } } } },
     "Change the personality for %@?" : { "localizations" : { "de" : { "stringUnit" : { "state" : "needs_review", "value" : "Persönlichkeit für %@ ändern?" } }, "es" : { "stringUnit" : { "state" : "needs_review", "value" : "¿Cambiar la personalidad de %@?" } }, "fr" : { "stringUnit" : { "state" : "needs_review", "value" : "Changer la personnalité de %@ ?" } }, "it" : { "stringUnit" : { "state" : "needs_review", "value" : "Cambiare la personalità di %@?" } }, "pl" : { "stringUnit" : { "state" : "needs_review", "value" : "Zmienić osobowość dla %@?" } }, "pt-BR" : { "stringUnit" : { "state" : "needs_review", "value" : "Alterar a personalidade de %@?" } }, "nl" : { "stringUnit" : { "state" : "needs_review", "value" : "Persoonlijkheid voor %@ wijzigen?" } }, "tr" : { "stringUnit" : { "state" : "needs_review", "value" : "%@ için kişilik değiştirilsin mi?" } }, "ru" : { "stringUnit" : { "state" : "needs_review", "value" : "Изменить личность для %@?" } }, "ja" : { "stringUnit" : { "state" : "needs_review", "value" : "%@ のパーソナリティを変更しますか？" } }, "zh-Hans" : { "stringUnit" : { "state" : "needs_review", "value" : "要更改 %@ 的个性吗？" } }, "ko" : { "stringUnit" : { "state" : "needs_review", "value" : "%@의 성격을 바꿀까요?" } }, "ar" : { "stringUnit" : { "state" : "needs_review", "value" : "هل تريد تغيير شخصية %@؟" } }, "he" : { "stringUnit" : { "state" : "needs_review", "value" : "לשנות את האישיות של %@?" } }, "ur" : { "stringUnit" : { "state" : "needs_review", "value" : "%@ کی شخصیت تبدیل کریں؟" } }, "zh-Hant" : { "stringUnit" : { "state" : "needs_review", "value" : "要變更 %@ 的個性嗎？" } }, "zh-HK" : { "stringUnit" : { "state" : "needs_review", "value" : "要更改 %@ 的個性嗎？" } } } },
     "Changed on the host" : { "localizations" : { "de" : { "stringUnit" : { "state" : "needs_review", "value" : "Auf dem Host geändert" } }, "es" : { "stringUnit" : { "state" : "needs_review", "value" : "Cambiado en el host" } }, "fr" : { "stringUnit" : { "state" : "needs_review", "value" : "Modifié sur l’hôte" } }, "it" : { "stringUnit" : { "state" : "needs_review", "value" : "Modificato sull’host" } }, "pl" : { "stringUnit" : { "state" : "needs_review", "value" : "Zmieniono na hoście" } }, "pt-BR" : { "stringUnit" : { "state" : "needs_review", "value" : "Alterado no host" } }, "nl" : { "stringUnit" : { "state" : "needs_review", "value" : "Gewijzigd op de host" } }, "tr" : { "stringUnit" : { "state" : "needs_review", "value" : "Sunucuda değiştirildi" } }, "ru" : { "stringUnit" : { "state" : "needs_review", "value" : "Изменено на хосте" } }, "ja" : { "stringUnit" : { "state" : "needs_review", "value" : "ホストで変更されました" } }, "zh-Hans" : { "stringUnit" : { "state" : "needs_review", "value" : "已在主机上更改" } }, "ko" : { "stringUnit" : { "state" : "needs_review", "value" : "호스트에서 변경됨" } }, "ar" : { "stringUnit" : { "state" : "needs_review", "value" : "تم التغيير على المضيف" } }, "he" : { "stringUnit" : { "state" : "needs_review", "value" : "שונה במארח" } }, "ur" : { "stringUnit" : { "state" : "needs_review", "value" : "ہوسٹ پر تبدیل ہو گیا" } }, "zh-Hant" : { "stringUnit" : { "state" : "needs_review", "value" : "已在主機上變更" } }, "zh-HK" : { "stringUnit" : { "state" : "needs_review", "value" : "已在主機上變更" } } } },
+    "Chats on Profile “%@” that use it stop working until a key is set again." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تتوقف المحادثات في ملف التعريف “%@” التي تستخدمه عن العمل حتى يُعيَّن مفتاح من جديد."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Chats im Profil „%@“, die ihn nutzen, funktionieren erst wieder, wenn erneut ein Schlüssel gesetzt ist."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Los chats del perfil «%@» que la usan dejan de funcionar hasta que se vuelva a configurar una clave."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Les discussions du profil « %@ » qui l'utilisent ne fonctionnent plus tant qu'aucune clé n'est définie."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "צ׳אטים בפרופיל ״%@״ שמשתמשים בו יפסיקו לעבוד עד שיוגדר מפתח מחדש."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Le chat del profilo “%@” che la usano smettono di funzionare finché non viene impostata di nuovo una chiave."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "プロファイル「%@」でこのキーを使うチャットは、キーを再設定するまで動作しなくなります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "프로필 ‘%@’에서 이 키를 사용하는 채팅은 키를 다시 설정할 때까지 작동하지 않습니다."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Chats in profiel ‘%@’ die deze sleutel gebruiken, werken pas weer als er opnieuw een sleutel is ingesteld."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Czaty w profilu „%@”, które go używają, przestaną działać, dopóki klucz nie zostanie ponownie ustawiony."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Os chats do perfil “%@” que a usam param de funcionar até que uma chave seja definida novamente."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Чаты профиля «%@», которые его используют, перестанут работать, пока ключ не будет задан снова."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "“%@” profilinde bunu kullanan sohbetler, yeniden bir anahtar ayarlanana kadar çalışmaz."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "پروفائل “%@” کی وہ چیٹس جو اسے استعمال کرتی ہیں، دوبارہ کلید سیٹ ہونے تک کام نہیں کریں گی۔"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "設定檔「%@」中使用它的聊天將停止運作，直到再次設定金鑰。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "配置文件“%@”中使用它的聊天将停止工作，直到再次设置密钥。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "設定檔「%@」中使用它的聊天將停止運作，直到再次設定金鑰。"
+          }
+        }
+      }
+    },
     "Check" : {
       "localizations" : {
         "ar" : {
@@ -50567,6 +50991,218 @@
       }
     },
     "Could not update the reaction." : { "localizations" : { "de" : { "stringUnit" : { "state" : "needs_review", "value" : "Die Reaktion konnte nicht aktualisiert werden." } }, "es" : { "stringUnit" : { "state" : "needs_review", "value" : "No se pudo actualizar la reacción." } }, "fr" : { "stringUnit" : { "state" : "needs_review", "value" : "Impossible de mettre à jour la réaction." } }, "it" : { "stringUnit" : { "state" : "needs_review", "value" : "Impossibile aggiornare la reazione." } }, "pl" : { "stringUnit" : { "state" : "needs_review", "value" : "Nie udało się zaktualizować reakcji." } }, "pt-BR" : { "stringUnit" : { "state" : "needs_review", "value" : "Não foi possível atualizar a reação." } }, "nl" : { "stringUnit" : { "state" : "needs_review", "value" : "Kan de reactie niet bijwerken." } }, "tr" : { "stringUnit" : { "state" : "needs_review", "value" : "Tepki güncellenemedi." } }, "ru" : { "stringUnit" : { "state" : "needs_review", "value" : "Не удалось обновить реакцию." } }, "ja" : { "stringUnit" : { "state" : "needs_review", "value" : "リアクションを更新できませんでした。" } }, "zh-Hans" : { "stringUnit" : { "state" : "needs_review", "value" : "无法更新回应。" } }, "ko" : { "stringUnit" : { "state" : "needs_review", "value" : "반응을 업데이트할 수 없습니다." } }, "ar" : { "stringUnit" : { "state" : "needs_review", "value" : "تعذّر تحديث التفاعل." } }, "he" : { "stringUnit" : { "state" : "needs_review", "value" : "לא ניתן לעדכן את התגובה." } }, "ur" : { "stringUnit" : { "state" : "needs_review", "value" : "ردعمل اپ ڈیٹ نہیں ہو سکا۔" } }, "zh-Hant" : { "stringUnit" : { "state" : "needs_review", "value" : "無法更新回應。" } }, "zh-HK" : { "stringUnit" : { "state" : "needs_review", "value" : "無法更新回應。" } } } },
+    "Couldn't Load Keys" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تعذّر تحميل المفاتيح"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Schlüssel konnten nicht geladen werden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "No se pudieron cargar las claves"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Impossible de charger les clés"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "לא ניתן לטעון מפתחות"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Impossibile caricare le chiavi"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "キーを読み込めませんでした"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "키를 불러올 수 없음"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kan sleutels niet laden"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nie udało się wczytać kluczy"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Não foi possível carregar as chaves"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Не удалось загрузить ключи"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Anahtarlar yüklenemedi"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "کلیدیں لوڈ نہیں ہو سکیں"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "無法載入金鑰"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "无法载入密钥"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "無法載入金鑰"
+          }
+        }
+      }
+    },
+    "Couldn't Update Key" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تعذّر تحديث المفتاح"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Schlüssel konnte nicht aktualisiert werden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "No se pudo actualizar la clave"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Impossible de mettre à jour la clé"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "לא ניתן לעדכן את המפתח"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Impossibile aggiornare la chiave"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "キーを更新できませんでした"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "키를 업데이트할 수 없음"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kan sleutel niet bijwerken"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nie udało się zaktualizować klucza"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Não foi possível atualizar a chave"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Не удалось обновить ключ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Anahtar güncellenemedi"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "کلید اپ ڈیٹ نہیں ہو سکی"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "無法更新金鑰"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "无法更新密钥"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "無法更新金鑰"
+          }
+        }
+      }
+    },
     "Couldn't check for updates" : { "localizations" : { "de" : { "stringUnit" : { "state" : "needs_review", "value" : "Suche nach Updates fehlgeschlagen" } }, "es" : { "stringUnit" : { "state" : "needs_review", "value" : "No se pudo buscar actualizaciones" } }, "fr" : { "stringUnit" : { "state" : "needs_review", "value" : "Impossible de rechercher des mises à jour" } }, "it" : { "stringUnit" : { "state" : "needs_review", "value" : "Impossibile verificare gli aggiornamenti" } }, "pl" : { "stringUnit" : { "state" : "needs_review", "value" : "Nie można sprawdzić aktualizacji" } }, "pt-BR" : { "stringUnit" : { "state" : "needs_review", "value" : "Não foi possível verificar atualizações" } }, "nl" : { "stringUnit" : { "state" : "needs_review", "value" : "Kan niet zoeken naar updates" } }, "tr" : { "stringUnit" : { "state" : "needs_review", "value" : "Güncellemeler denetlenemedi" } }, "ru" : { "stringUnit" : { "state" : "needs_review", "value" : "Не удалось проверить обновления" } }, "ja" : { "stringUnit" : { "state" : "needs_review", "value" : "アップデートを確認できませんでした" } }, "zh-Hans" : { "stringUnit" : { "state" : "needs_review", "value" : "无法检查更新" } }, "ko" : { "stringUnit" : { "state" : "needs_review", "value" : "업데이트를 확인할 수 없음" } }, "ar" : { "stringUnit" : { "state" : "needs_review", "value" : "تعذّر التحقق من وجود تحديثات" } }, "he" : { "stringUnit" : { "state" : "needs_review", "value" : "לא ניתן לבדוק עדכונים" } }, "ur" : { "stringUnit" : { "state" : "needs_review", "value" : "اپ ڈیٹس چیک نہیں ہو سکیں" } }, "zh-Hant" : { "stringUnit" : { "state" : "needs_review", "value" : "無法檢查更新" } }, "zh-HK" : { "stringUnit" : { "state" : "needs_review", "value" : "無法檢查更新" } } } },
     "Couldn't find %@. Check the address. For a Tailscale or VPN name, make sure this iPhone is connected to it." : { "localizations" : { "de" : { "stringUnit" : { "state" : "needs_review", "value" : "%@ wurde nicht gefunden. Prüfe die Adresse. Bei einem Tailscale- oder VPN-Namen muss dieses iPhone damit verbunden sein." } }, "es" : { "stringUnit" : { "state" : "needs_review", "value" : "No se encontró %@. Revisa la dirección. Si es un nombre de Tailscale o VPN, asegúrate de que este iPhone esté conectado a ella." } }, "fr" : { "stringUnit" : { "state" : "needs_review", "value" : "Impossible de trouver %@. Vérifiez l’adresse. Pour un nom Tailscale ou VPN, assurez-vous que cet iPhone y est connecté." } }, "it" : { "stringUnit" : { "state" : "needs_review", "value" : "Impossibile trovare %@. Controlla l’indirizzo. Per un nome Tailscale o VPN, assicurati che questo iPhone sia connesso." } }, "pl" : { "stringUnit" : { "state" : "needs_review", "value" : "Nie znaleziono %@. Sprawdź adres. W przypadku nazwy Tailscale lub VPN upewnij się, że ten iPhone jest z nią połączony." } }, "pt-BR" : { "stringUnit" : { "state" : "needs_review", "value" : "Não foi possível encontrar %@. Verifique o endereço. Para um nome do Tailscale ou de VPN, confira se este iPhone está conectado a ela." } }, "nl" : { "stringUnit" : { "state" : "needs_review", "value" : "Kan %@ niet vinden. Controleer het adres. Bij een Tailscale- of VPN-naam moet deze iPhone ermee verbonden zijn." } }, "tr" : { "stringUnit" : { "state" : "needs_review", "value" : "%@ bulunamadı. Adresi kontrol edin. Tailscale veya VPN adı için bu iPhone’un ona bağlı olduğundan emin olun." } }, "ru" : { "stringUnit" : { "state" : "needs_review", "value" : "Не удалось найти %@. Проверьте адрес. Для имени Tailscale или VPN убедитесь, что этот iPhone к ней подключён." } }, "ja" : { "stringUnit" : { "state" : "needs_review", "value" : "%@ が見つかりません。アドレスを確認してください。Tailscale や VPN の名前の場合は、この iPhone が接続されていることを確認してください。" } }, "zh-Hans" : { "stringUnit" : { "state" : "needs_review", "value" : "找不到 %@。请检查地址。如果是 Tailscale 或 VPN 名称，请确认此 iPhone 已连接到它。" } }, "ko" : { "stringUnit" : { "state" : "needs_review", "value" : "%@을(를) 찾을 수 없습니다. 주소를 확인하세요. Tailscale 또는 VPN 이름이라면 이 iPhone이 연결되어 있는지 확인하세요." } }, "ar" : { "stringUnit" : { "state" : "needs_review", "value" : "تعذّر العثور على %@. تحقّق من العنوان. إذا كان اسمًا في Tailscale أو VPN، فتأكد من اتصال هذا الـ iPhone به." } }, "he" : { "stringUnit" : { "state" : "needs_review", "value" : "לא ניתן למצוא את %@. בדוק את הכתובת. עבור שם של Tailscale או VPN, ודא שה‑iPhone הזה מחובר אליו." } }, "ur" : { "stringUnit" : { "state" : "needs_review", "value" : "%@ نہیں ملا۔ پتہ چیک کریں۔ Tailscale یا VPN نام کے لیے یقینی بنائیں کہ یہ iPhone اس سے جڑا ہوا ہے۔" } }, "zh-Hant" : { "stringUnit" : { "state" : "needs_review", "value" : "找不到 %@。請檢查位址。若是 Tailscale 或 VPN 名稱，請確認此 iPhone 已連線。" } }, "zh-HK" : { "stringUnit" : { "state" : "needs_review", "value" : "找不到 %@。請檢查位址。若是 Tailscale 或 VPN 名稱，請確認此 iPhone 已連線。" } } } },
     "Couldn't make a secure connection to %@. Check its certificate. A dashboard on your local network without HTTPS needs http://." : { "localizations" : { "de" : { "stringUnit" : { "state" : "needs_review", "value" : "Keine sichere Verbindung zu %@ möglich. Prüfe das Zertifikat. Ein Dashboard im lokalen Netzwerk ohne HTTPS braucht http://." } }, "es" : { "stringUnit" : { "state" : "needs_review", "value" : "No se pudo establecer una conexión segura con %@. Revisa su certificado. Un panel en tu red local sin HTTPS necesita http://." } }, "fr" : { "stringUnit" : { "state" : "needs_review", "value" : "Impossible d’établir une connexion sécurisée avec %@. Vérifiez son certificat. Un tableau de bord sur votre réseau local sans HTTPS nécessite http://." } }, "it" : { "stringUnit" : { "state" : "needs_review", "value" : "Impossibile stabilire una connessione sicura con %@. Controlla il certificato. Una dashboard sulla rete locale senza HTTPS richiede http://." } }, "pl" : { "stringUnit" : { "state" : "needs_review", "value" : "Nie można nawiązać bezpiecznego połączenia z %@. Sprawdź jego certyfikat. Panel w sieci lokalnej bez HTTPS wymaga http://." } }, "pt-BR" : { "stringUnit" : { "state" : "needs_review", "value" : "Não foi possível estabelecer uma conexão segura com %@. Verifique o certificado. Um painel na sua rede local sem HTTPS precisa de http://." } }, "nl" : { "stringUnit" : { "state" : "needs_review", "value" : "Kan geen beveiligde verbinding maken met %@. Controleer het certificaat. Een dashboard op je lokale netwerk zonder HTTPS heeft http:// nodig." } }, "tr" : { "stringUnit" : { "state" : "needs_review", "value" : "%@ ile güvenli bağlantı kurulamadı. Sertifikasını kontrol edin. Yerel ağınızda HTTPS olmayan bir pano http:// gerektirir." } }, "ru" : { "stringUnit" : { "state" : "needs_review", "value" : "Не удалось установить защищённое подключение к %@. Проверьте его сертификат. Для панели в локальной сети без HTTPS нужен http://." } }, "ja" : { "stringUnit" : { "state" : "needs_review", "value" : "%@ に安全に接続できませんでした。証明書を確認してください。HTTPS を使わないローカルネットワーク上のダッシュボードには http:// が必要です。" } }, "zh-Hans" : { "stringUnit" : { "state" : "needs_review", "value" : "无法与 %@ 建立安全连接。请检查其证书。本地网络上未使用 HTTPS 的仪表板需要使用 http://。" } }, "ko" : { "stringUnit" : { "state" : "needs_review", "value" : "%@에 안전하게 연결할 수 없습니다. 인증서를 확인하세요. HTTPS를 사용하지 않는 로컬 네트워크의 대시보드는 http://가 필요합니다." } }, "ar" : { "stringUnit" : { "state" : "needs_review", "value" : "تعذّر إنشاء اتصال آمن بـ %@. تحقّق من شهادته. لوحة التحكم على شبكتك المحلية بدون HTTPS تحتاج إلى http://." } }, "he" : { "stringUnit" : { "state" : "needs_review", "value" : "לא ניתן ליצור חיבור מאובטח אל %@. בדוק את האישור שלו. לוח בקרה ברשת המקומית ללא HTTPS צריך http://." } }, "ur" : { "stringUnit" : { "state" : "needs_review", "value" : "%@ سے محفوظ کنکشن نہیں بن سکا۔ اس کا سرٹیفکیٹ چیک کریں۔ مقامی نیٹ ورک پر HTTPS کے بغیر ڈیش بورڈ کے لیے http:// درکار ہے۔" } }, "zh-Hant" : { "stringUnit" : { "state" : "needs_review", "value" : "無法與 %@ 建立安全連線。請檢查其憑證。本機網路上未使用 HTTPS 的儀表板需要使用 http://。" } }, "zh-HK" : { "stringUnit" : { "state" : "needs_review", "value" : "無法與 %@ 建立安全連線。請檢查其憑證。本地網絡上未使用 HTTPS 的儀表板需要使用 http://。" } } } },
@@ -52606,6 +53242,218 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "自訂"
+          }
+        }
+      }
+    },
+    "Custom Key" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "مفتاح مخصص"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Eigener Schlüssel"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Clave personalizada"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Clé personnalisée"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "מפתח מותאם אישית"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Chiave personalizzata"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "カスタムキー"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "사용자 지정 키"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aangepaste sleutel"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Własny klucz"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Chave personalizada"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Свой ключ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Özel Anahtar"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "حسب ضرورت کلید"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "自訂金鑰"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "自定义密钥"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "自訂金鑰"
+          }
+        }
+      }
+    },
+    "Custom Key…" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "مفتاح مخصص…"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Eigener Schlüssel…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Clave personalizada…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Clé personnalisée…"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "מפתח מותאם אישית…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Chiave personalizzata…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "カスタムキー…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "사용자 지정 키…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aangepaste sleutel…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Własny klucz…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Chave personalizada…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Свой ключ…"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Özel Anahtar…"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "حسب ضرورت کلید…"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "自訂金鑰…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "自定义密钥…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "自訂金鑰…"
           }
         }
       }
@@ -73499,6 +74347,112 @@
         }
       }
     },
+    "Keys in this Profile's .env file. Keys the host gets from its environment or a sign-in still work but aren't listed." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "المفاتيح الموجودة في ملف .env لملف التعريف هذا. المفاتيح التي يحصل عليها المضيف من بيئته أو من تسجيل الدخول تظل تعمل لكنها لا تظهر هنا."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Schlüssel in der .env-Datei dieses Profils. Schlüssel, die der Host aus seiner Umgebung oder einer Anmeldung erhält, funktionieren weiterhin, werden aber nicht aufgeführt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Claves del archivo .env de este perfil. Las claves que el host obtiene de su entorno o de un inicio de sesión siguen funcionando, pero no aparecen aquí."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Clés du fichier .env de ce profil. Les clés que l'hôte obtient de son environnement ou d'une connexion fonctionnent toujours, mais ne sont pas listées."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "מפתחות בקובץ ה-.env של הפרופיל הזה. מפתחות שהמארח מקבל מהסביבה שלו או מהתחברות עדיין פועלים, אבל לא מופיעים כאן."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Chiavi nel file .env di questo profilo. Le chiavi che l'host ottiene dal suo ambiente o da un accesso funzionano comunque, ma non sono elencate."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "このプロファイルの .env ファイルにあるキーです。ホストが環境やサインインから取得するキーも引き続き使えますが、ここには表示されません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "이 프로필의 .env 파일에 있는 키입니다. 호스트가 환경이나 로그인에서 가져오는 키도 계속 작동하지만 여기에는 표시되지 않습니다."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sleutels in het .env-bestand van dit profiel. Sleutels die de host uit zijn omgeving of een aanmelding haalt, werken nog steeds maar staan hier niet."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Klucze z pliku .env tego profilu. Klucze, które host pobiera ze swojego środowiska lub z logowania, nadal działają, ale nie są tu wymienione."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Chaves no arquivo .env deste perfil. As chaves que o host obtém do ambiente ou de um login continuam funcionando, mas não aparecem aqui."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ключи из файла .env этого профиля. Ключи, которые хост получает из своего окружения или при входе, продолжают работать, но здесь не показаны."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bu profilin .env dosyasındaki anahtarlar. Ana makinenin ortamından veya bir oturum açmadan aldığı anahtarlar çalışmaya devam eder ancak burada listelenmez."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "اس پروفائل کی .env فائل میں موجود کلیدیں۔ جو کلیدیں ہوسٹ اپنے ماحول یا سائن اِن سے لیتا ہے وہ اب بھی کام کرتی ہیں لیکن یہاں درج نہیں ہوتیں۔"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "此設定檔的 .env 檔案中的金鑰。主機從其環境或登入取得的金鑰仍然有效，但不會在此列出。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "此配置文件的 .env 文件中的密钥。主机从其环境或登录中获取的密钥仍然有效，但不会在此列出。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "此設定檔的 .env 檔案中的金鑰。主機從其環境或登入取得的金鑰仍然有效，但不會在此列出。"
+          }
+        }
+      }
+    },
     "Last" : {
       "localizations" : {
         "ar" : {
@@ -75028,6 +75982,112 @@
       }
     },
     "Legacy" : { "localizations" : { "de" : { "stringUnit" : { "state" : "needs_review", "value" : "Legacy" } }, "es" : { "stringUnit" : { "state" : "needs_review", "value" : "Heredado" } }, "fr" : { "stringUnit" : { "state" : "needs_review", "value" : "Ancien" } }, "it" : { "stringUnit" : { "state" : "needs_review", "value" : "Legacy" } }, "pl" : { "stringUnit" : { "state" : "needs_review", "value" : "Starszy" } }, "pt-BR" : { "stringUnit" : { "state" : "needs_review", "value" : "Legado" } }, "nl" : { "stringUnit" : { "state" : "needs_review", "value" : "Legacy" } }, "tr" : { "stringUnit" : { "state" : "needs_review", "value" : "Eski" } }, "ru" : { "stringUnit" : { "state" : "needs_review", "value" : "Старый" } }, "ja" : { "stringUnit" : { "state" : "needs_review", "value" : "レガシー" } }, "zh-Hans" : { "stringUnit" : { "state" : "needs_review", "value" : "旧版" } }, "ko" : { "stringUnit" : { "state" : "needs_review", "value" : "레거시" } }, "ar" : { "stringUnit" : { "state" : "needs_review", "value" : "قديم" } }, "he" : { "stringUnit" : { "state" : "needs_review", "value" : "ישן" } }, "ur" : { "stringUnit" : { "state" : "needs_review", "value" : "پرانا" } }, "zh-Hant" : { "stringUnit" : { "state" : "needs_review", "value" : "舊版" } }, "zh-HK" : { "stringUnit" : { "state" : "needs_review", "value" : "舊版" } } } },
+    "Loading keys…" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "جارٍ تحميل المفاتيح…"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Schlüssel werden geladen…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Cargando claves…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Chargement des clés…"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "טוען מפתחות…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Caricamento chiavi…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "キーを読み込み中…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "키 불러오는 중…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sleutels laden…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wczytywanie kluczy…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Carregando chaves…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Загрузка ключей…"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Anahtarlar yükleniyor…"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "کلیدیں لوڈ ہو رہی ہیں…"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "正在載入金鑰…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "正在载入密钥…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "正在載入金鑰…"
+          }
+        }
+      }
+    },
     "Messages and the composer only; code stays left-to-right." : {
       "localizations" : {
         "ar" : {
@@ -75130,6 +76190,112 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "僅限訊息和輸入框；程式碼維持由左至右。"
+          }
+        }
+      }
+    },
+    "Messaging" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "المراسلة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Messaging"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mensajería"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Messagerie"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "הודעות"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Messaggistica"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "メッセージング"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "메시징"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Berichten"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Komunikatory"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mensagens"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Мессенджеры"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mesajlaşma"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "پیغام رسانی"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "訊息"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "消息"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "訊息"
           }
         }
       }
@@ -75554,6 +76720,218 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "通知和 Bots 需要此項。"
+          }
+        }
+      }
+    },
+    "New value" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "قيمة جديدة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Neuer Wert"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nuevo valor"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nouvelle valeur"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ערך חדש"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nuovo valore"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "新しい値"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "새 값"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nieuwe waarde"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nowa wartość"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Novo valor"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Новое значение"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Yeni değer"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "نئی قدر"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "新值"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "新值"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "新值"
+          }
+        }
+      }
+    },
+    "No keys in %@'s .env" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "لا توجد مفاتيح في ملف .env الخاص بـ %@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Keine Schlüssel in der .env von %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "No hay claves en el .env de %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aucune clé dans le .env de %@"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "אין מפתחות ב-.env של %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nessuna chiave nel .env di %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ の .env にキーがありません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@의 .env에 키가 없음"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Geen sleutels in de .env van %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Brak kluczy w pliku .env profilu %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nenhuma chave no .env de %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "В .env профиля %@ нет ключей"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ .env dosyasında anahtar yok"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ کی .env میں کوئی کلید نہیں"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ 的 .env 中沒有金鑰"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ 的 .env 中没有密钥"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ 的 .env 中沒有金鑰"
           }
         }
       }
@@ -76300,6 +77678,112 @@
         }
       }
     },
+    "Other" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "أخرى"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sonstige"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Otros"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Autres"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "אחר"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Altro"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "その他"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "기타"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Overig"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Inne"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Outros"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Другое"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Diğer"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "دیگر"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "其他"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "其他"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "其他"
+          }
+        }
+      }
+    },
     "Password or browser sign-in" : {
       "localizations" : {
         "ar" : {
@@ -76936,6 +78420,112 @@
         }
       }
     },
+    "Remove Key" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "إزالة المفتاح"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Schlüssel entfernen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Quitar clave"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Retirer la clé"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "הסרת מפתח"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rimuovi chiave"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "キーを削除"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "키 제거"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sleutel verwijderen"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usuń klucz"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Remover chave"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Удалить ключ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Anahtarı Kaldır"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "کلید ہٹائیں"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "移除金鑰"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "移除密钥"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "移除金鑰"
+          }
+        }
+      }
+    },
     "Removes this server from this iPhone." : {
       "localizations" : {
         "ar" : {
@@ -77250,6 +78840,112 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "請在主機上重新啟動 `hermes dashboard`，然後再檢查一次。"
+          }
+        }
+      }
+    },
+    "Saved on the server in Profile “%@”. Hermex doesn't keep a copy." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "يُحفظ على الخادم في ملف التعريف “%@”. لا يحتفظ Hermex بنسخة منه."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wird auf dem Server im Profil „%@“ gespeichert. Hermex behält keine Kopie."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Se guarda en el servidor, en el perfil «%@». Hermex no guarda una copia."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Enregistrée sur le serveur dans le profil « %@ ». Hermex n'en garde aucune copie."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "נשמר בשרת בפרופיל ״%@״. Hermex לא שומר עותק."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Salvata sul server nel profilo “%@”. Hermex non ne conserva una copia."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "サーバーのプロファイル「%@」に保存されます。Hermex はコピーを保持しません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "서버의 프로필 ‘%@’에 저장됩니다. Hermex는 사본을 보관하지 않습니다."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Opgeslagen op de server in profiel ‘%@’. Hermex bewaart geen kopie."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zapisywany na serwerze w profilu „%@”. Hermex nie przechowuje kopii."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Salva no servidor, no perfil “%@”. O Hermex não guarda uma cópia."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Сохраняется на сервере в профиле «%@». Hermex не хранит копию."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sunucuda “%@” profiline kaydedilir. Hermex bir kopyasını tutmaz."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "سرور پر پروفائل “%@” میں محفوظ ہوتا ہے۔ Hermex اس کی کاپی نہیں رکھتا۔"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "儲存在伺服器的設定檔「%@」中。Hermex 不會保留副本。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "保存在服务器的配置文件“%@”中。Hermex 不会保留副本。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "儲存在伺服器的設定檔「%@」中。Hermex 不會保留副本。"
           }
         }
       }
@@ -77897,6 +79593,112 @@
     "This server’s sign-in changed. Sign in again to continue." : { "localizations" : { "ar" : { "stringUnit" : { "state" : "needs_review", "value" : "تغيّر تسجيل الدخول لهذا الخادم. سجّل الدخول مرة أخرى للمتابعة." } }, "de" : { "stringUnit" : { "state" : "needs_review", "value" : "Die Anmeldung dieses Servers hat sich geändert. Melde dich erneut an, um fortzufahren." } }, "es" : { "stringUnit" : { "state" : "needs_review", "value" : "El inicio de sesión de este servidor cambió. Vuelve a iniciar sesión para continuar." } }, "fr" : { "stringUnit" : { "state" : "needs_review", "value" : "La connexion de ce serveur a changé. Reconnectez-vous pour continuer." } }, "he" : { "stringUnit" : { "state" : "needs_review", "value" : "ההתחברות לשרת הזה השתנתה. התחבר שוב כדי להמשיך." } }, "it" : { "stringUnit" : { "state" : "needs_review", "value" : "L’accesso a questo server è cambiato. Accedi di nuovo per continuare." } }, "ja" : { "stringUnit" : { "state" : "needs_review", "value" : "このサーバーのサインイン方法が変わりました。続けるにはもう一度サインインしてください。" } }, "ko" : { "stringUnit" : { "state" : "needs_review", "value" : "이 서버의 로그인 방식이 바뀌었습니다. 계속하려면 다시 로그인하세요." } }, "nl" : { "stringUnit" : { "state" : "needs_review", "value" : "De aanmelding van deze server is gewijzigd. Meld je opnieuw aan om door te gaan." } }, "pl" : { "stringUnit" : { "state" : "needs_review", "value" : "Logowanie do tego serwera się zmieniło. Zaloguj się ponownie, aby kontynuować." } }, "pt-BR" : { "stringUnit" : { "state" : "needs_review", "value" : "O login deste servidor mudou. Entre novamente para continuar." } }, "ru" : { "stringUnit" : { "state" : "needs_review", "value" : "Способ входа на этот сервер изменился. Войдите снова, чтобы продолжить." } }, "tr" : { "stringUnit" : { "state" : "needs_review", "value" : "Bu sunucunun oturum açma yöntemi değişti. Devam etmek için yeniden oturum açın." } }, "ur" : { "stringUnit" : { "state" : "needs_review", "value" : "اس سرور کا سائن اِن بدل گیا ہے۔ جاری رکھنے کے لیے دوبارہ سائن اِن کریں۔" } }, "zh-HK" : { "stringUnit" : { "state" : "needs_review", "value" : "此伺服器的登入方式已變更。請重新登入以繼續。" } }, "zh-Hans" : { "stringUnit" : { "state" : "needs_review", "value" : "此服务器的登录方式已更改。请重新登录以继续。" } }, "zh-Hant" : { "stringUnit" : { "state" : "needs_review", "value" : "此伺服器的登入方式已變更。請重新登入以繼續。" } }} },
     "This server signs in through the browser, so Hermex sends its own Authorization header. Remove this header to connect. For Cloudflare Access, use the CF-Access-Client-Id and CF-Access-Client-Secret headers instead." : { "localizations" : { "de" : { "stringUnit" : { "state" : "needs_review", "value" : "Dieser Server meldet sich über den Browser an, daher sendet Hermex einen eigenen Authorization-Header. Entferne diesen Header, um dich zu verbinden. Verwende für Cloudflare Access stattdessen die Header CF-Access-Client-Id und CF-Access-Client-Secret." } }, "es" : { "stringUnit" : { "state" : "needs_review", "value" : "Este servidor inicia sesión a través del navegador, así que Hermex envía su propio encabezado Authorization. Quita este encabezado para conectarte. Para Cloudflare Access, usa en su lugar los encabezados CF-Access-Client-Id y CF-Access-Client-Secret." } }, "fr" : { "stringUnit" : { "state" : "needs_review", "value" : "Ce serveur se connecte via le navigateur, donc Hermex envoie son propre en-tête Authorization. Supprimez cet en-tête pour vous connecter. Pour Cloudflare Access, utilisez plutôt les en-têtes CF-Access-Client-Id et CF-Access-Client-Secret." } }, "it" : { "stringUnit" : { "state" : "needs_review", "value" : "Questo server accede tramite il browser, quindi Hermex invia una propria intestazione Authorization. Rimuovi questa intestazione per connetterti. Per Cloudflare Access, usa invece le intestazioni CF-Access-Client-Id e CF-Access-Client-Secret." } }, "pl" : { "stringUnit" : { "state" : "needs_review", "value" : "Ten serwer loguje się przez przeglądarkę, więc Hermex wysyła własny nagłówek Authorization. Usuń ten nagłówek, aby się połączyć. W przypadku Cloudflare Access użyj zamiast tego nagłówków CF-Access-Client-Id i CF-Access-Client-Secret." } }, "pt-BR" : { "stringUnit" : { "state" : "needs_review", "value" : "Este servidor faz login pelo navegador, então o Hermex envia o próprio cabeçalho Authorization. Remova este cabeçalho para conectar. Para o Cloudflare Access, use os cabeçalhos CF-Access-Client-Id e CF-Access-Client-Secret." } }, "nl" : { "stringUnit" : { "state" : "needs_review", "value" : "Deze server meldt aan via de browser, dus Hermex stuurt een eigen Authorization-header. Verwijder deze header om verbinding te maken. Gebruik voor Cloudflare Access in plaats daarvan de headers CF-Access-Client-Id en CF-Access-Client-Secret." } }, "tr" : { "stringUnit" : { "state" : "needs_review", "value" : "Bu sunucu tarayıcı üzerinden oturum açar, bu yüzden Hermex kendi Authorization başlığını gönderir. Bağlanmak için bu başlığı kaldırın. Cloudflare Access için bunun yerine CF-Access-Client-Id ve CF-Access-Client-Secret başlıklarını kullanın." } }, "ru" : { "stringUnit" : { "state" : "needs_review", "value" : "Этот сервер выполняет вход через браузер, поэтому Hermex отправляет собственный заголовок Authorization. Удалите этот заголовок, чтобы подключиться. Для Cloudflare Access используйте вместо него заголовки CF-Access-Client-Id и CF-Access-Client-Secret." } }, "ja" : { "stringUnit" : { "state" : "needs_review", "value" : "このサーバーはブラウザでサインインするため、Hermex が独自の Authorization ヘッダーを送信します。接続するには、このヘッダーを削除してください。Cloudflare Access の場合は、代わりに CF-Access-Client-Id と CF-Access-Client-Secret ヘッダーを使用してください。" } }, "zh-Hans" : { "stringUnit" : { "state" : "needs_review", "value" : "此服务器通过浏览器登录，因此 Hermex 会发送它自己的 Authorization 请求头。请移除此请求头以连接。如使用 Cloudflare Access，请改用 CF-Access-Client-Id 和 CF-Access-Client-Secret 请求头。" } }, "ko" : { "stringUnit" : { "state" : "needs_review", "value" : "이 서버는 브라우저로 로그인하므로 Hermex가 자체 Authorization 헤더를 보냅니다. 연결하려면 이 헤더를 삭제하세요. Cloudflare Access에는 대신 CF-Access-Client-Id 및 CF-Access-Client-Secret 헤더를 사용하세요." } }, "ar" : { "stringUnit" : { "state" : "needs_review", "value" : "يسجّل هذا الخادم الدخول عبر المتصفح، لذا يرسل Hermex ترويسة Authorization الخاصة به. أزل هذه الترويسة للاتصال. في Cloudflare Access، استخدم بدلًا منها الترويستين CF-Access-Client-Id وCF-Access-Client-Secret." } }, "he" : { "stringUnit" : { "state" : "needs_review", "value" : "השרת הזה מתחבר דרך הדפדפן, ולכן Hermex שולח כותרת Authorization משלו. הסר את הכותרת הזו כדי להתחבר. עבור Cloudflare Access, השתמש במקום זאת בכותרות CF-Access-Client-Id ו-CF-Access-Client-Secret." } }, "ur" : { "stringUnit" : { "state" : "needs_review", "value" : "یہ سرور براؤزر کے ذریعے سائن اِن کرتا ہے، اس لیے Hermex اپنا Authorization ہیڈر بھیجتا ہے۔ کنیکٹ کرنے کے لیے یہ ہیڈر ہٹا دیں۔ Cloudflare Access کے لیے اس کی بجائے CF-Access-Client-Id اور CF-Access-Client-Secret ہیڈرز استعمال کریں۔" } }, "zh-Hant" : { "stringUnit" : { "state" : "needs_review", "value" : "此伺服器透過瀏覽器登入，因此 Hermex 會傳送它自己的 Authorization 標頭。請移除此標頭以連線。若使用 Cloudflare Access，請改用 CF-Access-Client-Id 和 CF-Access-Client-Secret 標頭。" } }, "zh-HK" : { "stringUnit" : { "state" : "needs_review", "value" : "此伺服器透過瀏覽器登入，因此 Hermex 會傳送它自己的 Authorization 請求標頭。請移除此請求標頭以連線。若使用 Cloudflare Access，請改用 CF-Access-Client-Id 和 CF-Access-Client-Secret 請求標頭。" } } } },
     "This server signs in through your browser." : { "localizations" : { "de" : { "stringUnit" : { "state" : "needs_review", "value" : "Dieser Server meldet sich über deinen Browser an." } }, "es" : { "stringUnit" : { "state" : "needs_review", "value" : "Este servidor inicia sesión a través de tu navegador." } }, "fr" : { "stringUnit" : { "state" : "needs_review", "value" : "Ce serveur se connecte via votre navigateur." } }, "it" : { "stringUnit" : { "state" : "needs_review", "value" : "Questo server accede tramite il tuo browser." } }, "pl" : { "stringUnit" : { "state" : "needs_review", "value" : "Ten serwer loguje się przez Twoją przeglądarkę." } }, "pt-BR" : { "stringUnit" : { "state" : "needs_review", "value" : "Este servidor faz login pelo seu navegador." } }, "nl" : { "stringUnit" : { "state" : "needs_review", "value" : "Deze server meldt aan via je browser." } }, "tr" : { "stringUnit" : { "state" : "needs_review", "value" : "Bu sunucu tarayıcınız üzerinden oturum açar." } }, "ru" : { "stringUnit" : { "state" : "needs_review", "value" : "Этот сервер выполняет вход через ваш браузер." } }, "ja" : { "stringUnit" : { "state" : "needs_review", "value" : "このサーバーはブラウザでサインインします。" } }, "zh-Hans" : { "stringUnit" : { "state" : "needs_review", "value" : "此服务器通过你的浏览器登录。" } }, "ko" : { "stringUnit" : { "state" : "needs_review", "value" : "이 서버는 브라우저로 로그인합니다." } }, "ar" : { "stringUnit" : { "state" : "needs_review", "value" : "يسجّل هذا الخادم الدخول عبر متصفحك." } }, "he" : { "stringUnit" : { "state" : "needs_review", "value" : "השרת הזה מתחבר דרך הדפדפן שלך." } }, "ur" : { "stringUnit" : { "state" : "needs_review", "value" : "یہ سرور آپ کے براؤزر کے ذریعے سائن اِن کرتا ہے۔" } }, "zh-Hant" : { "stringUnit" : { "state" : "needs_review", "value" : "此伺服器透過你的瀏覽器登入。" } }, "zh-HK" : { "stringUnit" : { "state" : "needs_review", "value" : "此伺服器透過你的瀏覽器登入。" } } } },
+    "Tools" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "الأدوات"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Werkzeuge"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Herramientas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Outils"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "כלים"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Strumenti"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ツール"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "도구"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tools"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Narzędzia"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ferramentas"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Инструменты"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Araçlar"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ٹولز"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "工具"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "工具"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "工具"
+          }
+        }
+      }
+    },
     "Use %@’s Headers" : {
       "localizations" : {
         "ar" : {

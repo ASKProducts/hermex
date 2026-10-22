@@ -26,7 +26,7 @@ import Foundation
     /// Writes one managed environment value at the host root. No `profile` is sent: a
     /// profile without its own value inherits the root one, which is what pairing needs.
     func setEnvironmentValue(_ key: String, _ value: String) async throws {
-        _ = try await send(.setEnvironment(key: key, value: value))
+        _ = try await send(.setEnvironment(key: key, value: value, profile: nil))
     }
 
     /// Installs an agent plugin from its identifier, reinstalling over an existing copy.

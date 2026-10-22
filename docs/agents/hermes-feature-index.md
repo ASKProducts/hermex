@@ -69,7 +69,8 @@ At the pin (0.21.5, `ca678285`) the gateway contract has 237 methods and `Hermes
 | Checkpoints | `rollback.*` | untriaged | Restore a working tree to a checkpoint. |
 | Tools and MCP | `tools.*`, `toolsets.list`, `mcp.*` | untriaged | Toolset switches and MCP server setup, including OAuth. |
 | Connectors | `connectors.*` | untriaged | Hermex answers `connection.*` requests only. |
-| Provider keys | `model.save_key`, `model.disconnect` | untriaged | Secrets; deliberate UX first. |
+| Provider keys | `model.save_key` | covered | The API Keys screen writes every key, provider or not, through `PUT` and `DELETE /api/env` (#1318). |
+| Provider sign-out | `model.disconnect` | untriaged | Signs out of an OAuth provider; not in #1318. |
 | Vault | `vault.*` | untriaged | Password managers; vault prompts get no card (#1148). |
 | Skills hub and learning | `skills.manage`, `skills.reload`, `learning.*` | untriaged | Install from the hub, re-scan; edit or archive skills and memory chunks. |
 | Messaging handoff | `handoff.*` | untriaged | Hand a session to a messaging platform's home channel. |

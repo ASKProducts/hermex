@@ -87,6 +87,14 @@ import Foundation
 /// (`web_server_sessions.py` `_mutate_session_request`): a PATCH or an import without
 /// `request_id` and `expected_revision` is 409 `client_upgrade_required: …`, with one of them
 /// 409 `mutation_identity_required`, and the 0.21.5 pin has no `mutation-snapshot` route.
+/// The `.env` routes the API Keys screen uses (#1318) are read at the same pin
+/// (`web_routers/config_env.py`) and checked against a live 0.21.5 host on 2026-10-22: the list is
+/// an object keyed by variable name, each row with `is_set`, `redacted_value` (`«redacted:…»` or
+/// null), `category`, `provider_label`, `advanced` and `channel_managed`; a write answers `{ok, key,
+/// config_updates}` and a removal `{ok, key, removed, found, …}`. A redacted preview sent as the
+/// value or an invalid name is 400 `{detail}`, a key the `.env` lacks is 404 `{detail}`, and so is
+/// an unknown Profile. The body's `profile` wins over the query's; without either the host writes
+/// the dashboard's own Profile.
 enum HermesREST: Equatable, Sendable {
     /// What the agent of a Hermex session is told about the screen it writes to (#1278): the
     /// host appends it to the system prompt of every agent running as `HermesCall.source`.
@@ -140,8 +148,13 @@ enum HermesREST: Equatable, Sendable {
     /// resolves a relative path against that stored session's folder; without one, `path` must
     /// be absolute, which works before the host has stored the session.
     case downloadArtifact(path: String, profile: String, sessionID: String?)
-    /// Writes one managed environment value at the host root.
-    case setEnvironment(key: String, value: String)
+    /// `profile`'s `.env` keys beside every key the host knows (#1318). Never cached.
+    case environment(profile: String)
+    /// Writes one `.env` value, under `profile`, or the dashboard's own Profile when nil. The value
+    /// goes only in the body.
+    case setEnvironment(key: String, value: String, profile: String?)
+    /// Removes one key from `profile`'s `.env`; the body names both.
+    case removeEnvironment(key: String, profile: String)
     /// Installs an agent plugin, reinstalling over an existing copy.
     case installPlugin(identifier: String)
     case setPlugin(name: String, enabled: Bool)
@@ -403,8 +416,13 @@ enum HermesREST: Equatable, Sendable {
             var request = URLRequest(url: url)
             request.cachePolicy = .reloadIgnoringLocalCacheData
             return request
-        case .setEnvironment(let key, let value):
-            return try Self.send("PUT", base.appendingPathComponent("api/env"), ["key": .string(key), "value": .string(value)])
+        case .environment(let profile): return Self.get(try Self.url(base, "api/env", profile: profile))
+        case .setEnvironment(let key, let value, let profile):
+            var body: [String: BotJSON] = ["key": .string(key), "value": .string(value)]
+            if let profile, !profile.isEmpty { body["profile"] = .string(profile) }
+            return try Self.send("PUT", base.appendingPathComponent("api/env"), body)
+        case .removeEnvironment(let key, let profile):
+            return try Self.send("DELETE", base.appendingPathComponent("api/env"), ["key": .string(key), "profile": .string(profile)])
         case .installPlugin(let identifier):
             return try Self.send("POST", base.appendingPathComponent("api/dashboard/agent-plugins/install"), [
                 "identifier": .string(identifier), "enable": .bool(true), "force": .bool(true)
