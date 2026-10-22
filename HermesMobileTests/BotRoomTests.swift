@@ -3,6 +3,27 @@ import XCTest
 @testable import HermesMobile
 
 @MainActor final class BotRoomTests: XCTestCase {
+    func testARoomApprovalSummaryUsesItsMembersProfileAndEndsWithThePendingTuple() async throws {
+        let wire = RoomWire()
+        wire.driverStatus = RoomFixture.status(actions: [RoomFixture.approval])
+        let reader = makeReader(wire)
+        await reader.open()
+        defer { reader.close() }
+        let action = try XCTUnwrap(reader.status.actions.first)
+        let presentation = try XCTUnwrap(reader.summaryPresentation(for: action))
+        defer { presentation.summaries.retain([], in: presentation.key.scope) }
+        await presentation.summaries.show(presentation.key, load: presentation.load)
+        XCTAssertEqual(presentation.summaries.states[presentation.key], .ready("Room command explanation"))
+        XCTAssertEqual(wire.writes.last { $0.0 == "llm.oneshot" }?.1["profile"]?.text, "chief-of-staff")
+        XCTAssertNil(wire.writes.last { $0.0 == "llm.oneshot" }?.1["session_id"], "rooms never guess a hidden member runtime")
+        reader.suspend()
+        XCTAssertEqual(presentation.summaries.states[presentation.key], .ready("Room command explanation"))
+        await reader.open()
+        wire.driverStatus = RoomFixture.status(actions: [])
+        await reader.poll()
+        XCTAssertNil(presentation.summaries.states[presentation.key])
+    }
+
     func testRecentRoomKeepsSystemEventsBeforeNetworkAndFetchesOnlyNewRows() async throws {
         let cache = BotHistoryCache(), wire = RoomWire()
         wire.latest = 3; wire.kind = "room.renamed"
@@ -898,6 +919,9 @@ enum RoomFixture {
         }
         try validateDispatch?()
         switch method {
+        case "llm.oneshot":
+            writes.append((method, params))
+            return .object(["text": .string("Room command explanation")])
         case "profiles.list": return .object(["profiles": .array([])])
         // The inbox reads live statuses after every roster read; no bot is busy here.
         case "session.active_list": return .object(["sessions": .array([])])

@@ -5,6 +5,47 @@ import XCTest
 /// and secret prompts, over #901's socket-level host and the approval recorded at the
 /// `HERMES_AGENT_TESTED_SHA` pin.
 @MainActor final class HermesChatRequestTests: XCTestCase {
+    func testApprovalStillAnswersWhileItsSummaryIsLoading() async throws {
+        let chat = await openChat()
+        defer { chat.model.suspendStreamForBackground() }
+        chat.receive(approvalRequest(id: "summary-envelope", requestID: "summary-loading"))
+        guard case .approval(let approval)? = chat.requests.onScreen else { return XCTFail("Expected approval") }
+        let presentation = try XCTUnwrap(chat.requests.summaryPresentation(for: approval, workingDirectory: nil))
+        defer { presentation.summaries.retain([], in: presentation.key.scope) }
+        chat.host.withhold("llm.oneshot")
+        let sent = expectation(description: "summary model request on the wire")
+        chat.host.expect(sent, onNext: "llm.oneshot")
+        let summary = Task { await presentation.summaries.show(presentation.key, load: presentation.load) }
+        await fulfillment(of: [sent], timeout: 2)
+        XCTAssertEqual(presentation.summaries.states[presentation.key], .loading)
+        XCTAssertTrue(chat.requests.mayAnswer, "summary work never disables approval choices")
+        chat.host.always("approval.respond", .init(result: .object(["resolved": .number(1)])))
+        let taken = await chat.requests.respond(try action(chat), choice: .once)
+        XCTAssertTrue(taken)
+        await summary.value
+        XCTAssertEqual(chat.writes("approval.respond").last?["choice"], .string("once"))
+        XCTAssertEqual(chat.turn.engine.connectionState, .connected, "cancelling the optional read must not disconnect chat")
+        XCTAssertNil(presentation.summaries.states[presentation.key], "the accepted answer ended the approval")
+    }
+
+    func testLeavingAChatCancelsOnlyItsUnfinishedSummary() async throws {
+        let chat = await openChat()
+        chat.receive(approvalRequest(id: "summary-envelope", requestID: "summary-leave"))
+        guard case .approval(let approval)? = chat.requests.onScreen else { return XCTFail("Expected approval") }
+        let presentation = try XCTUnwrap(chat.requests.summaryPresentation(for: approval, workingDirectory: nil))
+        defer { presentation.summaries.retain([], in: presentation.key.scope) }
+        let sent = expectation(description: "summary request started")
+        chat.host.withhold("llm.oneshot")
+        chat.host.expect(sent, onNext: "llm.oneshot")
+        let summary = Task { await presentation.summaries.show(presentation.key, load: presentation.load) }
+        await fulfillment(of: [sent], timeout: 2)
+        chat.model.suspendStreamForBackground()
+        await summary.value
+        XCTAssertEqual(presentation.summaries.states[presentation.key], .unavailable,
+                       "leaving cancels work but retains a terminal state for that pending approval")
+        XCTAssertNil(chat.requests.summaryPresentation(for: approval, workingDirectory: nil), "no direct connection means no summary slot")
+    }
+
     // MARK: Approvals
 
     /// The recorded approval offers exactly the host's four choices, and the answer names the
