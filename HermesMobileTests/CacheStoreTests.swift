@@ -4,6 +4,23 @@ import XCTest
 
 @MainActor
 final class CacheStoreTests: XCTestCase {
+    func testWorkspacePrefixNormalizationIsLimitedToWebUICacheReads() throws {
+        let context = try makeContext()
+        let server = URL(string: "https://example.test")!
+        let text = "[Workspace::v1: /tmp/user-example]\nDescribe this image"
+        let message = ChatMessage(role: "user", content: text, timestamp: 1, messageId: "row-1", rowID: 1)
+        try CacheStore.cacheMessages([message], serverURL: server, sessionID: "webui", in: context)
+        for limit in [nil, 1] as [Int?] {
+            let cached = try CacheStore.cachedMessages(serverURL: server, sessionID: "webui", in: context, limit: limit)
+            XCTAssertEqual(cached.first?.content, "Describe this image")
+        }
+        try CacheStore.cacheHermesMessages([message], newestCoverage: nil, serverURL: server,
+                                          profile: "default", lineageRoot: "direct", in: context)
+        let direct = try CacheStore.cachedHermesMessages(serverURL: server, profile: "default",
+                                                         lineageRoot: "direct", in: context, limit: 10)
+        XCTAssertEqual(direct.first?.content, text, "Direct-Hermes text must not be treated as webui metadata")
+    }
+
     func testCacheSessionsWritesVisibleSessionsAndRemovesStaleEntries() throws {
         let context = try makeContext()
         let serverURL = URL(string: "https://example.test")!

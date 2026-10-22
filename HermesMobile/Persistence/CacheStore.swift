@@ -74,9 +74,9 @@ enum CacheStore {
         let cachedMessages = try context.fetch(descriptor)
         rows = cachedMessages.count
         if limit != nil {
-            return cachedMessages.reversed().map(ChatMessage.init(cachedMessage:))
+            return cachedMessages.reversed().map(ChatMessage.init(webUICachedMessage:))
         }
-        return cachedMessages.map(ChatMessage.init(cachedMessage:))
+        return cachedMessages.map(ChatMessage.init(webUICachedMessage:))
     }
 
     @MainActor
@@ -346,7 +346,17 @@ extension SessionSummary {
 }
 
 extension ChatMessage {
+    /// Older webui builds cached the model-facing workspace prefix. Direct-Hermes
+    /// caches use the unmodified initializer below, not this webui normalization.
+    fileprivate init(webUICachedMessage: CachedMessage) {
+        self.init(cachedMessage: webUICachedMessage, stripsWorkspaceTag: true)
+    }
+
     init(cachedMessage: CachedMessage) {
+        self.init(cachedMessage: cachedMessage, stripsWorkspaceTag: false)
+    }
+
+    private init(cachedMessage: CachedMessage, stripsWorkspaceTag: Bool) {
         let attachments: [MessageAttachment]?
         if let data = cachedMessage.attachmentsData {
             attachments = try? JSONDecoder().decode([MessageAttachment].self, from: data)
@@ -370,7 +380,9 @@ extension ChatMessage {
         }
         self.init(
             role: cachedMessage.role,
-            content: cachedMessage.content,
+            content: stripsWorkspaceTag && cachedMessage.role == "user"
+                ? Self.strippedWorkspaceTag(from: cachedMessage.content)
+                : cachedMessage.content,
             timestamp: cachedMessage.timestamp,
             messageId: cachedMessage.messageId,
             name: cachedMessage.name,
