@@ -455,7 +455,7 @@ private extension HermesCall {
         switch self {
         case .fileAttach, .completePath, .completeFolder, .completeSlash, .subagentList, .subagentTail,
              .sessionActiveList, .sessionMostRecent, .profilesList, .profileModelOptions, .projectsTree,
-             .commitMessage: return true
+             .commitMessage, .approvalSummary: return true
         default: return false
         }
     }
@@ -467,7 +467,7 @@ private extension HermesCall {
     var timesOutLocally: Bool {
         switch self {
         case .subagentList, .subagentTail, .sessionActiveList, .sessionMostRecent, .completeSlash, .slashExec,
-             .profileModelOptions, .projectsTree, .completeFolder, .commitMessage: return true
+             .profileModelOptions, .projectsTree, .completeFolder, .commitMessage, .approvalSummary: return true
         case .completePath(_, _, _, let timesOutLocally): return timesOutLocally
         default: return false
         }
@@ -481,6 +481,7 @@ private extension HermesCall {
     func deadline(_ standard: Duration) -> Duration {
         switch self {
         case .slashExec: return standard * 2
+        case .approvalSummary: return .seconds(20)
         case .commitMessage: return .seconds(120)
         case .sessionCompress: return .seconds(660)
         default: return standard
