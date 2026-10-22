@@ -392,7 +392,7 @@ import UIKit
                     message: ChatMessage(role: "assistant", content: "Here", timestamp: nil, messageId: "m")
                 ),
                 transcriptSpacing: 8, showsThinkingAndToolCards: true, foldState: nil, isTerminalReply: true,
-                onToggleTurnFold: { _ in }, reasoningGroups: [], toolCallGroups: [], liveReasoningText: "",
+                onToggleTurnFold: { _ in }, reasoningGroups: [], toolCallGroups: [], areSavedToolsLive: false, liveReasoningText: "",
                 reasoningAnchorMessageID: nil, liveReasoningStreamID: nil, liveToolCalls: [],
                 isReplayingLiveToolCalls: false, toolCallAnchorMessageID: nil, streamingAssistantMessageID: nil,
                 liveTokensPerSecond: nil, localAttachmentPreviews: nil, listeningMessageID: nil,

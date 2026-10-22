@@ -8,6 +8,156 @@ import Observation
 /// owns the replay dedup from PR #211) and a real `ChatStreamCoordinator`
 /// through a full scripted wire sequence via `ScriptedSSEStreamingClient`.
 final class StreamReconnectContractTests: APIClientTestCase {
+    @MainActor
+    func testColdRelaunchRestoresUnansweredSavedToolUntilReplayCompletion() async throws {
+        try await assertSavedToolRecovery(reopen: false)
+    }
+
+    @MainActor
+    func testLeaveAndReopenRestoresUnansweredSavedToolUntilReplayCompletion() async throws {
+        try await assertSavedToolRecovery(reopen: true)
+    }
+
+    @MainActor
+    func testLeaveAndReopenRestoresSavedToolsWhenServerOmitsMessageIDs() async throws {
+        try await assertSavedToolRecovery(reopen: true, omitsMessageIDs: true)
+    }
+
+    @MainActor
+    func testRestoredToolCompletionSurvivesOlderPageRebuild() async throws {
+        try await assertSavedToolRecovery(reopen: false, loadsOlderPageAfterCompletion: true)
+    }
+
+    @MainActor
+    func testCursorResumeCompletesSavedToolWithoutAnotherStart() async throws {
+        try await assertSavedToolRecovery(reopen: true, resumesWithCursor: true)
+    }
+
+    @MainActor
+    private func assertSavedToolRecovery(reopen: Bool, omitsMessageIDs: Bool = false,
+                                         loadsOlderPageAfterCompletion: Bool = false,
+                                         resumesWithCursor: Bool = false) async throws {
+        ChatViewModel.resetActiveStreamSnapshotsForTesting()
+        defer { ChatViewModel.resetActiveStreamSnapshotsForTesting() }
+        let stream = ScriptedSSEStreamingClient()
+        let handler: (URLRequest) throws -> (HTTPURLResponse, Data) = { request in
+            switch request.url?.path {
+            case "/api/session":
+                if loadsOlderPageAfterCompletion,
+                   URLComponents(url: request.url!, resolvingAgainstBaseURL: false)?.queryItems?
+                    .contains(where: { $0.name == "msg_before" && $0.value == "5" }) == true {
+                    return apiTestJSONResponse("""
+                    {"session":{"session_id":"session-abc","messages_offset":0,"total_message_count":10,"messages":[
+                        {"role":"user","content":"Earlier history","message_id":"page-user"},
+                        {"role":"assistant","content":"Earlier answer","message_id":"page-assistant"},
+                        {"role":"user","content":"More history","message_id":"page-user-2"},
+                        {"role":"assistant","content":"More answer","message_id":"page-assistant-2"},
+                        {"role":"system","content":"History boundary","message_id":"page-boundary"}
+                    ]}}
+                    """, for: request)
+                }
+                let pagination = loadsOlderPageAfterCompletion
+                    ? "\"messages_offset\":5,\"total_message_count\":10," : ""
+                let json = """
+                {"session":{"session_id":"session-abc",\(pagination)"active_stream_id":"stream-123","messages":[
+                    {"role":"user","content":"Old turn","message_id":"old-user"},
+                    {"role":"assistant","content":"Old answer","message_id":"old-assistant","tool_calls":[
+                        {"id":"old-tool","function":{"name":"terminal","arguments":"{}"}}]},
+                    {"role":"user","content":"Run a slow command","message_id":"user-1"},
+                    {"role":"assistant","content":"","message_id":"assistant-1","tool_calls":[
+                        {"id":"finished-tool","function":{"name":"terminal","arguments":"{}"}},
+                        {"id":"running-tool","function":{"name":"terminal","arguments":"{\\"command\\":\\"sleep 40\\"}"}}]},
+                    {"role":"tool","tool_call_id":"finished-tool","content":""}
+                ]}}
+                """
+                return apiTestJSONResponse(
+                    omitsMessageIDs ? json.replacingOccurrences(of: ",\"message_id\":\"assistant-1\"", with: "") : json,
+                    for: request
+                )
+            case "/api/chat/stream/status":
+                return apiTestJSONResponse(
+                    #"{"active":true,"stream_id":"stream-123","replay_available":true}"#, for: request
+                )
+            default:
+                throw URLError(.badURL)
+            }
+        }
+        var viewModel = try makeViewModel(streamClient: stream, handler: handler)
+        await viewModel.loadMessages()
+        await viewModel.reconnectStreamIfNeeded()
+        var activeStream = stream
+        if reopen {
+            if resumesWithCursor {
+                stream.emit(.token("Still working"), lastEventID: "stream-123:5")
+            }
+            viewModel.suspendStreamForNavigation()
+            activeStream = ScriptedSSEStreamingClient()
+            viewModel = try makeViewModel(streamClient: activeStream, handler: handler)
+            await viewModel.loadMessages()
+            await viewModel.reconnectStreamIfNeeded()
+            if resumesWithCursor {
+                let resumedURL = try XCTUnwrap(activeStream.startedURLs.last)
+                XCTAssertEqual(queryDictionary(of: resumedURL)["after_seq"], "5")
+            }
+        }
+        XCTAssertEqual(viewModel.completedToolCallGroups.flatMap(\.toolCalls).first { $0.id == "old-tool" }?.isCompleted, true)
+        XCTAssertEqual(viewModel.latestTurnToolCalls.first { $0.id == "finished-tool" }?.isCompleted, true)
+        XCTAssertEqual(viewModel.latestTurnToolCalls.first { $0.id == "running-tool" }?.isCompleted, false)
+        XCTAssertEqual(viewModel.latestTurnToolCalls.count, 2)
+        if !resumesWithCursor {
+            let start = ToolStreamEvent(eventType: "tool.started", name: "terminal", preview: "sleep 40",
+                                        args: ["command": .string("sleep 40")], duration: nil, isError: nil,
+                                        stableID: "running-tool")
+            activeStream.emit(.toolStarted(start), lastEventID: "stream-123:1")
+        }
+        XCTAssertEqual(viewModel.latestTurnToolCalls.first { $0.id == "running-tool" }?.isCompleted, false)
+        let completion = ToolStreamEvent(eventType: "tool.completed", name: "terminal", preview: "command finished",
+                                         args: ["command": .string("sleep 40")], duration: 40, isError: false,
+                                         stableID: "running-tool")
+        activeStream.emit(.toolCompleted(completion), lastEventID: resumesWithCursor ? "stream-123:6" : "stream-123:2")
+        let completed = try XCTUnwrap(viewModel.latestTurnToolCalls.first { $0.id == "running-tool" })
+        XCTAssertTrue(completed.isCompleted)
+        XCTAssertEqual(completed.preview, "command finished")
+        XCTAssertEqual(completed.duration, 40)
+        XCTAssertEqual(completed.isError, false)
+        XCTAssertEqual(viewModel.latestTurnToolCalls.count, 2)
+        XCTAssertEqual(activeStream.droppedEventCount, 0)
+        if loadsOlderPageAfterCompletion {
+            XCTAssertTrue(viewModel.hasOlderMessages)
+            await viewModel.loadOlderMessages()
+            XCTAssertEqual(viewModel.messages.first?.messageId, "page-user")
+            XCTAssertFalse(viewModel.hasOlderMessages)
+            let rebuilt = try XCTUnwrap(viewModel.latestTurnToolCalls.first { $0.id == "running-tool" })
+            XCTAssertTrue(rebuilt.isCompleted)
+            XCTAssertEqual(rebuilt.preview, "command finished")
+            XCTAssertEqual(rebuilt.duration, 40)
+            XCTAssertEqual(rebuilt.isError, false)
+            XCTAssertEqual(viewModel.latestTurnToolCalls.count, 2)
+            let groupsBeforeDuplicate = viewModel.completedToolCallGroups
+            activeStream.emit(.toolCompleted(completion), lastEventID: "stream-123:3")
+            XCTAssertEqual(viewModel.completedToolCallGroups, groupsBeforeDuplicate)
+            XCTAssertEqual(activeStream.droppedEventCount, 0)
+        }
+    }
+
+    @MainActor
+    func testFinishedSavedTurnKeepsUnansweredLegacyToolsCompleted() async throws {
+        ChatViewModel.resetActiveStreamSnapshotsForTesting()
+        let stream = ScriptedSSEStreamingClient()
+        let viewModel = try makeViewModel(streamClient: stream) { request in
+            return apiTestJSONResponse("""
+            {"session":{"session_id":"session-abc","messages":[
+                {"role":"user","content":"Earlier request","message_id":"user-1"},
+                {"role":"assistant","content":"Done","message_id":"assistant-1","tool_calls":[
+                    {"id":"tool-1","function":{"name":"terminal","arguments":"{}"}}]}
+            ]}}
+            """, for: request)
+        }
+        await viewModel.loadMessages()
+        XCTAssertEqual(viewModel.latestTurnToolCalls.map(\.isCompleted), [true])
+        XCTAssertNil(viewModel.activeStreamID)
+    }
+
     // MARK: - Scenario 1: reconnect with overlapping replayed tokens (#201 regression guard)
 
     @MainActor

@@ -346,6 +346,7 @@ struct ChatTranscriptView: View {
                 compressionReferenceCardView(compressionReferenceCard)
             }
 
+            let currentTurnStart = messages.lastIndex(where: TranscriptTurnClassifier.isUserTurnBoundary) ?? -1
             ForEach(displayedTranscriptMessages) { transcriptMessage in
                 // Scope live-streaming state to the row that actually displays it.
                 // Non-anchor / non-streaming rows receive stable empty/nil values so
@@ -374,6 +375,7 @@ struct ChatTranscriptView: View {
                     },
                     reasoningGroups: reasoningGroupsByAnchorID[transcriptMessage.anchorID] ?? [],
                     toolCallGroups: completedToolCallGroupsForAnchor(transcriptMessage.anchorID),
+                    areSavedToolsLive: activeStreamID != nil && transcriptMessage.loadedIndex > currentTurnStart,
                     liveReasoningText: isReasoningAnchor ? liveReasoningText : "",
                     reasoningAnchorMessageID: isReasoningAnchor ? reasoningAnchorMessageID : nil,
                     liveReasoningStreamID: isReasoningAnchor ? activeStreamID : nil,
@@ -648,6 +650,7 @@ struct ChatTranscriptMessageBlock: View, Equatable {
     /// This row's own reasoning cards.
     let reasoningGroups: [ReasoningGroup]
     let toolCallGroups: [ToolCallGroup]
+    let areSavedToolsLive: Bool
     let liveReasoningText: String
     let reasoningAnchorMessageID: String?
     let liveReasoningStreamID: String?
@@ -694,6 +697,7 @@ struct ChatTranscriptMessageBlock: View, Equatable {
             lhs.isTerminalReply == rhs.isTerminalReply &&
             lhs.reasoningGroups == rhs.reasoningGroups &&
             lhs.toolCallGroups == rhs.toolCallGroups &&
+            lhs.areSavedToolsLive == rhs.areSavedToolsLive &&
             lhs.liveReasoningText == rhs.liveReasoningText &&
             lhs.reasoningAnchorMessageID == rhs.reasoningAnchorMessageID &&
             lhs.liveReasoningStreamID == rhs.liveReasoningStreamID &&
@@ -829,7 +833,7 @@ struct ChatTranscriptMessageBlock: View, Equatable {
     private var toolActivityGroups: some View {
         if showsThinkingAndToolCards {
             ForEach(toolCallGroups) { group in
-                ToolActivityGroupView(group: group)
+                ToolActivityGroupView(group: group, isCurrentTurnActive: areSavedToolsLive)
             }
         }
     }

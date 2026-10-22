@@ -95,7 +95,7 @@ struct PersistedToolCall: Decodable, Equatable {
         duration = container.decodeLossyDoubleIfPresent(forKey: .duration)
     }
 
-    func toolCall(fallbackIndex: Int) -> ToolCall {
+    func toolCall(fallbackIndex: Int, runningToolIDs: Set<String> = []) -> ToolCall {
         let trimmedID = tid?.trimmingCharacters(in: .whitespacesAndNewlines)
         let id: String
         if let trimmedID, !trimmedID.isEmpty {
@@ -111,7 +111,7 @@ struct PersistedToolCall: Decodable, Equatable {
             args: args,
             duration: duration,
             isError: isError,
-            isCompleted: true
+            isCompleted: !runningToolIDs.contains(id)
         )
     }
 }
@@ -154,31 +154,41 @@ struct ToolCallGroup: Identifiable, Equatable {
     static func groups(
         persistedToolCalls: [PersistedToolCall],
         messages: [ChatMessage],
-        messageOffset: Int?
+        messageOffset: Int?,
+        isCurrentTurnActive: Bool = false,
+        observedToolCompletions: [ToolCall] = []
     ) -> [ToolCallGroup] {
-        let derivedGroups = groupsFromMessageMetadata(messages, messageOffset: messageOffset)
-        guard !persistedToolCalls.isEmpty else {
-            return coalescingByAssistantTurn(derivedGroups, messages: messages, messageOffset: messageOffset)
-        }
-
-        return coalescingByAssistantTurn(
-            merging(
-                primaryGroups: groupsFromPersistedToolCalls(
-                    persistedToolCalls,
-                    messages: messages,
-                    messageOffset: messageOffset
-                ),
-                fallbackGroups: derivedGroups
-            ),
-            messages: messages,
-            messageOffset: messageOffset
+        let activeAnchors = isCurrentTurnActive ? Set(TranscriptTurnClassifier.currentTurnAssistantAnchorIDs(
+            in: messages, messageOffset: messageOffset
+        )) : []
+        let completionsByID = Dictionary(observedToolCompletions.filter(\.isCompleted).map { ($0.id, $0) },
+                                         uniquingKeysWith: { _, latest in latest })
+        let derivedGroups = groupsFromMessageMetadata(
+            messages, messageOffset: messageOffset, activeAnchors: activeAnchors
         )
+        let runningToolIDs = Set(derivedGroups.flatMap(\.toolCalls).filter { !$0.isCompleted }.map(\.id))
+        let projectedGroups = persistedToolCalls.isEmpty ? derivedGroups : merging(
+            primaryGroups: groupsFromPersistedToolCalls(
+                persistedToolCalls, messages: messages, messageOffset: messageOffset,
+                runningToolIDs: runningToolIDs
+            ),
+            fallbackGroups: derivedGroups
+        )
+        return coalescingByAssistantTurn(projectedGroups, messages: messages, messageOffset: messageOffset)
+            .map { group in
+                guard let anchor = group.anchorMessageID, activeAnchors.contains(anchor),
+                      !completionsByID.isEmpty else { return group }
+                // SSE result fields are newer than the older page's saved snapshot.
+                return ToolCallGroup(id: group.id, anchorMessageID: anchor,
+                                     toolCalls: group.toolCalls.map { completionsByID[$0.id] ?? $0 })
+            }
     }
 
     private static func groupsFromPersistedToolCalls(
         _ persistedToolCalls: [PersistedToolCall],
         messages: [ChatMessage],
-        messageOffset: Int?
+        messageOffset: Int?,
+        runningToolIDs: Set<String>
     ) -> [ToolCallGroup] {
         let offset = messageOffset ?? 0
         var groups: [ToolCallGroup] = []
@@ -201,7 +211,7 @@ struct ToolCallGroup: Identifiable, Equatable {
             ) else {
                 continue
             }
-            let toolCall = persistedToolCall.toolCall(fallbackIndex: toolIndex)
+            let toolCall = persistedToolCall.toolCall(fallbackIndex: toolIndex, runningToolIDs: runningToolIDs)
 
             if let groupIndex = groupIndexesByAnchor[anchorMessageID] {
                 var existingGroup = groups[groupIndex]
@@ -226,7 +236,9 @@ struct ToolCallGroup: Identifiable, Equatable {
         return groups
     }
 
-    private static func groupsFromMessageMetadata(_ messages: [ChatMessage], messageOffset: Int?) -> [ToolCallGroup] {
+    private static func groupsFromMessageMetadata(
+        _ messages: [ChatMessage], messageOffset: Int?, activeAnchors: Set<String>
+    ) -> [ToolCallGroup] {
         let resultsByToolID = toolResultSnippetsByID(from: messages)
         var groups: [ToolCallGroup] = []
         var currentAnchorMessageID: String?
@@ -257,15 +269,20 @@ struct ToolCallGroup: Identifiable, Equatable {
 
             guard message.role == "assistant" else { continue }
 
+            let isActiveTurn = activeAnchors.contains(TranscriptTurnClassifier.anchorID(
+                for: message, at: messageIndex, messageOffset: messageOffset
+            ))
             let toolCalls = openAIToolCalls(
                 from: message,
                 messageIndex: messageIndex,
-                resultsByToolID: resultsByToolID
+                resultsByToolID: resultsByToolID,
+                isActiveTurn: isActiveTurn
             )
             + anthropicToolCalls(
                 from: message,
                 messageIndex: messageIndex,
-                resultsByToolID: resultsByToolID
+                resultsByToolID: resultsByToolID,
+                isActiveTurn: isActiveTurn
             )
 
             guard !toolCalls.isEmpty else { continue }
@@ -287,9 +304,9 @@ struct ToolCallGroup: Identifiable, Equatable {
     private static func toolResultSnippetsByID(from messages: [ChatMessage]) -> [String: String] {
         messages.reduce(into: [String: String]()) { result, message in
             if message.role == "tool",
-               let toolCallID = nonEmpty(message.toolCallId) ?? nonEmpty(message.toolUseId),
-               let content = nonEmpty(message.content) {
-                result[toolCallID] = content
+               let toolCallID = nonEmpty(message.toolCallId) ?? nonEmpty(message.toolUseId) {
+                // An empty result is still a result, not an unanswered call.
+                result[toolCallID] = message.content ?? ""
             }
 
             for part in message.contentParts ?? [] {
@@ -302,14 +319,16 @@ struct ToolCallGroup: Identifiable, Equatable {
     private static func openAIToolCalls(
         from message: ChatMessage,
         messageIndex: Int,
-        resultsByToolID: [String: String]
+        resultsByToolID: [String: String],
+        isActiveTurn: Bool
     ) -> [ToolCall] {
         (message.toolCalls ?? []).enumerated().compactMap { toolIndex, value in
             toolCall(
                 fromOpenAIToolCall: value,
                 messageIndex: messageIndex,
                 toolIndex: toolIndex,
-                resultsByToolID: resultsByToolID
+                resultsByToolID: resultsByToolID,
+                isActiveTurn: isActiveTurn
             )
         }
     }
@@ -318,7 +337,8 @@ struct ToolCallGroup: Identifiable, Equatable {
         fromOpenAIToolCall value: JSONValue,
         messageIndex: Int,
         toolIndex: Int,
-        resultsByToolID: [String: String]
+        resultsByToolID: [String: String],
+        isActiveTurn: Bool
     ) -> ToolCall? {
         guard case .object(let object) = value else { return nil }
 
@@ -343,14 +363,15 @@ struct ToolCallGroup: Identifiable, Equatable {
             name: name,
             preview: preview,
             args: arguments(from: argumentValue),
-            isCompleted: true
+            isCompleted: !isActiveTurn || isGeneratedToolID(toolID) || resultsByToolID[toolID] != nil
         )
     }
 
     private static func anthropicToolCalls(
         from message: ChatMessage,
         messageIndex: Int,
-        resultsByToolID: [String: String]
+        resultsByToolID: [String: String],
+        isActiveTurn: Bool
     ) -> [ToolCall] {
         (message.contentParts ?? []).enumerated().compactMap { toolIndex, value in
             guard case .object(let object) = value,
@@ -370,7 +391,7 @@ struct ToolCallGroup: Identifiable, Equatable {
                     ?? nonEmpty(object["snippet"]?.stringValue)
                     ?? nonEmpty(object["preview"]?.stringValue),
                 args: arguments(from: argumentValue),
-                isCompleted: true
+                isCompleted: !isActiveTurn || isGeneratedToolID(toolID) || resultsByToolID[toolID] != nil
             )
         }
     }
@@ -380,13 +401,12 @@ struct ToolCallGroup: Identifiable, Equatable {
               object["type"]?.stringValue == "tool_result",
               let id = nonEmpty(object["tool_use_id"]?.stringValue)
                 ?? nonEmpty(object["tool_call_id"]?.stringValue)
-                ?? nonEmpty(object["id"]?.stringValue),
-              let content = resultContent(from: object["content"])
+                ?? nonEmpty(object["id"]?.stringValue)
         else {
             return nil
         }
 
-        return (id, content)
+        return (id, resultContent(from: object["content"]) ?? "")
     }
 
     private static func resultContent(from value: JSONValue?) -> String? {
@@ -686,7 +706,13 @@ struct ToolCallGroup: Identifiable, Equatable {
         with fallback: ToolCall,
         presentationID: String? = nil
     ) -> ToolCall {
-        let id = isGeneratedToolID(existing.id) && !isGeneratedToolID(fallback.id) ? fallback.id : existing.id
+        let replacesGeneratedID = isGeneratedToolID(existing.id) && !isGeneratedToolID(fallback.id)
+        let id = replacesGeneratedID ? fallback.id : existing.id
+        // A summary without a tool ID guesses completion. Once transcript
+        // metadata identifies the call, its active-turn result presence wins.
+        let isCompleted = existing.id.hasPrefix("persisted-tool-") && replacesGeneratedID
+            ? fallback.isCompleted
+            : existing.isCompleted || fallback.isCompleted
 
         return ToolCall(
             id: id,
@@ -696,7 +722,7 @@ struct ToolCallGroup: Identifiable, Equatable {
             args: existing.args ?? fallback.args,
             duration: existing.duration ?? fallback.duration,
             isError: mergedErrorState(existing.isError, fallback.isError),
-            isCompleted: existing.isCompleted || fallback.isCompleted,
+            isCompleted: isCompleted,
             startedAt: min(existing.startedAt, fallback.startedAt)
         )
     }
