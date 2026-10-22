@@ -644,6 +644,17 @@ only the typed text. A chip has a name and no path, so tapping one shows the loc
 when this phone sent it and otherwise says it has no server path; audio shows as a
 file, not a player.
 
+Assistant `MEDIA:` documents in Hermes sessions (`isHermesDocumentCandidate`: the
+`BinaryFilePreview.quickLook` formats) open in the same native preview as sent files
+(`BotArtifactPreview`, capped at 25 MB). A host path's preview downloads as a sent file
+does, from the chat's attach. A remote URL's preview is a public fetch on the cookie-less
+`APIClient.sharedPublicMediaSession`, with neither server's credentials or headers and no
+redirects. The row's download button is the uncapped MEDIA export every other file uses
+(`ChatViewModel.transcriptMediaData`), whose remote URLs keep the webui media policy, so a
+document past the preview cap still saves and shares. Other files keep the download-only
+row, and webui sessions are unchanged. A document's row follows the interface direction;
+other media keeps its LTR anchor inside RTL messages (#259).
+
 Dictation in a Hermes session follows the Dictation Provider setting as on webui
 (#1071), but `HermesTranscription` uploads one JSON `POST /api/audio/transcribe` for
 the chat's Profile on the `.provisioning` deadline, never the webui's multipart

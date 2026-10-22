@@ -33,6 +33,7 @@ Hermex is a native SwiftUI iPhone app for driving a self-hosted [hermes-webui](h
 ## Features
 
 - **Chat with your agent** — send messages with model, reasoning-effort, workspace, and profile options; attach files and images; watch responses stream in real time with thinking and tool-call detail.
+- **Documents in direct-Hermes chats** — tap a PDF or other supported `MEDIA:` document to read it in Quick Look, then save or share it.
 - **Steer or stop a run** mid-flight.
 - **Sessions** — browse, search, and resume every conversation on your server; cached sessions stay readable offline.
 - **Pick your models** — switch between any model or provider your server is configured for, with recents and favorites.
