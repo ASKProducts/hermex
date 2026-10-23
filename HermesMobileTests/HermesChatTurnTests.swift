@@ -793,6 +793,22 @@ import SwiftUI
         XCTAssertEqual(chat.turn.activity.settledPlan?.followsLastPrompt, true)
     }
 
+    /// A turn this chat never saw start that ends is the newest turn (#1158): an earlier plan
+    /// with no saved row no longer settles under the last prompt, which may now be that turn's.
+    func testAnUnseenTurnEndsAnEarlierPlansClaimOnTheLastPrompt() async {
+        let chat = await openChat()
+        chat.host.always("prompt.submit", .init(result: .object(["status": .string("streaming")])))
+        _ = await chat.model.sendMessage("Plan it")
+        chat.receive(event(1, "message.start"))
+        chat.receive(event(2, "todo.updated", todos(revision: 1, ["completed"])))
+        chat.receive(event(3, "message.complete", ["status": .string("complete"), "text": .string("Done.")]))
+        chat.receive(event(4, "session.info", ["running": .bool(false)]))
+        XCTAssertEqual(chat.turn.activity.settledPlan?.followsLastPrompt, true)
+
+        chat.receive(event(5, "message.complete", ["status": .string("error"), "error": .string("HTTP 500")]))
+        XCTAssertNil(chat.turn.activity.settledPlan, "no saved row, and the last prompt may be the unseen turn's")
+    }
+
     /// An older revision never replaces a newer one, and an empty list at revision 1 or later is
     /// the host clearing the plan: it goes from the strip and the transcript, and an older
     /// revision does not bring it back.
@@ -983,6 +999,35 @@ import SwiftUI
 
         await waitUntil("the retained prompt read") { activity.retryTarget != nil }
         XCTAssertEqual(activity.retryTarget, .init(rowID: 9, text: "Second", showsPrompt: false), "the named turn's prompt, at its own row")
+    }
+
+    /// Another client's turn the host failed before it began completes with no `message.start`
+    /// (#1158). The earlier failure's Retry goes at once, since its cut would take that turn too,
+    /// and the failure read offers the newer turn's prompt at its own row instead.
+    func testAnUnseenFailedTurnReplacesTheEarlierRetry() async {
+        let chat = await openChat()
+        let activity = chat.turn.activity
+        serveHistory([userRow("First", id: 7)])
+        var first = Self.failedInflight
+        first["user"] = .string("First")
+        chat.host.next("session.resume", .init(result: resume(running: false, inflight: first)))
+        chat.receive(event(1, "message.start"))
+        chat.receive(event(2, "message.complete", Self.rateLimitedCompletion))
+        chat.receive(event(3, "session.info", ["running": .bool(false)]))
+        await waitUntil("the first failure read") { activity.retryTarget != nil }
+        XCTAssertEqual(activity.retryTarget?.rowID, 7)
+
+        serveHistory([userRow("First", id: 7), userRow("Second", id: 9, at: 1_790_000_100)])
+        var second = Self.failedInflight
+        second["user"] = .string("Second"); second["started_at"] = .number(1_790_000_100)
+        chat.host.next("session.resume", .init(result: resume(running: false, inflight: second)))
+        var unseen = Self.rateLimitedCompletion
+        unseen["persisted_turn"] = nil
+        chat.receive(event(4, "message.complete", unseen))
+        XCTAssertNil(activity.retryTarget, "the earlier prompt's cut would take the newer turn")
+
+        await waitUntil("the second failure read") { activity.retryTarget != nil }
+        XCTAssertEqual(activity.retryTarget, .init(rowID: 9, text: "Second", showsPrompt: false))
     }
 
     /// The failure read takes the snapshot, then the newest rows. A turn another client submitted
