@@ -28,6 +28,26 @@ import XCTest
         XCTAssertNil(presentation.summaries.states[presentation.key], "the accepted answer ended the approval")
     }
 
+    func testARefusedAnswerKeepsTheStillPendingApprovalsSummary() async throws {
+        let chat = await openChat()
+        defer { chat.model.suspendStreamForBackground() }
+        chat.receive(approvalRequest(id: "refused-envelope", requestID: "refused-approval"))
+        guard case .approval(let approval)? = chat.requests.onScreen else { return XCTFail("Expected approval") }
+        let presentation = try XCTUnwrap(chat.requests.summaryPresentation(for: approval, workingDirectory: nil))
+        chat.host.withhold("llm.oneshot")
+        let sent = expectation(description: "summary model request on the wire")
+        chat.host.expect(sent, onNext: "llm.oneshot")
+        let summary = Task { await presentation.summaries.show(presentation.key, load: presentation.load) }
+        await fulfillment(of: [sent], timeout: 2)
+        chat.host.always("approval.respond", .init(error: 4002))
+        let taken = await chat.requests.respond(try action(chat), choice: .once)
+        XCTAssertFalse(taken)
+        XCTAssertEqual(presentation.summaries.states[presentation.key], .loading, "the approval is still waiting")
+        XCTAssertEqual(chat.requests.summaryPresentation(for: approval, workingDirectory: nil)?.key, presentation.key)
+        presentation.summaries.retain([], in: presentation.key.scope)
+        await summary.value
+    }
+
     func testAnsweringAnotherApprovalKeepsThePendingSummaryAvailable() async throws {
         let chat = await openChat()
         defer { chat.model.suspendStreamForBackground() }
