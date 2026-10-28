@@ -56,6 +56,44 @@ import XCTest
                        .error("Hermes didn't accept the username or password."), "the error still shows first")
     }
 
+    func testAnsweringARoomApprovalKeepsTheNextCardsSummaryLoading() async throws {
+        let server = URL(string: "https://room.example")!
+        let connection = BotConnection(id: UUID(), name: "Fixture", address: server, username: "fixture", password: "fixture")
+        let wire = RoomWire()
+        var next = try XCTUnwrap(RoomFixture.approval.fields)
+        next["request_id"] = .string("approval:2")
+        wire.driverStatus = RoomFixture.status(actions: [RoomFixture.approval, .object(next)])
+        let bothLoading = expectation(description: "both cards' summaries in flight")
+        bothLoading.expectedFulfillmentCount = 2
+        var replies: [CheckedContinuation<Void, Never>] = []
+        wire.beforeSummaryReply = { await withCheckedContinuation { replies.append($0); bothLoading.fulfill() } }
+        let room = try XCTUnwrap(BotGroupRoom(RoomFixture.room(latest: 0)))
+        let reader = BotRoomReader(key: BotRoomKey(server: server, connectionID: connection.id, roomID: room.id),
+                                   connection: connection, room: room, cache: BotHistoryCache(), makeWire: { _ in wire })
+        let suite = "approval-summary-room-" + UUID().uuidString
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defaults.set(true, forKey: ApprovalSummaries.enabledKey)
+        let window = try show(NavigationStack { BotRoomView(reader: reader, roster: [], avatars: [:]) }
+            .environment(\.scenePhase, .inactive).defaultAppStorage(defaults))
+        defer { reader.close(); close(window); defaults.removePersistentDomain(forName: suite) }
+        await reader.open()
+        await settle(window)
+        await fulfillment(of: [bothLoading], timeout: 3)
+        let key = try XCTUnwrap(reader.summaryPresentation(for: reader.status.actions[1])).key
+        defer { ApprovalSummaries.shared.retain([], in: key.scope) }
+
+        // The host settles the first approval; the second card moves up into its slot.
+        wire.driverStatus = RoomFixture.status(actions: [.object(next)])
+        await reader.poll()
+        await settle(window)
+        XCTAssertEqual(ApprovalSummaries.shared.states[key], .loading, "moving up must not cancel the card's summary")
+        let ready = expectation(description: "the moved card's summary arrived")
+        withObservationTracking { _ = ApprovalSummaries.shared.states[key] } onChange: { ready.fulfill() }
+        replies.forEach { $0.resume() }
+        await fulfillment(of: [ready], timeout: 3)
+        XCTAssertEqual(ApprovalSummaries.shared.states[key], .ready("Room command explanation"))
+    }
+
     func testRoomTranscriptDismissesKeyboardWithoutLosingDraft() async throws {
         let server = URL(string: "https://room.example")!
         let connection = BotConnection(id: UUID(), name: "Fixture", address: server, username: "fixture", password: "fixture")

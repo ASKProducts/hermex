@@ -16,6 +16,24 @@ import XCTest
         super.tearDown()
     }
 
+    func testAnUnansweredApprovalSummaryTimesOutWithoutDisconnectingChat() async throws {
+        let chat = BotClient(http: connection(rpcDeadline: .milliseconds(50)))
+        try await chat.connect()
+        defer { chat.close() }
+        var lost = 0
+        chat.onDisconnect = { _ in lost += 1 }
+        let socket = try XCTUnwrap(sockets.first)
+        socket.withholdReply = { $0["method"].text == "llm.oneshot" }
+        do {
+            _ = try await chat.call(.approvalSummary(input: "Command: rm ./draft.txt", language: "English", sessionID: "runtime", profile: "default"))
+            XCTFail("An unanswered summary must time out")
+        } catch { XCTAssertEqual(error as? BotFailure, .transport) }
+        XCTAssertEqual(lost, 0)
+        XCTAssertFalse(socket.isClosed)
+        let profiles = try await chat.call(.profilesList(includeSessions: false))["profiles"].list
+        XCTAssertEqual(profiles, [], "the same consumer can still approve and read")
+    }
+
     func testConcurrentConsumersShareOneSignInTicketSocketAndHandshake() async throws {
         let http = connection()
         let inbox = BotClient(http: http), chat = BotClient(http: http), editor = BotClient(http: http)

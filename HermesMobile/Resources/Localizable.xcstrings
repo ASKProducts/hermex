@@ -1,6 +1,94 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "In plain words (AI summary)" : {
+      "localizations" : {
+        "ar" : { "stringUnit" : { "state" : "needs_review", "value" : "بكلمات بسيطة (ملخص بالذكاء الاصطناعي)" } },
+        "de" : { "stringUnit" : { "state" : "needs_review", "value" : "Einfach erklärt (KI-Zusammenfassung)" } },
+        "en" : { "stringUnit" : { "state" : "needs_review", "value" : "In plain words (AI summary)" } },
+        "es" : { "stringUnit" : { "state" : "needs_review", "value" : "En palabras sencillas (resumen de IA)" } },
+        "fr" : { "stringUnit" : { "state" : "needs_review", "value" : "En termes simples (résumé par IA)" } },
+        "he" : { "stringUnit" : { "state" : "needs_review", "value" : "במילים פשוטות (סיכום AI)" } },
+        "it" : { "stringUnit" : { "state" : "needs_review", "value" : "In parole semplici (riepilogo IA)" } },
+        "ja" : { "stringUnit" : { "state" : "needs_review", "value" : "わかりやすく説明（AIによる要約）" } },
+        "ko" : { "stringUnit" : { "state" : "needs_review", "value" : "쉬운 설명 (AI 요약)" } },
+        "nl" : { "stringUnit" : { "state" : "needs_review", "value" : "In gewone woorden (AI-samenvatting)" } },
+        "pl" : { "stringUnit" : { "state" : "needs_review", "value" : "Prostymi słowami (podsumowanie AI)" } },
+        "pt-BR" : { "stringUnit" : { "state" : "needs_review", "value" : "Em palavras simples (resumo por IA)" } },
+        "ru" : { "stringUnit" : { "state" : "needs_review", "value" : "Простыми словами (сводка ИИ)" } },
+        "tr" : { "stringUnit" : { "state" : "needs_review", "value" : "Basitçe (yapay zekâ özeti)" } },
+        "ur" : { "stringUnit" : { "state" : "needs_review", "value" : "آسان الفاظ میں (AI کا خلاصہ)" } },
+        "zh-HK" : { "stringUnit" : { "state" : "needs_review", "value" : "淺白說明（AI 摘要）" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "needs_review", "value" : "通俗说明（AI 摘要）" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "needs_review", "value" : "淺白說明（AI 摘要）" } }
+      }
+    },
+    "Summarizing…" : {
+      "localizations" : {
+        "ar" : { "stringUnit" : { "state" : "needs_review", "value" : "جارٍ التلخيص…" } },
+        "de" : { "stringUnit" : { "state" : "needs_review", "value" : "Wird zusammengefasst…" } },
+        "en" : { "stringUnit" : { "state" : "needs_review", "value" : "Summarizing…" } },
+        "es" : { "stringUnit" : { "state" : "needs_review", "value" : "Resumiendo…" } },
+        "fr" : { "stringUnit" : { "state" : "needs_review", "value" : "Résumé en cours…" } },
+        "he" : { "stringUnit" : { "state" : "needs_review", "value" : "מסכם…" } },
+        "it" : { "stringUnit" : { "state" : "needs_review", "value" : "Riepilogo in corso…" } },
+        "ja" : { "stringUnit" : { "state" : "needs_review", "value" : "要約中…" } },
+        "ko" : { "stringUnit" : { "state" : "needs_review", "value" : "요약 중…" } },
+        "nl" : { "stringUnit" : { "state" : "needs_review", "value" : "Samenvatten…" } },
+        "pl" : { "stringUnit" : { "state" : "needs_review", "value" : "Podsumowywanie…" } },
+        "pt-BR" : { "stringUnit" : { "state" : "needs_review", "value" : "Resumindo…" } },
+        "ru" : { "stringUnit" : { "state" : "needs_review", "value" : "Составление сводки…" } },
+        "tr" : { "stringUnit" : { "state" : "needs_review", "value" : "Özetleniyor…" } },
+        "ur" : { "stringUnit" : { "state" : "needs_review", "value" : "خلاصہ تیار ہو رہا ہے…" } },
+        "zh-HK" : { "stringUnit" : { "state" : "needs_review", "value" : "正在整理摘要…" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "needs_review", "value" : "正在生成摘要…" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "needs_review", "value" : "正在產生摘要…" } }
+      }
+    },
+    "Explain approvals in plain words" : {
+      "localizations" : {
+        "ar" : { "stringUnit" : { "state" : "needs_review", "value" : "شرح طلبات الموافقة بكلمات بسيطة" } },
+        "de" : { "stringUnit" : { "state" : "needs_review", "value" : "Freigaben einfach erklären" } },
+        "en" : { "stringUnit" : { "state" : "needs_review", "value" : "Explain approvals in plain words" } },
+        "es" : { "stringUnit" : { "state" : "needs_review", "value" : "Explicar las aprobaciones con palabras sencillas" } },
+        "fr" : { "stringUnit" : { "state" : "needs_review", "value" : "Expliquer les approbations en termes simples" } },
+        "he" : { "stringUnit" : { "state" : "needs_review", "value" : "הסבר בקשות אישור במילים פשוטות" } },
+        "it" : { "stringUnit" : { "state" : "needs_review", "value" : "Spiega le approvazioni in parole semplici" } },
+        "ja" : { "stringUnit" : { "state" : "needs_review", "value" : "承認リクエストをわかりやすく説明" } },
+        "ko" : { "stringUnit" : { "state" : "needs_review", "value" : "승인 요청을 쉬운 말로 설명" } },
+        "nl" : { "stringUnit" : { "state" : "needs_review", "value" : "Goedkeuringen in gewone woorden uitleggen" } },
+        "pl" : { "stringUnit" : { "state" : "needs_review", "value" : "Wyjaśniaj prośby o zgodę prostymi słowami" } },
+        "pt-BR" : { "stringUnit" : { "state" : "needs_review", "value" : "Explicar aprovações em palavras simples" } },
+        "ru" : { "stringUnit" : { "state" : "needs_review", "value" : "Объяснять запросы на одобрение простыми словами" } },
+        "tr" : { "stringUnit" : { "state" : "needs_review", "value" : "Onay isteklerini basitçe açıkla" } },
+        "ur" : { "stringUnit" : { "state" : "needs_review", "value" : "منظوری کی درخواستیں آسان الفاظ میں سمجھائیں" } },
+        "zh-HK" : { "stringUnit" : { "state" : "needs_review", "value" : "用淺白文字解釋審批請求" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "needs_review", "value" : "用通俗语言解释审批请求" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "needs_review", "value" : "用淺白文字解釋核准請求" } }
+      }
+    },
+    "Asks the Hermes server’s model for a short summary of each approval. Chats on a webui server don’t show one." : {
+      "localizations" : {
+        "ar" : { "stringUnit" : { "state" : "needs_review", "value" : "يطلب من نموذج خادم Hermes ملخصًا قصيرًا لكل طلب موافقة. لا تعرضه المحادثات على خادم webui." } },
+        "de" : { "stringUnit" : { "state" : "needs_review", "value" : "Fragt das Modell des Hermes-Servers nach einer kurzen Zusammenfassung jeder Freigabe. Chats auf einem webui-Server zeigen keine an." } },
+        "en" : { "stringUnit" : { "state" : "needs_review", "value" : "Asks the Hermes server’s model for a short summary of each approval. Chats on a webui server don’t show one." } },
+        "es" : { "stringUnit" : { "state" : "needs_review", "value" : "Pide al modelo del servidor Hermes un breve resumen de cada aprobación. Los chats de un servidor webui no lo muestran." } },
+        "fr" : { "stringUnit" : { "state" : "needs_review", "value" : "Demande au modèle du serveur Hermes un court résumé de chaque approbation. Les discussions sur un serveur webui n’en affichent pas." } },
+        "he" : { "stringUnit" : { "state" : "needs_review", "value" : "מבקש מהמודל של שרת Hermes סיכום קצר לכל בקשת אישור. צ׳אטים בשרת webui לא מציגים אותו." } },
+        "it" : { "stringUnit" : { "state" : "needs_review", "value" : "Chiede al modello del server Hermes un breve riepilogo di ogni approvazione. Le chat su un server webui non lo mostrano." } },
+        "ja" : { "stringUnit" : { "state" : "needs_review", "value" : "承認ごとに Hermes サーバーのモデルに短い要約を依頼します。webui サーバーのチャットには表示されません。" } },
+        "ko" : { "stringUnit" : { "state" : "needs_review", "value" : "승인마다 Hermes 서버의 모델에 짧은 요약을 요청합니다. webui 서버의 채팅에는 표시되지 않습니다." } },
+        "nl" : { "stringUnit" : { "state" : "needs_review", "value" : "Vraagt het model van de Hermes-server om een korte samenvatting van elke goedkeuring. Chats op een webui-server tonen er geen." } },
+        "pl" : { "stringUnit" : { "state" : "needs_review", "value" : "Prosi model serwera Hermes o krótkie podsumowanie każdej prośby o zgodę. Czaty na serwerze webui go nie pokazują." } },
+        "pt-BR" : { "stringUnit" : { "state" : "needs_review", "value" : "Pede ao modelo do servidor Hermes um breve resumo de cada aprovação. Conversas em um servidor webui não o mostram." } },
+        "ru" : { "stringUnit" : { "state" : "needs_review", "value" : "Запрашивает у модели сервера Hermes краткую сводку для каждого подтверждения. В чатах на сервере webui её нет." } },
+        "tr" : { "stringUnit" : { "state" : "needs_review", "value" : "Her onay için Hermes sunucusunun modelinden kısa bir özet ister. webui sunucusundaki sohbetlerde gösterilmez." } },
+        "ur" : { "stringUnit" : { "state" : "needs_review", "value" : "ہر منظوری کے لیے Hermes سرور کے ماڈل سے مختصر خلاصہ مانگتا ہے۔ webui سرور کی چیٹس میں یہ نہیں دکھتا۔" } },
+        "zh-HK" : { "stringUnit" : { "state" : "needs_review", "value" : "為每個核准請求向 Hermes 伺服器的模型索取簡短摘要。webui 伺服器上的聊天不會顯示。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "needs_review", "value" : "为每个批准请求向 Hermes 服务器的模型请求简短摘要。webui 服务器上的聊天不会显示。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "needs_review", "value" : "為每個核准請求向 Hermes 伺服器的模型索取簡短摘要。webui 伺服器上的聊天不會顯示。" } }
+      }
+    },
     "" : {
       "shouldTranslate" : false
     },
