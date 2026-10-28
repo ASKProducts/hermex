@@ -10,8 +10,12 @@ import SwiftUI
 }
 
 /// Optional model text, with no relationship to the approval controls' enabled state.
+/// Mount it only while the switch is on. The request outlives this view: a remount (a
+/// question taking the card's place, a room card moving up, a layout change) keeps it,
+/// and only the owner's answer, leave, or withdrawal, or the switch turning off, ends it.
 struct ApprovalSummaryLine: View {
     let presentation: ApprovalSummaryPresentation
+    @AppStorage(ApprovalSummaries.enabledKey) private var explainsApprovals = ApprovalSummaries.enabledByDefault
 
     var body: some View {
         Group {
@@ -34,7 +38,7 @@ struct ApprovalSummaryLine: View {
         .task(id: presentation.key) {
             await presentation.summaries.show(presentation.key, load: presentation.load)
         }
-        .onDisappear { presentation.summaries.cancel(presentation.key) }
+        .onDisappear { if !explainsApprovals { presentation.summaries.cancel(presentation.key) } }
     }
 }
 
@@ -130,18 +134,15 @@ struct ApprovalSummarySettingsSection: View {
     func show(_ key: Key, load: @escaping @MainActor () async throws -> String) async {
         guard states[key] == nil, !Task.isCancelled else { return }
         states[key] = .loading
+        // Unstructured, so the presenting view's task ending doesn't cancel it.
         let request = Request(task: Task { try await load() })
         requests[key] = request
-        let result = await withTaskCancellationHandler {
-            await request.task.result
-        } onCancel: {
-            request.task.cancel()
-        }
+        let result = await request.task.result
         // Cancellation/pruning owns the state once it removes the request. A late reply
         // must not repopulate a finished approval, even if its loader ignores cancellation.
         guard requests[key]?.token == request.token else { return }
         requests[key] = nil
-        if !Task.isCancelled, !request.task.isCancelled, case .success(let value) = result {
+        if !request.task.isCancelled, case .success(let value) = result {
             let text = value.trimmingCharacters(in: .whitespacesAndNewlines)
             states[key] = text.isEmpty ? .unavailable : .ready(text)
         } else {
