@@ -185,11 +185,6 @@ import Observation
         }
     }
 
-    private func cancelSummary(_ requestID: String) {
-        guard let scope = summaryScope else { return }
-        ApprovalSummaries.shared.cancel(.init(scope: scope, request: .approval(requestID)))
-    }
-
     private func retireSummary(_ requestID: String) {
         guard let scope = summaryScope else { return }
         ApprovalSummaries.shared.remove(.init(scope: scope, request: .approval(requestID)))
@@ -212,7 +207,6 @@ import Observation
     func respond(_ action: HermesAnswerAction, choice: BotApprovalRequest.Choice) async -> Bool {
         guard case .approval(let approval)? = onScreen, approval.requestID == action.requestID,
               approval.choices.contains(choice), action == prepareAnswer() else { return false }
-        cancelSummary(action.requestID)
         return await deliver(.approval(choice), action) == .answered
     }
 
@@ -262,7 +256,6 @@ import Observation
     func skipApprovals(_ action: HermesAnswerAction) async -> Bool {
         guard case .approval(let approval)? = onScreen, approval.requestID == action.requestID,
               action == prepareAnswer() else { return false }
-        cancelSummary(action.requestID)
         guard await setApprovalBypass(true, for: action) else { return false }
         // The host lists `once` first in every choice set it computes; without it the card
         // waits for one of its own choices.

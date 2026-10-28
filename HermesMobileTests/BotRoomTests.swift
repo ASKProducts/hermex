@@ -87,7 +87,7 @@ import XCTest
         wire.releaseWrite(); await answer.value
     }
 
-    func testAnsweringTheApprovalCancelsAndRemovesItsLoadingSummary() async throws {
+    func testAnAcceptedAnswerRemovesItsLoadingSummary() async throws {
         let wire = RoomWire()
         wire.driverStatus = RoomFixture.status(actions: [RoomFixture.approval])
         let reader = makeReader(wire)
@@ -106,7 +106,7 @@ import XCTest
         wire.onWriteHeld = { answering.fulfill() }
         let answer = Task { await reader.act(action, choice: .once) }
         await fulfillment(of: [answering], timeout: 3)
-        XCTAssertEqual(presentation.summaries.states[presentation.key], .unavailable)
+        XCTAssertEqual(presentation.summaries.states[presentation.key], .loading, "an answer can still fail")
         XCTAssertNil(reader.summaryPresentation(for: action))
         wire.releaseWrite(); await answer.value
         XCTAssertNil(presentation.summaries.states[presentation.key])

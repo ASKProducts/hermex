@@ -351,7 +351,6 @@ import Observation
     func act(_ action: BotRoomAction, choice: BotApprovalRequest.Choice? = nil) async {
         guard mayAct(action), let call = action.call(roomID: key.roomID, choice: choice) else { return }
         let summaryKey = ApprovalSummaries.Key(scope: summaryScope, request: .room(action.id))
-        ApprovalSummaries.shared.cancel(summaryKey)
         await command(call, validate: {
             guard self.status.actions.contains(action), !self.inactiveActions.contains(action.id) else { throw BotFailure.stale }
             self.inactiveActions.insert(action.id)

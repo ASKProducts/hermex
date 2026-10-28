@@ -86,8 +86,8 @@ import SwiftUI
                                                showsPrompt: reader.showsComposer)
                         }
                         Color.clear.frame(height: 0).id("room-actions")
-                        ForEach(actionCards, id: \.id) { card in
-                            BotRoomActionCard(reader: reader, action: card.action)
+                        ForEach(Array(reader.status.actions.enumerated()), id: \.offset) { _, action in
+                            BotRoomActionCard(reader: reader, action: action)
                         }
                         Color.clear.frame(height: 1).id("room-bottom")
                     }
@@ -206,20 +206,6 @@ import SwiftUI
             if let feedback { ChatHaptics.botFeedback(feedback.event, isEnabled: isHapticsEnabled) }
         }
         .transcriptLinks()
-    }
-
-    /// An approval card keeps its own identity, so answering the one above it doesn't
-    /// rebuild it and cancel its summary. Other actions can repeat an identity, so they
-    /// stay keyed by position.
-    private var actionCards: [(id: ActionCardID, action: BotRoomAction)] {
-        reader.status.actions.enumerated().map { offset, action in
-            (action.approval == nil ? .position(offset) : .approval(action.id), action)
-        }
-    }
-
-    private enum ActionCardID: Hashable {
-        case approval(BotRoomAction.Identity)
-        case position(Int)
     }
 
     private var availableSearchSequence: Int? {

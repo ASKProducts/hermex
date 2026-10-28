@@ -12,7 +12,7 @@ import SwiftUI
 /// Optional model text, with no relationship to the approval controls' enabled state.
 /// Mount it only while the switch is on. The request outlives this view: a remount (a
 /// question taking the card's place, a room card moving up, a layout change) keeps it,
-/// and only the owner's answer, leave, or withdrawal, or the switch turning off, ends it.
+/// and only an accepted answer, a withdrawal, leaving, or the switch turning off ends it.
 struct ApprovalSummaryLine: View {
     let presentation: ApprovalSummaryPresentation
     @AppStorage(ApprovalSummaries.enabledKey) private var explainsApprovals = ApprovalSummaries.enabledByDefault
@@ -106,7 +106,7 @@ struct ApprovalSummarySettingsSection: View {
     }
     @ObservationIgnored private var requests: [Key: Request] = [:]
 
-    /// Answering, leaving, or turning the switch off ends unfinished work, but never
+    /// Leaving or turning the switch off ends unfinished work, but never
     /// makes a still-pending approval eligible for a second model request.
     func cancel(_ key: Key) {
         guard let request = requests.removeValue(forKey: key) else { return }
