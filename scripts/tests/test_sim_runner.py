@@ -117,9 +117,11 @@ class SimulatorRunnerTests(unittest.TestCase):
 
     def test_lookup_error_stops_without_termination_or_tests(self):
         self.lookup_status = 1
+        self.device["state"] = "Shutdown"
         self.assertEqual(self.invoke(), 2)
         self.assertFalse(any(c[:3] == ["xcrun", "simctl", "terminate"] for c in self.commands))
         self.assertEqual(self.xcodebuild_runs, 0)
+        self.assertEqual(self.device["state"], "Booted", "Left up for sim-doctor")
 
     def test_preparation_uses_remaining_test_budget_after_lookup(self):
         now = [100.0]
@@ -187,9 +189,11 @@ class SimulatorRunnerTests(unittest.TestCase):
 
     def test_installation_check_timeout_stops_without_termination_or_tests(self):
         self.timeout_operation = "get_app_container"
+        self.device["state"] = "Shutdown"
         self.assertEqual(self.invoke(), 124)
         self.assertFalse(any(c[:3] == ["xcrun", "simctl", "terminate"] for c in self.commands))
         self.assertEqual(self.xcodebuild_runs, 0)
+        self.assertEqual(self.device["state"], "Booted", "Left up for sim-doctor")
 
     def test_installed_app_termination_timeout_stops_without_tests(self):
         self.timeout_operation = "terminate"
@@ -222,6 +226,22 @@ class SimulatorRunnerTests(unittest.TestCase):
         self.assertEqual(self.invoke(), 2)
         self.assertFalse(any(c[0] == "xcodebuild" for c in self.commands))
         self.assertEqual(sum(c[:3] == ["xcrun", "simctl", "bootstatus"] for c in self.commands), 1)
+
+    def test_run_leaves_the_simulator_the_way_it_found_it(self):
+        for state, extra, failed, expected in (("Shutdown", (), 0, "Shutdown"),
+                                               ("Shutdown", (), 1, "Shutdown"),
+                                               ("Booted", (), 0, "Booted"),
+                                               ("Shutdown", ("--keep-booted",), 0, "Booted")):
+            with self.subTest(state=state, extra=extra, failed=failed):
+                self.device["state"] = state
+                self.exit_code, self.failed = (65, 1) if failed else (0, 0)
+                self.assertEqual(self.invoke(extra=extra), failed)
+                self.assertEqual(self.device["state"], expected)
+
+    def test_failed_shutdown_keeps_the_test_result(self):
+        self.device["state"] = "Shutdown"
+        self.timeout_operation = "shutdown"
+        self.assertEqual(self.invoke(), 0)
 
     def test_test_failure_is_returned_without_retry(self):
         self.exit_code = 65
@@ -269,8 +289,10 @@ class SimulatorRunnerTests(unittest.TestCase):
 
     def test_repeated_runner_hang_stops_after_one_retry(self):
         self.hung_runs = 2
+        self.device["state"] = "Shutdown"
         self.assertEqual(self.invoke(), 1)
         self.assertEqual(sum(c[0] == "xcodebuild" for c in self.commands), 2)
+        self.assertEqual(self.device["state"], "Booted", "Left up for sim-doctor")
 
     def test_failed_results_cannot_be_reported_as_success(self):
         self.failed = 1
