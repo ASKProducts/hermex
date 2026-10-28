@@ -25,7 +25,7 @@ import XCTest
         let socket = try XCTUnwrap(sockets.first)
         socket.withholdReply = { $0["method"].text == "llm.oneshot" }
         do {
-            _ = try await chat.call(.approvalSummary(input: "Command: rm ./draft.txt", sessionID: "runtime", profile: "default"))
+            _ = try await chat.call(.approvalSummary(input: "Command: rm ./draft.txt", language: "English", sessionID: "runtime", profile: "default"))
             XCTFail("An unanswered summary must time out")
         } catch { XCTAssertEqual(error as? BotFailure, .transport) }
         XCTAssertEqual(lost, 0)

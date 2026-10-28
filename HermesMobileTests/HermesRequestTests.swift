@@ -6,13 +6,13 @@ import XCTest
 final class HermesRequestTests: XCTestCase {
     func testApprovalSummarySendsTheFlaggedCommandOutsideTheConversation() throws {
         let input = "Why it was flagged: Deletes files\nCommand: rm ./draft.txt\nWorking directory: /work"
-        let call = HermesCall.approvalSummary(input: input, sessionID: "runtime", profile: "dev")
+        let call = HermesCall.approvalSummary(input: input, language: ApprovalSummaries.language("ja"), sessionID: "runtime", profile: "dev")
         let params = try call.params()
         XCTAssertEqual(call.method, "llm.oneshot")
         XCTAssertEqual(params["input"]?.text, input)
         XCTAssertEqual(params["session_id"]?.text, "runtime")
         XCTAssertEqual(params["profile"]?.text, "dev")
-        XCTAssertFalse(params["instructions"]?.text?.isEmpty ?? true)
+        XCTAssertTrue(params["instructions"]?.text?.contains("in Japanese") == true, "a Japanese app asks for Japanese")
         XCTAssertNil(params["template"], "A command is not a commit-message template")
     }
 

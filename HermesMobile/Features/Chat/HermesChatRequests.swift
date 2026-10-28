@@ -174,9 +174,9 @@ import Observation
         let attempt = engine.generation
         return ApprovalSummaryPresentation(key: key) { [weak self] in
             guard let self else { throw BotFailure.stale }
-            let reply = try await self.engine.request(.approvalSummary(input: input, sessionID: runtime,
-                                                                       profile: self.engine.target.profile),
-                                                      attempt: attempt) {
+            let call = HermesCall.approvalSummary(input: input, language: ApprovalSummaries.language(),
+                                                  sessionID: runtime, profile: self.engine.target.profile)
+            let reply = try await self.engine.request(call, attempt: attempt) {
                 guard self.open.contains(where: { $0.pending == .approval(approval) }),
                       self.answeringRequestID != approval.requestID else { throw BotFailure.stale }
             }

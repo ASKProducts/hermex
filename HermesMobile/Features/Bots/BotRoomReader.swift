@@ -340,7 +340,7 @@ import Observation
         let key = ApprovalSummaries.Key(scope: summaryScope, request: .room(action.id))
         return ApprovalSummaryPresentation(key: key) { [weak self] in
             guard let self else { throw BotFailure.stale }
-            let reply = try await client.call(.approvalSummary(input: input, sessionID: nil, profile: profile), validateDispatch: {
+            let reply = try await client.call(.approvalSummary(input: input, language: ApprovalSummaries.language(), sessionID: nil, profile: profile), validateDispatch: {
                 guard self.wire === client, self.summaryScope == key.scope, self.isPendingAndAnswerable(action) else { throw BotFailure.stale }
             })
             guard let text = reply["text"].text else { throw BotFailure.unsupported }

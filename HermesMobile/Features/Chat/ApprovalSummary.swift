@@ -64,6 +64,11 @@ struct ApprovalSummarySettingsSection: View {
     /// Off until the user opts in: each summary is a model call on their server.
     static let enabledByDefault = false
 
+    /// The app's display language named in English, so the summary reads in the user's language.
+    nonisolated static func language(_ identifier: String = Bundle.main.preferredLocalizations.first ?? "en") -> String {
+        Locale(identifier: "en").localizedString(forIdentifier: identifier) ?? "English"
+    }
+
     static func input(description: String?, command: String?, cwd: String?) -> String? {
         guard let command, !command.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
         var lines: [String] = []
