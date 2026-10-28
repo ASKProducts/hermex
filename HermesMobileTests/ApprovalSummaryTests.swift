@@ -23,7 +23,7 @@ import Observation
         }
         let view = ApprovalRequestOverlay(content: content, isResponding: false, errorMessage: nil,
                                           onChoice: { _ in }, onSkipAll: {}, summary: presentation)
-        let window = try await host(view)
+        let window = try await host(view.defaultAppStorage(appStorage(explains: true)))
         defer { close(window) }
         await fulfillment(of: [started], timeout: 2)
         let loading = try capture(window, name: "loading")
@@ -40,12 +40,9 @@ import Observation
         XCTAssertTrue(failed.contains("./draft.txt") && failed.lowercased().contains("allow once") && failed.contains("Deny"), failed)
     }
 
-    func testSwitchOffShowsTheUnchangedCardAndNeverAsksTheModel() async throws {
+    func testTheSwitchIsOffByDefaultSoTheCardIsUnchangedAndNeverAsksTheModel() async throws {
         let summaries = ApprovalSummaries(), key = key()
-        let suite = "approval-summary-test-" + UUID().uuidString
-        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
-        defer { defaults.removePersistentDomain(forName: suite) }
-        defaults.set(false, forKey: ApprovalSummaries.enabledKey)
+        let defaults = try appStorage(explains: nil)
         var calls = 0
         let presentation = ApprovalSummaryPresentation(key: key, summaries: summaries) { calls += 1; return "Not shown" }
         let view = ApprovalRequestOverlay(content: content, isResponding: false, errorMessage: nil,
@@ -69,7 +66,7 @@ import Observation
     func testACardWithoutADirectConnectionHasNoSummarySlot() async throws {
         let view = ApprovalRequestOverlay(content: content, isResponding: false, errorMessage: nil,
                                           onChoice: { _ in }, onSkipAll: {})
-        let window = try await host(view)
+        let window = try await host(view.defaultAppStorage(appStorage(explains: true)))
         defer { close(window) }
         let text = try capture(window, name: "no-direct-connection")
         XCTAssertFalse(text.contains("AI summary") || text.contains("Summarizing"), text)
@@ -90,7 +87,7 @@ import Observation
             onApprove: { _ in }, onAnswer: { _ in }, onSkip: {}, onCredential: { _ in }, onStop: {}, onConnection: { _ in },
             summary: presentation)
             .padding().background(Color(.systemBackground))
-        let window = try await host(view)
+        let window = try await host(view.defaultAppStorage(appStorage(explains: true)))
         defer { close(window) }
         let text = try capture(window, name: "bot-card-summary")
         XCTAssertTrue(text.contains("Removes the draft file."), text)
@@ -99,10 +96,7 @@ import Observation
 
     func testTurningTheGlobalSwitchOffCancelsTheVisibleCardsRequest() async throws {
         let summaries = ApprovalSummaries(), key = key()
-        let suite = "approval-summary-test-" + UUID().uuidString
-        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
-        defer { defaults.removePersistentDomain(forName: suite) }
-        defaults.set(true, forKey: ApprovalSummaries.enabledKey)
+        let defaults = try appStorage(explains: true)
         let started = expectation(description: "summary started")
         let cancelled = expectation(description: "turning off cancelled the actual load")
         var reply: CheckedContinuation<String, Never>?
@@ -145,7 +139,7 @@ import Observation
         let presentation = ApprovalSummaryPresentation(key: key, summaries: summaries, load: { "Unused" })
         let view = ApprovalRequestOverlay(content: content, isResponding: false, errorMessage: nil,
                                           onChoice: { _ in }, onSkipAll: {}, summary: presentation)
-        let window = try await host(view)
+        let window = try await host(view.defaultAppStorage(appStorage(explains: true)))
         defer { close(window) }
         let text = try capture(window, name: "summary-shown")
         XCTAssertTrue(text.contains("Removes the draft file."), text)
@@ -169,6 +163,15 @@ import Observation
     private var content: ApprovalOverlayContent {
         .init(description: "Deletes a file", command: "rm ./draft.txt", scopeLine: nil,
               pendingCount: 1, choices: [.once, .deny])
+    }
+
+    /// A fresh defaults suite for the switch; `nil` leaves it at its shipped default.
+    private func appStorage(explains: Bool?) throws -> UserDefaults {
+        let suite = "approval-summary-test-" + UUID().uuidString
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        addTeardownBlock { defaults.removePersistentDomain(forName: suite) }
+        if let explains { defaults.set(explains, forKey: ApprovalSummaries.enabledKey) }
+        return defaults
     }
 
     private func host<V: View>(_ view: V) async throws -> UIWindow {

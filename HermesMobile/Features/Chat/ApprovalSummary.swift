@@ -38,9 +38,9 @@ struct ApprovalSummaryLine: View {
     }
 }
 
-/// A single iPhone-wide switch, used by every direct-Hermes approval surface.
+/// A single iPhone-wide opt-in switch, used by every direct-Hermes approval surface.
 struct ApprovalSummarySettingsSection: View {
-    @AppStorage(ApprovalSummaries.enabledKey) private var explainsApprovals = true
+    @AppStorage(ApprovalSummaries.enabledKey) private var explainsApprovals = ApprovalSummaries.enabledByDefault
 
     var body: some View {
         Section {
@@ -48,7 +48,7 @@ struct ApprovalSummarySettingsSection: View {
                 SettingsLabel(title: String(localized: "Explain approvals in plain words"), systemImage: "text.bubble")
             }
         } footer: {
-            Text("Asks the server’s model for a short summary.")
+            Text("Asks the Hermes server’s model for a short summary of each approval. Chats on a webui server don’t show one.")
         }
     }
 }
@@ -57,6 +57,8 @@ struct ApprovalSummarySettingsSection: View {
 @MainActor @Observable final class ApprovalSummaries {
     static let shared = ApprovalSummaries()
     static let enabledKey = "chat.explainApprovalsInPlainWords"
+    /// Off until the user opts in: each summary is a model call on their server.
+    static let enabledByDefault = false
 
     static func input(description: String?, command: String?, cwd: String?) -> String? {
         guard let command, !command.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }

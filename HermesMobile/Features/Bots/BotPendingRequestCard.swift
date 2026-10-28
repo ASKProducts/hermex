@@ -116,7 +116,7 @@ private struct BotApprovalRequestBody: View {
     let isAnswering: Bool
     let onApprove: (BotApprovalRequest.Choice) -> Void
     var summary: ApprovalSummaryPresentation? = nil
-    @AppStorage(ApprovalSummaries.enabledKey) private var explainsApprovals = true
+    @AppStorage(ApprovalSummaries.enabledKey) private var explainsApprovals = ApprovalSummaries.enabledByDefault
 
     var body: some View {
         HermesRequestHeader(

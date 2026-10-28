@@ -35,7 +35,7 @@ struct ApprovalRequestOverlay: View {
     let onChoice: (ApprovalChoice) -> Void
     let onSkipAll: () -> Void
     var summary: ApprovalSummaryPresentation? = nil
-    @AppStorage(ApprovalSummaries.enabledKey) private var explainsApprovals = true
+    @AppStorage(ApprovalSummaries.enabledKey) private var explainsApprovals = ApprovalSummaries.enabledByDefault
 
     var body: some View {
         ZStack {
