@@ -70,6 +70,9 @@ private struct HermesHomeSwitch: View {
             EmptyView()
         }
         .pickerStyle(.segmented)
+        // A bare `.fixedSize()` hugs the longer label (#1344); the minimum gives both segments
+        // room, and a longer translation still widens the switch instead of truncating.
+        .frame(minWidth: 200)
         .fixedSize()
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .accessibilityShowsLargeContentViewer()
