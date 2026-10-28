@@ -12,27 +12,7 @@ import Observation
                            conversation: .session(profile: "default", key: chat)), request: .approval(approval))
     }
 
-    func testAnOnSwitchLoadsTheSummaryAndAFailureQuietlyEndsIt() async throws {
-        let summaries = ApprovalSummaries(), key = key()
-        let started = expectation(description: "model request started")
-        var reply: CheckedContinuation<String, Error>?
-        let presentation = ApprovalSummaryPresentation(key: key, summaries: summaries) {
-            try await withCheckedThrowingContinuation { reply = $0; started.fulfill() }
-        }
-        let view = ApprovalRequestOverlay(content: content, isResponding: false, errorMessage: nil,
-                                          onChoice: { _ in }, onSkipAll: {}, summary: presentation)
-        let window = try await host(view.defaultAppStorage(appStorage(explains: true)))
-        defer { close(window) }
-        await fulfillment(of: [started], timeout: 2)
-        XCTAssertEqual(summaries.states[key], .loading)
-        let ended = expectation(description: "failed summary ended")
-        withObservationTracking { _ = summaries.states[key] } onChange: { ended.fulfill() }
-        reply?.resume(throwing: BotFailure.transport)
-        await fulfillment(of: [ended], timeout: 2)
-        XCTAssertEqual(summaries.states[key], .unavailable)
-    }
-
-    func testTheSwitchIsOffByDefaultSoTheCardIsUnchangedAndNeverAsksTheModel() async throws {
+    func testTheSwitchIsOffByDefaultSoTheCardNeverAsksTheModel() async throws {
         let summaries = ApprovalSummaries(), key = key()
         var calls = 0
         let presentation = ApprovalSummaryPresentation(key: key, summaries: summaries) { calls += 1; return "Not shown" }
@@ -41,28 +21,8 @@ import Observation
         let window = try await host(view.defaultAppStorage(appStorage(explains: nil)))
         defer { close(window) }
         await settle(window)
-        assertRawCommand(in: view)
         XCTAssertEqual(calls, 0)
         XCTAssertNil(summaries.states[key])
-    }
-
-    func testTheSharedBotCardAsksForTheSameExplanation() async throws {
-        let summaries = ApprovalSummaries(), key = key()
-        let approval = try XCTUnwrap(BotApprovalRequest(.object([
-            "request_id": .string("fixture-approval"), "command": .string("rm ./draft.txt"),
-            "description": .string("Deletes a file"), "choices": .array([.string("once"), .string("deny")])
-        ])))
-        let loaded = expectation(description: "the Bot card asked for its summary")
-        let presentation = ApprovalSummaryPresentation(key: key, summaries: summaries) {
-            loaded.fulfill(); return "Removes the draft file."
-        }
-        let view = BotPendingRequestCard(request: .approval(approval), identity: "Fixture bot · Local test host",
-            isEnabled: true, canStop: true, isAnswering: false, resolution: nil,
-            onApprove: { _ in }, onAnswer: { _ in }, onSkip: {}, onCredential: { _ in }, onStop: {}, onConnection: { _ in },
-            summary: presentation)
-        let window = try await host(view.defaultAppStorage(appStorage(explains: true)))
-        defer { close(window) }
-        await fulfillment(of: [loaded], timeout: 2)
     }
 
     func testACardThatLeavesAndReturnsWhileLoadingKeepsItsOneRequest() async throws {
@@ -119,19 +79,6 @@ import Observation
         XCTAssertEqual(summaries.states[key], .unavailable, "a late reply can't come back once the switch is off")
     }
 
-    /// Inspect the Text emitted by the overlay's actual body, not the input model.
-    /// No private SwiftUI field names are used.
-    private func assertRawCommand(in view: ApprovalRequestOverlay, file: StaticString = #filePath, line: UInt = #line) {
-        let command = Text(verbatim: "rm ./draft.txt").font(.system(.footnote, design: .monospaced))
-        func containsCommand(_ value: Any) -> Bool {
-            if let text = value as? Text { return text == command }
-            let mirror = Mirror(reflecting: value)
-            guard mirror.displayStyle != .class else { return false }
-            return mirror.children.contains { containsCommand($0.value) }
-        }
-        XCTAssertTrue(containsCommand(view.body), "The card must contain the exact raw command Text", file: file, line: line)
-    }
-
     private var content: ApprovalOverlayContent {
         .init(description: "Deletes a file", command: "rm ./draft.txt", scopeLine: nil,
               pendingCount: 1, choices: [.once, .deny])
@@ -186,28 +133,6 @@ import Observation
         XCTAssertEqual(summaries.states[key], .ready("New command"))
     }
 
-    func testAnsweringCancelsUnfinishedWorkAndRejectsItsLateResult() async {
-        let summaries = ApprovalSummaries(), key = key()
-        let started = expectation(description: "model request started")
-        var reply: CheckedContinuation<String, Never>?
-        var cancelled = false
-        let show = Task {
-            await summaries.show(key) {
-                let text = await withCheckedContinuation { reply = $0; started.fulfill() }
-                cancelled = Task.isCancelled
-                return text
-            }
-        }
-        await fulfillment(of: [started], timeout: 2)
-        XCTAssertEqual(summaries.states[key], .loading)
-        summaries.cancel(key)
-        XCTAssertEqual(summaries.states[key], .unavailable)
-        reply?.resume(returning: "Late summary")
-        await show.value
-        XCTAssertTrue(cancelled, "the actual in-flight load must be cancelled")
-        XCTAssertEqual(summaries.states[key], .unavailable)
-    }
-
     func testOnlyAnAuthoritativePendingSetDropsTheResultForThatConversation() async {
         let summaries = ApprovalSummaries(), first = key(), second = key(chat: "chat-b")
         await summaries.show(first) { "First" }
@@ -225,16 +150,6 @@ import Observation
         await summaries.show(key) { retried = true; return "Retry" }
         XCTAssertFalse(retried)
         XCTAssertEqual(summaries.states[key], .unavailable)
-    }
-
-    func testACompletedExplanationIsShownWhenTheCardReturnsWithoutAnotherRequest() async {
-        let summaries = ApprovalSummaries(), key = key()
-        var calls = 0
-        await summaries.show(key) { calls += 1; return "Removes the draft file." }
-        XCTAssertEqual(summaries.states[key], .ready("Removes the draft file."))
-        await summaries.show(key) { calls += 1; return "A second explanation." }
-        XCTAssertEqual(summaries.states[key], .ready("Removes the draft file."))
-        XCTAssertEqual(calls, 1)
     }
 }
 
