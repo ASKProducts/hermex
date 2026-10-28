@@ -317,6 +317,33 @@ final class ComposerVoiceInputServerRecordingTests: APIClientTestCase {
         XCTAssertNil(data)
         XCTAssertEqual(dataLoadCount, 0)
     }
+
+    // Server First records with these settings on a real device, where an AAC
+    // sample-rate and bitrate pair the encoder rejects only shows up as a
+    // recording that fails to start. Encode a short clip with the same settings
+    // and check the file comes out in the configured format.
+    func testServerRecordingSettingsAreAcceptedByTheAACEncoder() throws {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(UUID().uuidString).m4a")
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        try Self.encodeNoise(seconds: 1, to: url, settings: ComposerVoiceInputController.serverRecordingSettings)
+
+        let written = try AVAudioFile(forReading: url).fileFormat
+        XCTAssertEqual(written.sampleRate, ComposerVoiceInputController.serverRecordingSampleRate)
+        XCTAssertEqual(written.channelCount, 1)
+    }
+
+    private static func encodeNoise(seconds: Int, to url: URL, settings: [String: Any]) throws {
+        let file = try AVAudioFile(forWriting: url, settings: settings)
+        let format = file.processingFormat
+        let frames = AVAudioFrameCount(format.sampleRate) * AVAudioFrameCount(seconds)
+        let buffer = try XCTUnwrap(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames))
+        buffer.frameLength = frames
+        let samples = try XCTUnwrap(buffer.floatChannelData?[0])
+        for frame in 0..<Int(frames) { samples[frame] = Float.random(in: -0.3...0.3) }
+        try file.write(from: buffer)
+    }
 }
 
 /// Reports an on-device model without the simulator's speech service. Tests that

@@ -380,17 +380,21 @@ final class ComposerVoiceInputController {
 
     // MARK: - Server STT
 
-    // Mono AAC at a speech bitrate keeps long recordings far below the server's
-    // upload ceiling (~14 MB/hour against a 20 MB default), so recording runs
-    // until the user stops it rather than being cut off by a duration cap.
+    // Mono AAC tuned for server speech-to-text (#1355). At 44.1 kHz a 32 kbps
+    // encode spreads its bits over a band speech models discard, and server STT
+    // dropped noticeably more words than on an Opus voice note of the same
+    // speech. 24 kHz keeps the speech band and 48 kbps there matched the voice
+    // note. ~22 MB/hour still lets recording run until the user stops it; past
+    // the upload ceiling (~55 minutes) the byte guard below takes over.
     static let serverRecordingSettings: [String: Any] = [
         AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
-        AVSampleRateKey: 44_100.0,
+        AVSampleRateKey: serverRecordingSampleRate,
         AVNumberOfChannelsKey: 1,
         AVEncoderBitRateKey: serverRecordingBitrate
     ]
 
-    static let serverRecordingBitrate = 32_000
+    static let serverRecordingSampleRate = 24_000.0
+    static let serverRecordingBitrate = 48_000
     static let serverRecordingFileExtension = "m4a"
     // Leave 1 MiB below the server's configurable 20 MiB default for the
     // multipart envelope. A lower custom limit still uses the existing fallback.
