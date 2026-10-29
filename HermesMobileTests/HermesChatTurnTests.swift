@@ -365,8 +365,9 @@ import SwiftUI
         XCTAssertEqual(chat.model.messages.map(\.content), ["Reading every file", "Only the README", "README says hi."])
     }
 
-    /// Queue holds the prompt on the host behind a receipt; when the host runs it, its turn
-    /// shows it.
+    /// Queue holds the prompt on the host, shown as a pending bubble instead of a receipt
+    /// (#1379). A second queued prompt merges into it as the host merges them, and it stays
+    /// through the idle gap until the host runs it as one real row.
     func testQueueHoldsThePromptOnTheHostUntilItsTurnStarts() async {
         let chat = await openChat()
         chat.receive(event(1, "message.start"))
@@ -374,19 +375,35 @@ import SwiftUI
         let result = await chat.model.submitStreamingMessage("Then the tests", behavior: .queue)
         XCTAssertEqual(result, .executed(message: nil))
         XCTAssertEqual(chat.writes("prompt.submit").first?["queued"], .bool(true))
-        XCTAssertEqual(chat.model.queuedMessagesReceipt, "Queued, sends when this run finishes")
-        XCTAssertEqual(chat.model.messages, [], "nothing shows until the host runs it")
+        _ = await chat.model.submitStreamingMessage("And the docs", behavior: .queue)
+        XCTAssertEqual(chat.model.queuedPromptMessage?.content, "Then the tests\n\nAnd the docs")
+        XCTAssertNil(chat.model.queuedMessagesReceipt, "the bubble replaces the receipt")
+        XCTAssertEqual(chat.model.messages, [], "the bubble is not a transcript row")
 
         chat.receive(event(2, "message.complete", ["status": .string("complete")]))
         chat.receive(event(3, "session.info", ["running": .bool(false)]))
+        XCTAssertNotNil(chat.model.queuedPromptMessage, "it stays between the turns")
         chat.receive(event(4, "message.start"))
-        XCTAssertEqual(chat.model.messages.map(\.content), ["Then the tests"])
-        XCTAssertNil(chat.model.queuedMessagesReceipt)
+        XCTAssertEqual(chat.model.messages.map(\.content), ["Then the tests\n\nAnd the docs"])
+        XCTAssertNil(chat.model.queuedPromptMessage)
     }
 
-    /// Another client's Stop discards the host's queue too: the receipt goes, Stop no longer
+    /// A reattach restores the host's queued prompt as the bubble, its file reference a chip
+    /// rather than a host path, and its turn shows it once.
+    func testAReattachRestoresTheQueuedPromptAsOneBubble() async {
+        let chat = await openChat(snapshot: resume(running: true)
+            .replacing("queued", with: .object(["user": .string("Then the tests\n\n@file:/a/notes.txt")])))
+        XCTAssertEqual(chat.model.queuedPromptMessage?.content, "Then the tests")
+        XCTAssertEqual(chat.model.queuedPromptMessage?.attachments?.map(\.name), ["notes.txt"])
+
+        chat.receive(event(1, "message.start"))
+        XCTAssertEqual(chat.model.messages.filter { $0.role == "user" }.map(\.content), ["Then the tests"])
+        XCTAssertNil(chat.model.queuedPromptMessage)
+    }
+
+    /// Another client's Stop discards the host's queue too: the bubble goes, Stop no longer
     /// asks, and the next turn does not show the discarded prompt.
-    func testAStopFromAnotherClientClearsTheQueuedReceipt() async {
+    func testAStopFromAnotherClientClearsTheQueuedPrompt() async {
         let chat = await openChat()
         chat.receive(event(1, "message.start"))
         chat.host.always("prompt.submit", .init(result: .object(["status": .string("queued")])))
@@ -394,7 +411,7 @@ import SwiftUI
         XCTAssertTrue(chat.model.stopNeedsConfirmation)
 
         chat.receive(event(2, "message.complete", ["status": .string("interrupted")]))
-        XCTAssertNil(chat.model.queuedMessagesReceipt)
+        XCTAssertNil(chat.model.queuedPromptMessage)
         XCTAssertFalse(chat.model.stopNeedsConfirmation)
         chat.receive(event(3, "session.info", ["running": .bool(false)]))
         chat.receive(event(4, "message.start"))
@@ -419,10 +436,11 @@ import SwiftUI
         chat.host.always("prompt.submit", .init(result: .object(["status": .string("queued")])))
         _ = await chat.model.submitStreamingMessage("Afterwards", behavior: .queue)
         XCTAssertTrue(chat.model.stopNeedsConfirmation)
+        XCTAssertEqual(chat.model.queuedPromptMessage?.content, "Afterwards")
         chat.host.always("session.interrupt", .init(result: .object(["status": .string("interrupted")])))
         _ = await chat.model.cancelActiveStream()
         XCTAssertFalse(chat.model.stopNeedsConfirmation, "the host discarded the queue")
-        XCTAssertNil(chat.model.queuedMessagesReceipt)
+        XCTAssertNil(chat.model.queuedPromptMessage)
     }
 
     /// A refused password (#884, #942) is never sent again unasked: neither returning from the
@@ -1008,16 +1026,23 @@ import SwiftUI
     }
 
     /// A first turn that failed before the host saved any row still shows its outcome row, with
-    /// Retry and the billing page, in place of the empty chat's start prompt. Loading and a
-    /// failed load keep their own placeholders.
-    func testAnEmptyChatShowsAFailedTurnsOutcome() {
+    /// Retry and the billing page, in place of the empty chat's start prompt, as a prompt queued
+    /// behind another client's first turn still shows its bubble. Loading and a failed load keep
+    /// their own placeholders.
+    func testAnEmptyChatShowsAFailedTurnsOutcomeOrAQueuedPrompt() {
         typealias Placeholder = ChatTranscriptView.Placeholder
-        XCTAssertNil(Placeholder(isLoading: false, errorMessage: nil, isEmpty: true, showsTurnOutcome: true))
-        XCTAssertEqual(Placeholder(isLoading: false, errorMessage: nil, isEmpty: true, showsTurnOutcome: false), .startPrompt)
-        XCTAssertEqual(Placeholder(isLoading: true, errorMessage: nil, isEmpty: true, showsTurnOutcome: true), .loading)
-        XCTAssertEqual(Placeholder(isLoading: false, errorMessage: "Offline", isEmpty: true, showsTurnOutcome: true),
-                       .loadFailed("Offline"))
-        XCTAssertNil(Placeholder(isLoading: false, errorMessage: nil, isEmpty: false, showsTurnOutcome: false))
+        XCTAssertNil(Placeholder(isLoading: false, errorMessage: nil, isEmpty: true, showsTurnOutcome: true,
+                                 showsQueuedPrompt: false))
+        XCTAssertNil(Placeholder(isLoading: false, errorMessage: nil, isEmpty: true, showsTurnOutcome: false,
+                                 showsQueuedPrompt: true))
+        XCTAssertEqual(Placeholder(isLoading: false, errorMessage: nil, isEmpty: true, showsTurnOutcome: false,
+                                   showsQueuedPrompt: false), .startPrompt)
+        XCTAssertEqual(Placeholder(isLoading: true, errorMessage: nil, isEmpty: true, showsTurnOutcome: true,
+                                   showsQueuedPrompt: true), .loading)
+        XCTAssertEqual(Placeholder(isLoading: false, errorMessage: "Offline", isEmpty: true, showsTurnOutcome: true,
+                                   showsQueuedPrompt: true), .loadFailed("Offline"))
+        XCTAssertNil(Placeholder(isLoading: false, errorMessage: nil, isEmpty: false, showsTurnOutcome: false,
+                                 showsQueuedPrompt: false))
     }
 
     /// A failed turn says why in its outcome row, not as error text: the host's surface, its

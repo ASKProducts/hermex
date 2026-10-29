@@ -2076,7 +2076,12 @@ struct ChatView: View {
             onOpenForkParent: openForkParent,
             settledPlan: viewModel.hermesActivity?.settledPlan?.plan,
             settledPlanAfterRenderID: settledPlanAfterRenderID,
-            turnOutcome: hermesTurnOutcome
+            turnOutcome: hermesTurnOutcome,
+            queuedPrompt: viewModel.queuedPromptMessage,
+            onCopyQueuedPrompt: { text in
+                UIPasteboard.general.string = text
+                ChatHaptics.copied(isEnabled: isHapticsEnabled)
+            }
         )
         // Off the main body chain, which is at the type-checker's limit.
         .onChange(of: viewModel.latestRunOutcome) {
@@ -2652,8 +2657,10 @@ struct ChatView: View {
 
         let didStart: Bool
         if viewModel.activeStreamID != nil {
-            prepareTranscriptForExplicitSend()
             let behavior = behavior ?? StreamingSendBehavior.storedValue(streamingSendBehaviorRawValue)
+            if ChatScrollPolicy.streamingSendReArmsFollow(behavior) {
+                prepareTranscriptForExplicitSend()
+            }
             let result = await viewModel.submitStreamingMessage(outboundMessage, behavior: behavior)
             handleSlashExecutionResult(
                 result,
@@ -3770,7 +3777,8 @@ struct ChatView: View {
         animated: Bool = true,
         isUserInitiated: Bool = false
     ) {
-        guard !viewModel.messages.isEmpty else { return }
+        // An empty chat still draws the transcript for a queued prompt (#1379).
+        guard !viewModel.messages.isEmpty || viewModel.queuedPromptMessage != nil else { return }
 
         scheduleFollowScroll(
             proxy,
