@@ -298,6 +298,48 @@ import UIKit
         XCTAssertEqual(chat.model.uploadAttachmentErrorMessage, "Use up to 8 attachments, 25 MB each and 50 MB total.")
     }
 
+    /// Two long pastes in quick succession (#1381): the second is named before the first
+    /// lands, so each file keeps its own name and its own bytes.
+    func testRapidPastesStageDistinctFiles() async throws {
+        let chat = await openChat()
+        let logs = [String(repeating: "a", count: 3_001), String(repeating: "b", count: 3_001)]
+
+        let pastes = logs.map { chat.model.stagePastedText($0) }
+        for paste in pastes { _ = await paste.value }
+
+        let staged = chat.model.pendingAttachments
+        XCTAssertEqual(Set(staged.map(\.name)), ["pasted-text.txt", "pasted-text-2.txt"])
+        var bytes: Set<Data> = []
+        for attachment in staged {
+            bytes.insert(try await chat.copies.data(named: try XCTUnwrap(attachment.draftFileName)))
+        }
+        XCTAssertEqual(bytes, Set(logs.map { Data($0.utf8) }))
+    }
+
+    /// A long paste whose chat goes away while its copy is being saved (#1381) leaves no
+    /// tile, no copy and no held Send.
+    func testAPasteCancelledMidSaveLeavesNothingBehind() async throws {
+        let copies = PausingCopies()
+        let coordinator = ChatAttachmentCoordinator(
+            client: APIClient(baseURL: URL(string: "https://hermes.example")!), draftAttachmentStore: copies,
+            draftStore: ChatDraftStore(persistence: BotMemoryDrafts(), attachmentStore: copies, debounceDuration: .seconds(60)),
+            uploadsOnSend: true
+        )
+        let saving = expectation(description: "The paste's copy is being written")
+        await copies.onSave { saving.fulfill() }
+
+        let paste = coordinator.stagePastedText(String(repeating: "a", count: 3_001))
+        await fulfillment(of: [saving], timeout: 5)
+        coordinator.cancelPastedTextStaging()
+        await copies.resume()
+        _ = await paste.value
+
+        XCTAssertEqual(coordinator.pendingAttachments, [])
+        XCTAssertFalse(coordinator.isUploadingAttachment)
+        let copiesLeft = await copies.count
+        XCTAssertEqual(copiesLeft, 0)
+    }
+
     // MARK: Transcript
 
     /// The rule keeps text without references as it is, and reads references only as whole
