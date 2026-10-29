@@ -6,15 +6,19 @@ import SwiftUI
     private let server = URL(string: "https://one.example")!
     private var defaults: UserDefaults!
     private var suite = ""
+    /// Each test's cached rosters, one subdirectory per cache.
+    private var rosterRoot: URL!
 
     override func setUp() {
         super.setUp()
         suite = "BotInboxTests." + UUID().uuidString
         defaults = UserDefaults(suiteName: suite)
+        rosterRoot = FileManager.default.temporaryDirectory.appendingPathComponent(suite, isDirectory: true)
     }
 
     override func tearDown() {
         defaults.removePersistentDomain(forName: suite)
+        try? FileManager.default.removeItem(at: rosterRoot)
         super.tearDown()
     }
 
@@ -1224,17 +1228,170 @@ import SwiftUI
     // MARK: - Helpers
 
     /// Status re-reads default to an hour apart, so only a test that asks for them sees one.
+    // MARK: - Cached roster (#1403)
+
+    /// The roster a live read left paints the next open before its socket connects, claiming
+    /// nothing live and allowing no server edit, and the live read replaces it wholesale.
+    func testTheLastRosterPaintsWhileConnectingAndEachLiveReadReplacesIt() async throws {
+        let store = try connectedStore()
+        let cache = makeRosterCache().cache
+        let first = BotInboxFixtureWire(roster: [row("triage", preview: "cached"), row("gone")])
+        first.active = [live("triage-tip", "working")]
+        let earlier = try makeInbox(wires: [first], store: store, rosterCache: cache)
+        await earlier.open()
+        XCTAssertEqual(earlier.liveStatuses, ["triage": .working])
+        earlier.close()
+
+        let wire = BotInboxFixtureWire(roster: [row("triage", preview: "live"), row("added")])
+        wire.active = []
+        wire.holdsConnect = true
+        let inbox = try makeInbox(wires: [wire], store: store, rosterCache: cache)
+        let opening = Task { await inbox.open() }
+        await settle(inbox) { !$0.profiles.isEmpty }
+        XCTAssertEqual(inbox.profiles.map(\.id), ["triage", "gone"])
+        XCTAssertEqual(inbox.profiles.first?.preview, "cached")
+        XCTAssertEqual(inbox.link, .connecting)
+        XCTAssertFalse(inbox.isLoadingRoster)
+        XCTAssertEqual(inbox.liveStatuses, [:], "a cached row never claims Working")
+        XCTAssertFalse(inbox.profiles.contains(where: inbox.mayEdit))
+
+        wire.release()
+        await opening.value
+        XCTAssertEqual(inbox.link, .live)
+        XCTAssertEqual(inbox.profiles.map(\.id), ["triage", "added"])
+        XCTAssertEqual(inbox.profiles.first?.preview, "live")
+
+        // An empty roster replaces the copy too. The status read follows the save.
+        wire.roster = []
+        let read = expectation(description: "status read after the empty roster")
+        wire.onCall = { if $0 == "session.active_list" { read.fulfill() } }
+        wire.emit("sessions.changed")
+        await fulfillment(of: [read], timeout: 5)
+        XCTAssertEqual(inbox.profiles, [])
+        let scope = BotRosterCache.Scope(server: server, connectionID: try XCTUnwrap(inbox.connection).id)
+        let left = await cache.load(scope)
+        XCTAssertNil(left)
+    }
+
+    /// A cached roster belongs to one connection on one server: a load the connection change
+    /// outdated paints and connects nothing, and a removal revokes saves read before it.
+    func testACachedRosterNeverCrossesConnectionsOrOutlivesItsRemoval() async throws {
+        let store = try connectedStore()
+        let a = try XCTUnwrap(store.load(server: server))
+        let b = BotConnection(id: UUID(), name: "Other", address: URL(string: "https://other.example")!,
+                              username: "u", password: "p", hermesVersion: nil)
+        // The form replaces A with B while A's roster is being read, and the inbox stays
+        // open until the form's sheet dismisses.
+        let cache = makeRosterCache { try store.save(b, server: self.server) }
+        let other = URL(string: "https://two.example")!
+        let otherScope = BotRosterCache.Scope(server: other, connectionID: a.id)
+        await cache.save([row("from-a")], scope: .init(server: server, connectionID: a.id), readAt: .now)
+        await cache.save([row("elsewhere")], scope: otherScope, readAt: .now)
+        let aWire = BotInboxFixtureWire(roster: [row("from-a")])
+        let bWire = BotInboxFixtureWire(roster: [row("from-b")])
+        bWire.holdsConnect = true
+        let inbox = try makeInbox(wires: [], store: store, rosterCache: cache) { $0.id == a.id ? aWire : bWire }
+
+        await inbox.open()
+        XCTAssertEqual(inbox.profiles, [], "the outdated load paints nothing")
+        XCTAssertEqual(aWire.closed + aWire.calls.count, 0, "and never connects A")
+
+        let reopening = Task { await inbox.open() }
+        await settle(inbox) { $0.link == .connecting }
+        XCTAssertTrue(inbox.isLoadingRoster, "B has no cached roster, and A's never paints under it")
+        bWire.release()
+        await reopening.value
+        XCTAssertEqual(inbox.profiles.map(\.id), ["from-b"])
+
+        // Signing out removes this server's rosters; a save read before that cannot bring one back.
+        let readBefore = ContinuousClock.now
+        await cache.remove(server: server)
+        let bScope = BotRosterCache.Scope(server: server, connectionID: b.id)
+        await cache.save([row("late")], scope: bScope, readAt: readBefore)
+        let late = await cache.load(bScope)
+        XCTAssertNil(late)
+        let kept = await cache.load(otherScope)
+        XCTAssertEqual(kept?.count, 1, "another server's roster stays")
+    }
+
+    /// Another client of the same browser sign-in rotating its refresh token during the load
+    /// is still this connection: the cached roster paints and the inbox connects on the new token.
+    func testARefreshTokenRotationDuringTheCachedLoadKeepsOpening() async throws {
+        let store = BotConnectionStore(keychain: InMemoryKeychainStore())
+        var signedIn = BotConnection(id: UUID(), name: "Mac", address: URL(string: "https://mac.example")!,
+                                     username: "u1", password: "", hermesVersion: nil)
+        signedIn.oauth = HermesOAuth(provider: "nous", userID: "u1", refreshToken: "refresh-1")
+        try store.save(signedIn, server: server)
+        let cache = makeRosterCache {
+            try store.saveRotatedRefreshToken("refresh-2", replacing: "refresh-1", connection: signedIn.id, server: self.server)
+        }
+        await cache.save([row("triage")], scope: .init(server: server, connectionID: signedIn.id), readAt: .now)
+        let wire = BotInboxFixtureWire(roster: [row("triage")])
+        wire.holdsConnect = true
+        var openedWith: String?
+        let inbox = try makeInbox(wires: [], store: store, rosterCache: cache) {
+            openedWith = $0.oauth?.refreshToken
+            return wire
+        }
+
+        let opening = Task { await inbox.open() }
+        await settle(inbox) { $0.link == .connecting }
+        XCTAssertEqual(inbox.profiles.map(\.id), ["triage"])
+        XCTAssertEqual(openedWith, "refresh-2")
+        wire.release()
+        await opening.value
+        XCTAssertEqual(inbox.link, .live)
+    }
+
+    /// An unreadable copy is a miss: the inbox shows its skeleton and connects as usual.
+    func testAnUnreadableCachedRosterFallsBackToTheConnection() async throws {
+        let store = try connectedStore()
+        let (cache, directory) = makeRosterCache()
+        let saved = try XCTUnwrap(store.load(server: server))
+        await cache.save([row("triage")], scope: .init(server: server, connectionID: saved.id), readAt: .now)
+        for file in try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil) {
+            try Data("[{\"name\":".utf8).write(to: file)
+        }
+        let wire = BotInboxFixtureWire(roster: [row("live")])
+        wire.holdsConnect = true
+        let inbox = try makeInbox(wires: [wire], store: store, rosterCache: cache)
+        let opening = Task { await inbox.open() }
+        await settle(inbox) { $0.link == .connecting }
+        XCTAssertTrue(inbox.isLoadingRoster)
+        wire.release()
+        await opening.value
+        XCTAssertEqual(inbox.link, .live)
+        XCTAssertEqual(inbox.profiles.map(\.id), ["live"])
+    }
+
+    /// An inbox on `wires` in order, or on `wireFor`'s pick per saved connection.
     private func makeInbox(wires: [BotInboxFixtureWire], store: BotConnectionStore? = nil, server: URL? = nil,
-                           statusPollInterval: Duration = .seconds(3600)) throws -> BotInbox {
+                           rosterCache: BotRosterCache? = nil, statusPollInterval: Duration = .seconds(3600),
+                           wireFor: ((BotConnection) -> BotInboxFixtureWire)? = nil) throws -> BotInbox {
         let server = server ?? self.server
         let store = try store ?? connectedStore(server: server)
         var queue = wires
         return BotInbox(server: server, store: store, unread: BotUnreadStore(defaults: defaults),
                         roomStore: BotRoomOrganizeStore(defaults: defaults),
                         sectionOrderStore: BotSectionOrderStore(defaults: defaults),
-                        avatarStore: BotAvatarStore(), profileNames: HermesProfileNameCache(defaults: defaults),
+                        avatarStore: BotAvatarStore(), rosterCache: rosterCache ?? makeRosterCache().cache,
+                        profileNames: HermesProfileNameCache(defaults: defaults),
                         reloadSpacing: .zero, reconnectDelays: [.zero],
-                        statusPollInterval: statusPollInterval) { _ in queue.removeFirst() }
+                        statusPollInterval: statusPollInterval) { wireFor?($0) ?? queue.removeFirst() }
+    }
+
+    /// An empty roster cache in its own directory under this test's root.
+    private func makeRosterCache() -> (cache: BotRosterCache, directory: URL) {
+        let directory = rosterRoot.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        return (BotRosterCache(directory: directory), directory)
+    }
+
+    /// A roster cache that runs `duringFirstLoad` inside its first load, between an open's
+    /// read of the saved connection and its re-read.
+    private func makeRosterCache(duringFirstLoad: @escaping @MainActor () throws -> Void) -> BotRosterCache {
+        let change = FirstLoadChange(duringFirstLoad)
+        return BotRosterCache(directory: rosterRoot.appendingPathComponent(UUID().uuidString, isDirectory: true),
+                              willLoad: { await change.run() })
     }
 
     private func connectedStore(server: URL? = nil) throws -> BotConnectionStore {
@@ -1294,6 +1451,17 @@ import SwiftUI
             done.fulfill()
         }
         await fulfillment(of: [done], timeout: 5)
+    }
+}
+
+/// A change to the saved connection that runs once, inside the roster cache's first load.
+@MainActor private final class FirstLoadChange {
+    private var change: (() throws -> Void)?
+    init(_ change: @escaping () throws -> Void) { self.change = change }
+
+    func run() {
+        defer { change = nil }
+        XCTAssertNoThrow(try change?())
     }
 }
 
