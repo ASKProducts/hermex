@@ -536,7 +536,8 @@ struct ChatView: View {
             isCompressingSession: viewModel.isCompressingSession,
             isWaitingForStream: viewModel.activeStreamID != nil,
             isCancellingStream: viewModel.isCancellingStream,
-            readOnlyMessage: composerReadOnlyMessage,
+            // Offline the draft stays editable and Send waits for the reconnect (#1375).
+            access: ChatComposerAccess(session: session, isViewingCachedData: viewModel.showsOfflineCache),
             errorMessage: viewModel.sendErrorMessage,
             errorFixPrompt: viewModel.sendErrorRuntimeStale?.fixPrompt,
             configurationErrorMessage: viewModel.composerConfigurationErrorMessage
@@ -725,26 +726,6 @@ struct ChatView: View {
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
         )
-    }
-
-    private var composerReadOnlyMessage: String? {
-        Self.composerReadOnlyMessage(
-            for: session,
-            isViewingCachedData: viewModel.showsOfflineCache
-        )
-    }
-
-    static func composerReadOnlyMessage(
-        for session: SessionSummary,
-        isViewingCachedData: Bool
-    ) -> String? {
-        if isViewingCachedData {
-            return String(localized: "Reconnect to send messages.")
-        }
-        if session.isSessionReadOnly {
-            return String(localized: "Read-only")
-        }
-        return nil
     }
 
     /// Hermes documents share BotArtifactPreview. An image is known to be an image
@@ -2125,15 +2106,17 @@ struct ChatView: View {
     /// file, or whenever the answers already given have been thrown away: the
     /// transcript grew, was swapped for the server's copy (which can rewrite a
     /// message in the middle without changing the count or the last id), or the
-    /// workspace moved. The composer asks for a scan when the draft gains or
-    /// loses a finished `@…`.
+    /// workspace moved. Leaving the offline cache also changes it, so a draft
+    /// typed offline is confirmed on reconnect. The composer asks for a scan
+    /// when the draft gains or loses a finished `@…`.
     ///
     /// Everything here is O(1), because it runs on every transcript update,
     /// including each token of a live stream. The scan of the transcript itself
     /// is the view model's, and it skips candidates the server has already
     /// answered for.
     private var transcriptFileChipScanToken: [Int] {
-        [viewModel.messages.count, viewModel.transcriptRevision, viewModel.fileChipScopeRevision]
+        [viewModel.messages.count, viewModel.transcriptRevision, viewModel.fileChipScopeRevision,
+         viewModel.showsOfflineCache ? 1 : 0]
     }
 
     /// How many sent messages look like they name a skill.
@@ -2142,9 +2125,11 @@ struct ChatView: View {
     /// transcript that swaps in the server's messages still warms the list when
     /// the count of messages did not change but their text did. Zero once the
     /// list has loaded or this chat has already asked, which is what keeps the
-    /// scan off the streaming path.
+    /// scan off the streaming path. Zero while offline too, so the ask waits
+    /// for the reconnect.
     private var transcriptSkillReferenceCount: Int {
-        guard !hasRequestedSkillsForTranscriptChips, !viewModel.hasLoadedSkillSlashSuggestions else {
+        guard !hasRequestedSkillsForTranscriptChips, !viewModel.hasLoadedSkillSlashSuggestions,
+              !viewModel.showsOfflineCache else {
             return 0
         }
 

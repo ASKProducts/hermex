@@ -1290,9 +1290,10 @@ final class ChatViewModel {
     /// cannot take the fetch down with it, and a caller arriving mid-flight
     /// waits for that same result instead of racing past an "already loading"
     /// flag and finding an empty list. A failed load clears the handle, so the
-    /// next caller retries.
+    /// next caller retries. Held while the chat shows its offline cache; the
+    /// composer asks again on reconnect.
     func loadPersonalitySuggestions() async {
-        guard !hasLoadedPersonalitySuggestions else { return }
+        guard !hasLoadedPersonalitySuggestions, !showsOfflineCache else { return }
         // A Hermes host lists its own (#1016), here for the `/personality ` panel (#1036).
         if let hermesSettings {
             guard let personalities = try? await hermesSettings.personalities() else { return }
@@ -1333,9 +1334,11 @@ final class ChatViewModel {
     /// this view model owns: a cancelled caller cannot take the fetch down with
     /// it, and a caller arriving mid-flight waits for that same result instead
     /// of racing past an "already loading" flag and finding an empty list. A
-    /// failed load clears the handle, so the next caller retries.
+    /// failed load clears the handle, so the next caller retries. Held while the
+    /// chat shows its offline cache; the composer and transcript ask again on
+    /// reconnect.
     func loadSkillSlashSuggestions() async {
-        guard hermesTurn == nil, !hasLoadedSkillSlashSuggestions else { return }
+        guard hermesTurn == nil, !hasLoadedSkillSlashSuggestions, !showsOfflineCache else { return }
 
         let load: Task<Void, Never>
         if let existing = skillSlashSuggestionsLoad {
@@ -4732,6 +4735,9 @@ final class ChatViewModel {
     /// caller cancelled by an unrelated view update cannot take the listings
     /// down with it, and a caller arriving mid-pass waits for that pass rather
     /// than starting a second one over the same folders.
+    ///
+    /// Held while the chat shows its offline cache: a draft typed then asks the host
+    /// nothing, and the chat asks for a fresh pass once it reconnects.
     func loadFileChipReferences(draft: String) async {
         while let existing = fileChipReferenceLoad {
             await existing.value
@@ -4739,7 +4745,7 @@ final class ChatViewModel {
 
         // Resolved after the wait: the workspace may have moved meanwhile, such as a Hermes
         // folder leaving the `local` backend, which closes the source.
-        guard let source = fileReferenceSource else { return }
+        guard !showsOfflineCache, let source = fileReferenceSource else { return }
         let candidates = fileChipReferenceCandidates(draft: draft)
         guard !candidates.isEmpty else { return }
 
@@ -4843,8 +4849,9 @@ final class ChatViewModel {
             for directory in batch {
                 // Between folders, not just between batches: a workspace switch
                 // part-way through a pass must stop it before the next request,
-                // and nothing it has learned since may be applied.
-                guard !Task.isCancelled else { return }
+                // and nothing it has learned since may be applied. Going offline
+                // stops it too; its candidates stay open for the reconnect's pass.
+                guard !Task.isCancelled, !showsOfflineCache else { return }
                 guard let wanted = wantedByDirectory[directory] else { continue }
                 guard let lookup = try? await listedFileReferences(wanted, in: directory, source: source) else {
                     // A listing that failed is not an answer. Leaving the
