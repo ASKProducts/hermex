@@ -728,9 +728,14 @@ struct ChatTranscriptMessageBlock: View, Equatable {
     }
 
     var body: some View {
+        let foldedQuestions = Self.foldedQuestionLines(
+            in: toolCallGroups,
+            foldState: foldState,
+            showsThinkingAndToolCards: showsThinkingAndToolCards
+        )
         // Yield nothing when every part is folded away, so the outer stack adds
         // no spacing for an empty row.
-        if hasVisibleContent {
+        if hasVisibleContent || !foldedQuestions.isEmpty {
             VStack(alignment: .leading, spacing: transcriptSpacing) {
                 if let fold = foldState?.fold {
                     TranscriptTurnFoldRowView(
@@ -746,6 +751,13 @@ struct ChatTranscriptMessageBlock: View, Equatable {
                         liveReasoningBlock
                         toolActivityGroups
                         liveToolActivityGroup
+                    }
+                    .transition(foldTransition)
+                } else if !foldedQuestions.isEmpty {
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(foldedQuestions) { line in
+                            ClarifyAnswerLineView(line: line)
+                        }
                     }
                     .transition(foldTransition)
                 }
@@ -777,6 +789,18 @@ struct ChatTranscriptMessageBlock: View, Equatable {
             && (!toolCallGroups.isEmpty
                 || !reasoningGroups.isEmpty)
         return hasArchivedActivity || shouldRenderLiveReasoningBlock || shouldRenderLiveToolActivityGroup
+    }
+
+    /// The answered questions a folded turn keeps in view while it hides a
+    /// row's tool rows. Empty when the row's activity shows, since its clarify
+    /// rows already show the answers, and when thinking and tool cards are off.
+    static func foldedQuestionLines(
+        in toolCallGroups: [ToolCallGroup],
+        foldState: TranscriptTurnFoldRowState?,
+        showsThinkingAndToolCards: Bool
+    ) -> [ClarifyResult.Line] {
+        guard showsThinkingAndToolCards, foldState?.hidesActivity == true else { return [] }
+        return ClarifyResult.lines(in: toolCallGroups)
     }
 
     private var hasVisibleContent: Bool {
