@@ -106,6 +106,21 @@ import Observation
         XCTAssertFalse(list.hasMoreScheduledSessions)
     }
 
+    /// A refused scheduled "Load more" shows over the rows until a retry loads the page (#1374).
+    func testARefusedScheduledLoadMoreClearsOnceARetryLoads() async {
+        let wire = HermesSessionListWire()
+        wire.scheduledPages = ["default": [0: page(rows(0..<100)), 100: page(rows(100..<101))]]
+        let list = makeList(wire)
+        defer { list.closeHermes() }
+        await list.openHermes()
+
+        wire.pageFailure = .rejected(403)
+        await list.loadMoreHermesScheduledSessions()
+        XCTAssertNotNil(list.hermesRefusalOverRows)
+        await list.loadMoreHermesScheduledSessions()
+        XCTAssertNil(list.hermesRefusalOverRows, "the loaded page answers the refusal")
+    }
+
     func testScheduledSearchRequestAndOrdinaryRequestsKeepSeparateSourceScopes() throws {
         let calls: [HermesREST] = [.sessionList(profile: "default", offset: 0, scheduled: true),
                                   .sessionList(profile: "default", offset: 100, scheduled: true),
@@ -443,6 +458,78 @@ import Observation
         XCTAssertFalse(list.isHermesConnected)
         XCTAssertEqual(list.sessionLoadError as? BotFailure, .outdated("0.20.0"))
         XCTAssertEqual(list.sessions.map(\.sessionId), ["a"], "the rows stay")
+    }
+
+    /// A lost socket keeps the rows' last known states, marked stale, while the list reconnects
+    /// (#1374). A tap reconnects past the backoff; the rows settle the reconnect, and only the
+    /// host's next status reply makes the states current. A refusal the user has to act on
+    /// clears them.
+    func testALostSocketKeepsTheLastKnownStatesUntilTheHostAnswersAgain() async {
+        let wire = HermesSessionListWire()
+        wire.pages["default"] = [0: page([HermesSessionRow(id: "a")])]
+        wire.active = [live("a", "working")]
+        let list = makeList(wire)
+        await list.openHermes()
+        await waitUntil("states read") { !list.attentionStatesBySessionID.isEmpty }
+
+        wire.onDisconnect?(BotFailure.transport)
+        XCTAssertTrue(list.isHermesReconnecting)
+        XCTAssertEqual(list.attentionStatesBySessionID, ["a": .working], "the last known states stay")
+        XCTAssertTrue(list.attentionStatesAreStale)
+
+        wire.holdsActive = true
+        wire.active = [live("a", "waiting")]
+        list.reconnectNow()
+        await waitUntil("rows read") { wire.connects == 2 && !list.isHermesReconnecting }
+        XCTAssertTrue(list.attentionStatesAreStale, "rows vouch for no run")
+        wire.release()
+        await waitUntil("states read") { !list.attentionStatesAreStale }
+        XCTAssertEqual(list.attentionStatesBySessionID, ["a": .input])
+
+        wire.onDisconnect?(BotFailure.outdated("0.20.0"))
+        XCTAssertEqual(list.attentionStatesBySessionID, [:], "a refusal leaves nothing to reconnect to")
+    }
+
+    /// A read that fails on the socket that just came back recovers as a lost socket does
+    /// (#1374): a retryable failure waits on another reconnect, which a tap runs; a refusal
+    /// ends the reconnect, clears the states and shows over the rows.
+    func testAFailedReadAfterAReconnectRecoversAsALostSocket() async {
+        let wire = HermesSessionListWire()
+        wire.pages["default"] = [0: page([HermesSessionRow(id: "a")])]
+        wire.active = [live("a", "working")]
+        let list = makeList(wire)
+        await list.openHermes()
+        await waitUntil("states read") { !list.attentionStatesBySessionID.isEmpty }
+
+        wire.onDisconnect?(BotFailure.transport)
+        wire.pageFailure = .rejected(503)
+        list.reconnectNow()
+        await waitUntil("the read failed") { wire.connects == 2 && wire.pageFailure == nil }
+        XCTAssertTrue(list.isHermesReconnecting)
+
+        wire.pageFailure = .rejected(403)
+        list.reconnectNow()
+        await waitUntil("reconnected and refused") { wire.connects == 3 && !list.isHermesReconnecting }
+        XCTAssertEqual(list.attentionStatesBySessionID, [:])
+        XCTAssertNotNil(list.hermesRefusalOverRows, "the refusal shows over the rows")
+    }
+
+    /// An offline path makes the states the last known ones, and the home says Offline, before
+    /// the socket notices (#1374).
+    func testAnOfflinePathMarksTheStatesStaleBeforeTheSocketDrops() async {
+        let wire = HermesSessionListWire()
+        wire.pages["default"] = [0: page([HermesSessionRow(id: "a")])]
+        wire.active = [live("a", "working")]
+        var online = true
+        let list = makeList(wire, isNetworkAvailable: { online })
+        await list.openHermes()
+        await waitUntil("states read") { !list.attentionStatesBySessionID.isEmpty }
+
+        online = false
+        list.networkPathDidChange()
+        XCTAssertEqual(list.attentionStatesBySessionID, ["a": .working])
+        XCTAssertTrue(list.attentionStatesAreStale)
+        XCTAssertEqual(HomeConnectionStatus(list.hermesConnection, isOnline: false), .offline)
     }
 
     /// A lost list's reconnect holds while offline; the network's return runs it at once, not on
@@ -1085,6 +1172,8 @@ import Observation
     var onDisconnect: ((Error) -> Void)?
     var pages: [String: [Int: HermesSessionPage]] = [:]
     var active: [BotJSON] = []
+    /// While true, `session.active_list` waits for `release()`, then answers from `active` as it is then.
+    var holdsActive = false
     var profiles = ["default", "research"]
     var current = "default"
     /// Profiles the host no longer has: 4064 over the socket, 404 over REST.
@@ -1138,7 +1227,9 @@ import Observation
         case "session.most_recent":
             if removed.contains(params["profile"]?.text ?? "") { throw BotFailure.rejected(4064) }
             return .object(["session_id": .null])
-        case "session.active_list": return .object(["sessions": .array(active)])
+        case "session.active_list":
+            if holdsActive { await withCheckedContinuation { held.append($0) } }
+            return .object(["sessions": .array(active)])
         case "profiles.list": return .object(["profiles": .array(profiles.map { .object(["name": .string($0)]) })])
         case "session.delete": return .object([:])
         case "projects.tree":
@@ -1164,6 +1255,7 @@ import Observation
         scheduledReads.append((profile, offset))
         let reply = scheduledPages[profile]?[offset] ?? HermesSessionPage(rows: [])
         if holdsScheduledPages { await withCheckedContinuation { held.append($0) } }
+        if let failure = pageFailure { pageFailure = nil; throw failure }
         return reply
     }
 

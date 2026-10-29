@@ -446,6 +446,20 @@ the network's return; only a transport loss (`.transport`, a `URLError`) or a re
 `BotConnectionAdvice.isRetryable` passes (408, 429, 5xx) heals there on its own. Closing,
 backgrounding or covering the screen cancels a waiting reconnect.
 
+While the inbox or the session list reconnects with rows on screen, it keeps two facts
+apart (#1374). `isReconnecting` (`isHermesReconnecting`) starts at a retryable drop and
+ends only when a roster or list read on the new socket succeeds, or at a refusal, a close
+or another connection or Profile; a failed connect or read on the new socket counts as
+another drop, keeps the live rows rather than swapping in the offline cache, and the backoff restarts from its first step only once that read succeeds.
+The rows' live states stay as the last known ones (`liveStatusesAreStale`,
+`attentionStatesAreStale`) through the drop, an offline device path and a failed
+`session.active_list`, until a current status reply replaces them; rows can land first.
+A -32601 status reply, a refusal or a close clears them instead. The home's header, and
+the pushed list's title, say "Reconnecting…" after 800 ms (a tap runs the waiting
+reconnect now) or, at once whenever the device is offline, "Offline · showing last known
+status". The line stays away when the offline cache's banner or a refusal shown over the
+rows already explains them.
+
 ## Connection status
 
 With a saved connection, the screen's Status section reads the public `/api/status`
