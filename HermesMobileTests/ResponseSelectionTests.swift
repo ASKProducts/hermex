@@ -546,3 +546,119 @@ extension ResponseSelectionTests {
         XCTAssertEqual(textTop, headerBottom, accuracy: 0.5, "The response starts below the header")
     }
 }
+
+/// What a settled reply's hosted content was last built from.
+@MainActor
+private final class HostedReplyProbe {
+    var builds = 0
+    var colorScheme: ColorScheme?
+    var workspaceRoot: String?
+    var openURL: OpenURLAction?
+    var glyphHeight: CGFloat { leaf?.geometry?.glyphs.first?.rect.height ?? 0 }
+    weak var leaf: ResponseSelectionLeafView?
+
+    func recordBuild() { builds += 1 }
+}
+
+private struct HostedReplyProbeView: View {
+    let probe: HostedReplyProbe
+    let workspaceRoot: String
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.openURL) private var openURL
+
+    var body: some View {
+        probe.colorScheme = colorScheme
+        probe.workspaceRoot = workspaceRoot
+        probe.openURL = openURL
+        return Text("Reply").responseSelectableText("Reply")
+    }
+}
+
+/// The chat around a settled reply: state the reply ignores, and the
+/// workspace, appearance, text size and link handler it must follow.
+@Observable
+private final class HostedReplySurroundings {
+    var unrelated = 0
+    var workspaceRoot = "/first"
+    var colorScheme = ColorScheme.light
+    var dynamicTypeSize = DynamicTypeSize.large
+    var linkHandler = "first"
+    var opened: [String] = []
+}
+
+private struct HostedReplyParent: View {
+    let surroundings: HostedReplySurroundings
+    let probe: HostedReplyProbe
+
+    var body: some View {
+        let handler = surroundings.linkHandler
+        let workspaceRoot = surroundings.workspaceRoot
+        VStack {
+            Text(verbatim: "\(surroundings.unrelated)")
+            ResponseTextSelection(identity: "Reply", inputs: workspaceRoot) {
+                let _ = probe.recordBuild()
+                HostedReplyProbeView(probe: probe, workspaceRoot: workspaceRoot)
+            }
+        }
+        .environment(\.colorScheme, surroundings.colorScheme)
+        .environment(\.dynamicTypeSize, surroundings.dynamicTypeSize)
+        .environment(\.openURL, OpenURLAction { [surroundings] _ in
+            surroundings.opened.append(handler)
+            return .handled
+        })
+    }
+}
+
+extension ResponseSelectionTests {
+    private func showHostedReply() async throws -> (UIWindow, HostedReplySurroundings, HostedReplyProbe) {
+        let surroundings = HostedReplySurroundings()
+        let probe = HostedReplyProbe()
+        let controller = UIHostingController(rootView: HostedReplyParent(surroundings: surroundings, probe: probe))
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 400))
+        window.rootViewController = controller
+        window.makeKeyAndVisible()
+        await render(window)
+        await render(window)
+        func leaf(in view: UIView) -> ResponseSelectionLeafView? {
+            (view as? ResponseSelectionLeafView) ?? view.subviews.lazy.compactMap { leaf(in: $0) }.first
+        }
+        probe.leaf = try XCTUnwrap(leaf(in: controller.view))
+        return (window, surroundings, probe)
+    }
+
+    func testSettledReplyRebuildsOnlyWhenItsInputsOrEnvironmentChange() async throws {
+        let (window, surroundings, probe) = try await showHostedReply()
+        defer { window.isHidden = true }
+        let builds = probe.builds
+        let height = probe.glyphHeight
+        XCTAssertGreaterThan(height, 0)
+
+        surroundings.unrelated += 1
+        await render(window)
+        XCTAssertEqual(probe.builds, builds, "An update the reply does not render from keeps its hosted content")
+
+        surroundings.workspaceRoot = "/second"
+        await render(window)
+        XCTAssertEqual(probe.workspaceRoot, "/second", "The unchanged reply follows its new workspace")
+
+        surroundings.colorScheme = .dark
+        await render(window)
+        XCTAssertEqual(probe.colorScheme, .dark, "The reply follows the new appearance")
+
+        surroundings.dynamicTypeSize = .accessibility2
+        await render(window)
+        await render(window)
+        XCTAssertGreaterThan(probe.glyphHeight, height * 1.5, "The reply's text follows the new text size")
+    }
+
+    func testSettledReplyLinksReachTheLatestHandler() async throws {
+        let (window, surroundings, probe) = try await showHostedReply()
+        defer { window.isHidden = true }
+
+        surroundings.linkHandler = "second"
+        await render(window)
+        try XCTUnwrap(probe.openURL)(URL(string: "https://example.com")!)
+
+        XCTAssertEqual(surroundings.opened, ["second"])
+    }
+}
