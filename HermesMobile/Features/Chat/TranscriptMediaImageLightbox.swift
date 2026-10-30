@@ -24,12 +24,13 @@ struct TranscriptMediaImageLightbox: View {
         server: URL,
         files: (any WorkspaceFileClient)?,
         item: TranscriptMediaPreviewItem,
+        viewModel: TranscriptMediaPreviewViewModel? = nil,
         onAPIError: @escaping (Error) -> Void
     ) {
         self.item = item
         self.onAPIError = onAPIError
         _viewModel = State(
-            initialValue: TranscriptMediaPreviewViewModel(
+            initialValue: viewModel ?? TranscriptMediaPreviewViewModel(
                 server: server,
                 files: files,
                 reference: item.reference
@@ -116,8 +117,8 @@ struct TranscriptMediaImageLightbox: View {
     }
 
     private var content: ImageLightboxContent {
-        if let data = viewModel.previewData {
-            guard let image = UIImage(data: data) else {
+        if viewModel.previewData != nil {
+            guard let image = viewModel.previewImage else {
                 return .failure(String(localized: "Could not decode this image."))
             }
             return .image(image, detail: detailText)
