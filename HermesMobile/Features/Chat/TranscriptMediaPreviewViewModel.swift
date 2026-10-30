@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import UIKit
 
 /// One transcript media reference's preview and export. A MEDIA path downloads through the
 /// chat's `WorkspaceFileClient`, from webui's `/api/media` or a Hermes host (#1112); nil is a
@@ -17,7 +18,10 @@ final class TranscriptMediaPreviewViewModel {
     private var isPastPreviewCap = false
     private var temporaryVideoURL: URL?
 
-    private(set) var previewData: Data?
+    private(set) var previewData: Data? {
+        didSet { previewImage = previewData.flatMap { UIImage(data: $0) } }
+    }
+    private(set) var previewImage: UIImage?
     private(set) var audioData: Data?
     private(set) var videoFileURL: URL?
     private(set) var originalByteCount: Int?

@@ -283,12 +283,13 @@ struct ChatAttachmentImageLightbox: View {
         session: SessionSummary,
         server: URL,
         item: ChatAttachmentPreviewItem,
+        viewModel: ChatAttachmentPreviewViewModel? = nil,
         onAPIError: @escaping (Error) -> Void
     ) {
         self.item = item
         self.onAPIError = onAPIError
         _viewModel = State(
-            initialValue: ChatAttachmentPreviewViewModel(session: session, server: server, item: item)
+            initialValue: viewModel ?? ChatAttachmentPreviewViewModel(session: session, server: server, item: item)
         )
     }
 
@@ -308,7 +309,7 @@ struct ChatAttachmentImageLightbox: View {
     private var content: ImageLightboxContent {
         switch viewModel.preview {
         case let .image(file):
-            if let image = UIImage(data: file.data) {
+            if let image = viewModel.previewImage {
                 return .image(
                     image,
                     detail: ByteCountFormatter.string(
@@ -349,7 +350,16 @@ final class ChatAttachmentPreviewViewModel {
     private let apiClient: APIClient
     private var didLoad = false
 
-    private(set) var preview: FilePreviewContent?
+    private(set) var preview: FilePreviewContent? {
+        didSet {
+            if case let .image(file) = preview {
+                previewImage = UIImage(data: file.data)
+            } else {
+                previewImage = nil
+            }
+        }
+    }
+    private(set) var previewImage: UIImage?
     private(set) var isLoading = false
     private(set) var errorMessage: String?
     private(set) var lastError: Error?
