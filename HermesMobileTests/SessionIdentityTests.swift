@@ -2,6 +2,7 @@ import XCTest
 import AVFoundation
 import ImageIO
 import SwiftData
+import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
 @testable import HermesMobile
@@ -230,5 +231,39 @@ final class SidebarSectionVisibilityTests: XCTestCase {
         visibility.projects = false
 
         XCTAssertTrue(visibility.showsAnyUtilityLink)
+    }
+}
+
+@MainActor final class MainPageVisibilitySectionTests: XCTestCase {
+    func testHermesAndWebuiSectionsShareVisibilityPreferences() throws {
+        let suite = "MainPageVisibilitySectionTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set(true, forKey: SectionVisibilitySettings.tasksKey)
+        defaults.set(true, forKey: SectionVisibilitySettings.kanbanKey)
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+
+        for (isHermes, count) in [(true, 5), (false, 8)] {
+            let host = UIHostingController(rootView: List {
+                MainPageVisibilitySection(isHermes: isHermes)
+            }.defaultAppStorage(defaults))
+            let window = UIWindow(windowScene: scene)
+            window.rootViewController = host
+            window.makeKeyAndVisible()
+            defer { window.isHidden = true; window.rootViewController = nil }
+            host.view.layoutIfNeeded()
+            let controls = switches(in: host.view)
+            XCTAssertEqual(controls.count, count)
+            let tasks = try XCTUnwrap(controls.first)
+            XCTAssertEqual(tasks.isOn, defaults.bool(forKey: SectionVisibilitySettings.tasksKey))
+            tasks.setOn(!tasks.isOn, animated: false)
+            tasks.sendActions(for: .valueChanged)
+            XCTAssertEqual(defaults.bool(forKey: SectionVisibilitySettings.tasksKey), tasks.isOn)
+            XCTAssertTrue(defaults.bool(forKey: SectionVisibilitySettings.kanbanKey), "One toggle leaves another row unchanged")
+        }
+    }
+
+    private func switches(in view: UIView) -> [UISwitch] {
+        ((view as? UISwitch).map { [$0] } ?? []) + view.subviews.flatMap { switches(in: $0) }
     }
 }

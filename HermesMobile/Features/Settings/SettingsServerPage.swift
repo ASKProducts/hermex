@@ -62,6 +62,7 @@ struct SettingsServerPage: View {
                 WebuiServerSections(authManager: authManager, model: webui)
             } else if let server = activeHermesServer {
                 hermesSections(server: server)
+                MainPageVisibilitySection(isHermes: true)
             } else {
                 inactiveServerSection
             }
